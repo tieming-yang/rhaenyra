@@ -3,9 +3,11 @@ import {
   createSnowboardRoute,
   deriveAirborneRigPose,
   deriveTrailRigPose,
+  getCheckpointScrollTarget,
   getMacJumpPose,
   getMacJumpProgress,
   getSnowboardPose,
+  getTrailScrollSpan,
   stepSettleEnergy,
 } from "./snowboard-route";
 
@@ -29,6 +31,59 @@ describe("the snowboard route", () => {
 
   it("stops at the nearest checkpoint when motion is reduced", () => {
     expect(getSnowboardPose(route, 1.7, true)).toEqual(getSnowboardPose(route, 2, false));
+  });
+
+  it("maps each checkpoint index to the exact scrollY where the snowboarder lands on that turn", () => {
+    const metrics = {
+      laneTopDocY: 3100,
+      laneHeight: 2000,
+      checkpointCount: 8,
+      viewportHeight: 900,
+      scrollHeight: 5600,
+    };
+    const { firstTurn, lastTurn } = getTrailScrollSpan(metrics);
+    expect(firstTurn).toBe(3100 + 125 - 450);
+    expect(lastTurn).toBe(3100 + 2000 - 125 - 450);
+
+    for (let index = 0; index < metrics.checkpointCount; index += 1) {
+      const targetScroll = getCheckpointScrollTarget(metrics, index);
+      const progress =
+        ((targetScroll - firstTurn) / (lastTurn - firstTurn)) *
+        (metrics.checkpointCount - 1);
+      const pose = getSnowboardPose(route, progress, false);
+
+      expect(progress).toBeCloseTo(index, 8);
+      expect(pose.activeIndex).toBe(index);
+      expect(pose.x).toBeCloseTo(route.checkpoints[index].x, 8);
+      expect(pose.y).toBeCloseTo(route.checkpoints[index].y, 8);
+      expect(Math.abs(pose.lean)).toBeCloseTo(0, 8);
+    }
+  });
+
+  it("clamps lastTurn to maxScrollY and throws on invalid checkpoint or scroll metrics", () => {
+    const clampedMetrics = {
+      laneTopDocY: 3000,
+      laneHeight: 1600,
+      checkpointCount: 8,
+      viewportHeight: 1000,
+      scrollHeight: 4450,
+    };
+    const span = getTrailScrollSpan(clampedMetrics);
+    expect(span.lastTurn).toBe(3450);
+    expect(getCheckpointScrollTarget(clampedMetrics, 7)).toBe(3450);
+
+    expect(() => getCheckpointScrollTarget(clampedMetrics, -1)).toThrow(
+      "Checkpoint index must be an integer within [0, checkpointCount)"
+    );
+    expect(() => getCheckpointScrollTarget(clampedMetrics, 8)).toThrow(
+      "Checkpoint index must be an integer within [0, checkpointCount)"
+    );
+    expect(() =>
+      getTrailScrollSpan({ ...clampedMetrics, laneHeight: 0 })
+    ).toThrow();
+    expect(() =>
+      getTrailScrollSpan({ ...clampedMetrics, scrollHeight: 800 })
+    ).toThrow();
   });
 });
 

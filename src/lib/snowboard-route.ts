@@ -48,6 +48,76 @@ export function getSnowboardPose(
   };
 }
 
+export type TrailScrollMetrics = Readonly<{
+  laneTopDocY: number;
+  laneHeight: number;
+  checkpointCount: number;
+  viewportHeight: number;
+  scrollHeight: number;
+}>;
+
+export type TrailScrollSpan = Readonly<{
+  firstTurn: number;
+  lastTurn: number;
+}>;
+
+/** Computes the document scrollY bounds where Turn 01 and the final turn align with the viewport center. */
+export function getTrailScrollSpan(metrics: TrailScrollMetrics): TrailScrollSpan {
+  const { laneTopDocY, laneHeight, checkpointCount, viewportHeight, scrollHeight } =
+    metrics;
+  if (
+    !Number.isFinite(laneTopDocY) ||
+    !Number.isFinite(laneHeight) ||
+    laneHeight <= 0 ||
+    !Number.isInteger(checkpointCount) ||
+    checkpointCount < 1 ||
+    !Number.isFinite(viewportHeight) ||
+    viewportHeight <= 0 ||
+    !Number.isFinite(scrollHeight) ||
+    scrollHeight < viewportHeight
+  ) {
+    throw new Error(
+      "Trail scroll span requires positive laneHeight/viewportHeight, valid checkpointCount, and scrollHeight >= viewportHeight"
+    );
+  }
+
+  const center = viewportHeight / 2;
+  const halfRow = laneHeight / checkpointCount / 2;
+  const firstTurn = Math.max(0, laneTopDocY + halfRow - center);
+  const maxScrollY = scrollHeight - viewportHeight;
+  const lastTurn = Math.min(
+    maxScrollY,
+    laneTopDocY + laneHeight - halfRow - center
+  );
+  return { firstTurn, lastTurn: Math.max(firstTurn, lastTurn) };
+}
+
+/** Computes the exact window.scrollY that places the snowboarder squarely on the requested checkpoint index. */
+export function getCheckpointScrollTarget(
+  metrics: TrailScrollMetrics,
+  checkpointIndex: number
+): number {
+  const { checkpointCount } = metrics;
+  if (
+    !Number.isInteger(checkpointIndex) ||
+    checkpointIndex < 0 ||
+    checkpointIndex >= checkpointCount
+  ) {
+    throw new Error(
+      "Checkpoint index must be an integer within [0, checkpointCount)"
+    );
+  }
+
+  const { firstTurn, lastTurn } = getTrailScrollSpan(metrics);
+  if (checkpointCount === 1 || lastTurn <= firstTurn) {
+    return firstTurn;
+  }
+
+  return (
+    firstTurn + (checkpointIndex / (checkpointCount - 1)) * (lastTurn - firstTurn)
+  );
+}
+
 export type MacJumpInput = Readonly<{
   progress: number;
   launchDeltaX: number;
