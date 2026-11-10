@@ -160,6 +160,8 @@ export interface ProposalIntroContent {
 export interface ProposalTrailContent {
   readonly stopsAriaLabel: string;
   readonly markerAriaTemplate: string;
+  readonly nextTopicAriaTemplate: string;
+  readonly finishAriaLabel: string;
 }
 
 export interface ProposalWaypointItem {
@@ -217,6 +219,7 @@ const RESERVED_DOM_ANCHOR_IDS: ReadonlySet<string> = new Set([
   "job-desk",
   "product-cases",
   "proposal",
+  "proposal-finish",
   "profile-title",
   "job-desk-title",
   "product-cases-title",
@@ -812,6 +815,15 @@ function parseProposalContent(raw: unknown): ProposalSectionContent {
         trail.markerAriaTemplate,
         ["step", "title"],
         "proposal.trail.markerAriaTemplate"
+      ),
+      nextTopicAriaTemplate: assertTemplatePlaceholders(
+        trail.nextTopicAriaTemplate,
+        ["title"],
+        "proposal.trail.nextTopicAriaTemplate"
+      ),
+      finishAriaLabel: assertNonEmptyString(
+        trail.finishAriaLabel,
+        "proposal.trail.finishAriaLabel"
       ),
     },
     waypoints,

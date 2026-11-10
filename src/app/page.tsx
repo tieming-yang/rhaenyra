@@ -3,7 +3,7 @@ import { InterviewHeader } from "@/components/interview-header";
 import { ResumeShowcase } from "@/components/resume-showcase";
 import { SnowboardRun } from "@/components/snowboard-run";
 import { getSiteContent } from "@/content";
-import { HEADER_SECTION_HREF } from "@/lib/header-navigation";
+import { HEADER_SECTION_HREF, PROPOSAL_FINISH_ID } from "@/lib/header-navigation";
 import "./resume-showcase.css";
 
 export default function HomePage() {
@@ -43,7 +43,7 @@ export default function HomePage() {
 
           <SnowboardRun content={content.proposal} />
 
-          <footer className="run-finish">
+          <footer id={PROPOSAL_FINISH_ID} className="run-finish">
             <p className="interview-kicker">
               {content.proposal.finish.eyebrow}
             </p>

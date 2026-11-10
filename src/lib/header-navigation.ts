@@ -78,9 +78,13 @@ export type UrlSyncOutcome =
 const MIN_SECTION_ACTIVE_TOP_PX = 96;
 const SECTION_VIEWPORT_RATIO = 0.35;
 
-const PROPOSAL_WAYPOINT_HASHES: ReadonlySet<string> = new Set(
-  DEFAULT_CONTENT.proposal.waypoints.map((waypoint) => `#${waypoint.id}`)
-);
+export const PROPOSAL_FINISH_ID = "proposal-finish";
+export const PROPOSAL_FINISH_HASH = `#${PROPOSAL_FINISH_ID}`;
+
+const PROPOSAL_WAYPOINT_HASHES: ReadonlySet<string> = new Set([
+  ...DEFAULT_CONTENT.proposal.waypoints.map((waypoint) => `#${waypoint.id}`),
+  PROPOSAL_FINISH_HASH,
+]);
 
 function assertFiniteNullableOffset(value: number | null, label: string): void {
   if (value !== null && !Number.isFinite(value)) {

@@ -141,6 +141,7 @@ describe("resolveSectionFromHash", () => {
     expect(resolveSectionFromHash("#proposal")).toBe("proposal");
     expect(resolveSectionFromHash("#intro")).toBe("proposal");
     expect(resolveSectionFromHash("#roadmap")).toBe("proposal");
+    expect(resolveSectionFromHash("#proposal-finish")).toBe("proposal");
     expect(resolveSectionFromHash("#unknown-anchor")).toBeNull();
   });
 });

@@ -7,7 +7,9 @@
   },
   "trail": {
     "stopsAriaLabel": "面試提案的八個轉彎",
-    "markerAriaTemplate": "前往第 {step} 站：{title}"
+    "markerAriaTemplate": "前往第 {step} 站：{title}",
+    "nextTopicAriaTemplate": "前往下一站：{title}",
+    "finishAriaLabel": "前往感謝結尾"
   },
   "waypoints": [
     {

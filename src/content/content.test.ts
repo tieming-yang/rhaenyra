@@ -189,6 +189,16 @@ describe("parseSiteContent validation", () => {
     expect(() => parseSiteContent(unknownToken)).toThrow(
       "proposal.trail.markerAriaTemplate contains unsupported placeholder {unknown}"
     );
+
+    const missingNextTopicToken = createValidRawInput();
+    (
+      missingNextTopicToken.bundle.proposal as {
+        trail: { nextTopicAriaTemplate: string };
+      }
+    ).trail.nextTopicAriaTemplate = "前往下一站";
+    expect(() => parseSiteContent(missingNextTopicToken)).toThrow(
+      "proposal.trail.nextTopicAriaTemplate must include placeholder {title}"
+    );
   });
 });
 

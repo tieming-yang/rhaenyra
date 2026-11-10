@@ -1,10 +1,15 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { type MouseEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   formatContentTemplate,
   type ProposalSectionContent,
 } from "@/content";
+import {
+  PROPOSAL_FINISH_HASH,
+  PROPOSAL_FINISH_ID,
+} from "@/lib/header-navigation";
 import {
   createSnowboardRoute,
   deriveAirborneRigPose,
@@ -311,6 +316,34 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
     window.scrollTo({ top: targetScrollY, behavior });
   }
 
+  function scrollToFinish(event: MouseEvent<HTMLElement>) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+    event.preventDefault();
+
+    const finishElement = document.getElementById(PROPOSAL_FINISH_ID);
+    if (!finishElement) return;
+
+    if (window.location.hash !== PROPOSAL_FINISH_HASH) {
+      window.history.pushState(null, "", PROPOSAL_FINISH_HASH);
+    }
+
+    const behavior: ScrollBehavior = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches
+      ? "auto"
+      : "smooth";
+    finishElement.scrollIntoView({ behavior, block: "start" });
+  }
+
   return (
     <div className="run-trail">
       <div className="run-lane" ref={laneRef}>
@@ -401,30 +434,54 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
       </div>
 
       <ol className="run-stops" aria-label={content.trail.stopsAriaLabel}>
-        {content.waypoints.map((waypoint, index) => (
-          <li className="run-stop" key={waypoint.id} aria-current={index === activeIndex ? "step" : undefined}>
-            <article className="run-copy" id={waypoint.id}>
-              <a
-                href={`#${waypoint.id}`}
-                ref={(node) => {
-                  cardRefs.current[index] = node;
-                }}
-                className="run-mountain-card"
-                onClick={(event) => focusWaypoint(index, event)}
-              >
-                <MountainCardCrest />
-                <div className="run-mountain-body">
-                  <p className="run-waypoint-kicker">
-                    <span>{String(index + 1).padStart(2, "0")}</span>
-                    {waypoint.label}
-                  </p>
-                  <h2>{waypoint.title}</h2>
-                  <p>{waypoint.description}</p>
-                </div>
-              </a>
-            </article>
-          </li>
-        ))}
+        {content.waypoints.map((waypoint, index) => {
+          const nextWaypoint = content.waypoints[index + 1];
+          const nextHref = nextWaypoint
+            ? `#${nextWaypoint.id}`
+            : PROPOSAL_FINISH_HASH;
+          const nextAriaLabel = nextWaypoint
+            ? formatContentTemplate(content.trail.nextTopicAriaTemplate, {
+                title: nextWaypoint.title,
+              })
+            : content.trail.finishAriaLabel;
+
+          return (
+            <li className="run-stop" key={waypoint.id} aria-current={index === activeIndex ? "step" : undefined}>
+              <article className="run-copy" id={waypoint.id}>
+                <a
+                  href={`#${waypoint.id}`}
+                  ref={(node) => {
+                    cardRefs.current[index] = node;
+                  }}
+                  className="run-mountain-card"
+                  onClick={(event) => focusWaypoint(index, event)}
+                >
+                  <MountainCardCrest />
+                  <div className="run-mountain-body">
+                    <p className="run-waypoint-kicker">
+                      <span>{String(index + 1).padStart(2, "0")}</span>
+                      {waypoint.label}
+                    </p>
+                    <h2>{waypoint.title}</h2>
+                    <p>{waypoint.description}</p>
+                  </div>
+                </a>
+                <a
+                  href={nextHref}
+                  className="run-next-topic"
+                  aria-label={nextAriaLabel}
+                  onClick={(event) =>
+                    nextWaypoint
+                      ? focusWaypoint(index + 1, event)
+                      : scrollToFinish(event)
+                  }
+                >
+                  <ChevronDown aria-hidden="true" />
+                </a>
+              </article>
+            </li>
+          );
+        })}
       </ol>
     </div>
   );
