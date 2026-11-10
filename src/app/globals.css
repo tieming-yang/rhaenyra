@@ -523,11 +523,12 @@ html {
   --mountain-peak-color: #fffdfd;
   --mountain-core-color: #fffcfd;
   --mountain-mid-color: #fff9fb;
-  --mountain-cap-top: #fbe4ed;
-  --mountain-cap-mid: #fdf1f6;
-  --mountain-facet-color: #d995ad;
-  --mountain-ridge-stroke: #d797ae;
-  --mountain-sky-shadow: rgb(177 47 96 / 0.07);
+  --mountain-back-top: #ebd0dc;
+  --mountain-back-mid: #f6e4ec;
+  --mountain-shade-top: #eccad8;
+  --mountain-shade-mid: #f6e2eb;
+  --mountain-ridge-stroke: #cf87a2;
+  --mountain-sky-shadow: rgb(177 47 96 / 0.08);
   --mountain-ambient-shadow: rgb(49 27 37 / 0.04);
   position: relative;
   isolation: isolate;
@@ -546,11 +547,12 @@ html {
   --mountain-peak-color: #fff;
   --mountain-core-color: #fff;
   --mountain-mid-color: #fffbfd;
-  --mountain-cap-top: #f9d5e4;
-  --mountain-cap-mid: #fceaf2;
-  --mountain-facet-color: #e596b0;
-  --mountain-ridge-stroke: #dc86a6;
-  --mountain-sky-shadow: rgb(177 47 96 / 0.12);
+  --mountain-back-top: #e6c1d2;
+  --mountain-back-mid: #f5dce8;
+  --mountain-shade-top: #e7bad0;
+  --mountain-shade-mid: #f5dce8;
+  --mountain-ridge-stroke: #ca7796;
+  --mountain-sky-shadow: rgb(177 47 96 / 0.13);
   --mountain-ambient-shadow: rgb(177 47 96 / 0.08);
   opacity: 0.96;
   transform: translateY(-3px) scale(0.996);
@@ -561,11 +563,12 @@ html {
   --mountain-peak-color: #fff;
   --mountain-core-color: #fff;
   --mountain-mid-color: #fffcfd;
-  --mountain-cap-top: #f7cde0;
-  --mountain-cap-mid: #fce6f0;
-  --mountain-facet-color: #e596b0;
-  --mountain-ridge-stroke: #d97a9d;
-  --mountain-sky-shadow: rgb(177 47 96 / 0.16);
+  --mountain-back-top: #e2b5ca;
+  --mountain-back-mid: #f3d5e4;
+  --mountain-shade-top: #e2aec6;
+  --mountain-shade-mid: #f4d8e5;
+  --mountain-ridge-stroke: #c46c8e;
+  --mountain-sky-shadow: rgb(177 47 96 / 0.17);
   --mountain-ambient-shadow: rgb(177 47 96 / 0.1);
   opacity: 1;
   transform: translateY(-5px) scale(1);
@@ -574,7 +577,7 @@ html {
 .run-mountain-stage {
   position: absolute;
   z-index: -1;
-  inset: clamp(-3.25rem, -5.5vw, -2.35rem) -16% clamp(-3.4rem, -6vw, -2.5rem);
+  inset: clamp(-4rem, -6.5vw, -2.85rem) -16% clamp(-3.4rem, -6vw, -2.5rem);
   padding-top: 1.75rem;
   pointer-events: none;
   -webkit-mask-image:
@@ -625,7 +628,7 @@ html {
 .run-mountain-body {
   position: relative;
   z-index: 1;
-  padding: clamp(2.85rem, 5.8vw, 4.25rem) clamp(1.1rem, 2.8vw, 2.35rem) clamp(1.6rem, 3.2vw, 2.4rem);
+  padding: clamp(3.35rem, 6.6vw, 4.85rem) clamp(1.1rem, 2.8vw, 2.35rem) clamp(1.6rem, 3.2vw, 2.4rem);
 }
 
 .run-waypoint-kicker {
@@ -853,7 +856,7 @@ html {
   }
 
   .run-mountain-stage {
-    inset: clamp(-3.5rem, -5.5vw, -2.5rem) -18% clamp(-3.6rem, -6vw, -2.6rem);
+    inset: clamp(-4.35rem, -6.8vw, -3.1rem) -18% clamp(-3.6rem, -6vw, -2.6rem);
   }
 
   .run-stop:nth-child(odd) .run-copy {
