@@ -200,7 +200,7 @@ export function ResumeShowcase({
           <div className="resume-cover-copy">
             <p className="resume-eyebrow">{hero.cover.eyebrow}</p>
             <h1 id="profile-title">
-              <SakuraHeadlineName text={hero.cover.headline} />
+              {hero.cover.headline}
               <span className="resume-cover-tagline">{hero.cover.tagline}</span>
             </h1>
             <p className="resume-cover-positioning">{hero.cover.positioning}</p>
@@ -216,7 +216,9 @@ export function ResumeShowcase({
             </nav>
           </div>
 
-          <span className="resume-cover-mark" aria-hidden="true">{hero.cover.watermark}</span>
+          <span className="resume-cover-mark" aria-hidden="true">
+            <SakuraHeadlineName text={hero.cover.watermark} />
+          </span>
         </div>
       </section>
 

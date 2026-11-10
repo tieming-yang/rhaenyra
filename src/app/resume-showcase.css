@@ -65,10 +65,8 @@
 
 .sakura-headline {
   position: relative;
-  display: block;
-  width: fit-content;
-  max-width: 100%;
-  color: var(--foreground);
+  display: inline-block;
+  color: inherit;
 }
 
 .sakura-headline-text {
@@ -80,16 +78,11 @@
   color: transparent;
 }
 
-.sakura-headline[data-sakura-canvas] .sakura-headline-text::selection {
-  background: var(--accent);
-  color: var(--foreground);
-}
-
 .sakura-headline-canvas {
   position: absolute;
-  top: -84px;
-  left: -88px;
-  z-index: 2;
+  top: -280px;
+  left: -120px;
+  z-index: 1;
   pointer-events: none;
   user-select: none;
 }
@@ -1165,7 +1158,7 @@
 
 @media (width < 48rem) {
   .resume-cover-mark {
-    position: static;
+    position: relative;
     grid-column: 1;
     grid-row: 2;
     align-self: center;
@@ -1174,7 +1167,6 @@
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    overflow-x: clip;
     translate: 0 8%;
     opacity: 0.64;
     font-size: clamp(1.75rem, 11vw, 4.5rem);
