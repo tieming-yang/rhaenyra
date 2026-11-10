@@ -302,6 +302,7 @@ html {
   z-index: 2;
   padding-inline: var(--interview-gutter);
   border-top: 1px solid var(--border);
+  overflow-x: clip;
   scroll-margin-top: calc(-1 * (var(--interview-header-height) + 0.75rem));
 }
 
@@ -346,7 +347,7 @@ html {
 }
 
 .run-trail {
-  --lane-width: clamp(4.375rem, 22vw, 6.25rem);
+  --lane-width: clamp(5rem, 24vw, 6.75rem);
   position: relative;
   max-width: 67rem;
   margin-inline: auto;
@@ -370,10 +371,45 @@ html {
 
 .run-path path {
   fill: none;
-  stroke: var(--sakura-line);
-  stroke-width: 2px;
-  stroke-dasharray: 2 7;
   stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.run-path .run-guide {
+  stroke: var(--sakura-line);
+  stroke-width: 1.5px;
+  stroke-dasharray: 2 7;
+  opacity: 0.52;
+}
+
+.run-trench-shadow {
+  stroke: rgb(177 47 96 / 0.16);
+  stroke-width: 5px;
+}
+
+[data-gate] .run-trench-shadow {
+  stroke: rgb(145 34 76 / 0.22);
+  stroke-width: 6.5px;
+}
+
+.run-trench-berm {
+  stroke: #fff;
+  stroke-width: 3.6px;
+  opacity: 0.96;
+}
+
+[data-gate] .run-trench-berm {
+  stroke-width: 4.6px;
+}
+
+.run-trench-groove {
+  stroke: var(--sakura);
+  stroke-width: 1.85px;
+}
+
+[data-gate] .run-trench-groove {
+  stroke: var(--sakura-deep);
+  stroke-width: 2.5px;
 }
 
 .run-marker,
@@ -413,9 +449,9 @@ html {
 
 .run-rider {
   z-index: 1;
-  width: clamp(4.5rem, 15vw, 5.5rem);
-  transform: translate(-50%, -80%);
-  transform-origin: 50% 80%;
+  width: clamp(9rem, 30vw, 11rem);
+  transform: translate(-50%, -70%);
+  transform-origin: 50% 70%;
   will-change: transform, opacity;
   pointer-events: none;
 }
@@ -441,7 +477,7 @@ html {
   grid-template-columns: var(--lane-width) minmax(0, 1fr);
   align-items: center;
   gap: clamp(0.75rem, 3vw, 1.5rem);
-  min-height: clamp(15.5rem, 38svh, 20.5rem);
+  min-height: clamp(26rem, 74svh, 38rem);
 }
 
 .run-copy {
@@ -673,7 +709,7 @@ html {
 
 @media (min-width: 48rem) {
   .run-trail {
-    --lane-width: clamp(9rem, 19vw, 15rem);
+    --lane-width: clamp(11.5rem, 23vw, 17.5rem);
   }
 
   .run-lane {
@@ -682,7 +718,7 @@ html {
   }
 
   .run-rider {
-    width: clamp(6rem, 9.5vw, 7.5rem);
+    width: clamp(12rem, 19vw, 15rem);
   }
 
   .run-stop {

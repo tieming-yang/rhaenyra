@@ -1,6 +1,6 @@
 "use client";
 
-import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   formatContentTemplate,
   type ProposalSectionContent,
@@ -20,6 +20,8 @@ import {
   createRiderPixelBuffer,
   type PowderParticle,
   renderNisekoPowderPro,
+  RIDER_ANCHOR_X_PCT,
+  RIDER_ANCHOR_Y_PCT,
   RIDER_CANVAS_SIZE,
   stepPowderParticles,
 } from "@/lib/snowboarder-pixel-3d";
@@ -67,12 +69,14 @@ interface SnowboardRunProps {
 }
 
 export function SnowboardRun({ content }: SnowboardRunProps) {
+  const carveClipId = useId();
   const route = useMemo(
     () => createSnowboardRoute(content.waypoints.length),
     [content.waypoints.length]
   );
   const start = route.checkpoints[0];
   const laneRef = useRef<HTMLDivElement>(null);
+  const carveClipRectRef = useRef<SVGRectElement>(null);
   const riderRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cardRefs = useRef<(HTMLAnchorElement | null)[]>([]);
@@ -97,6 +101,8 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
     let lastFrameMs = performance.now();
     let motionEnergy = 0;
     let particles: readonly PowderParticle[] = [];
+    let lastTrailX: number | null = null;
+    let lastTrailY: number | null = null;
 
     const paintCanvas = () => {
       imageData.data.set(pixelBuffer.rgba);
@@ -135,6 +141,10 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
       if (!motion.matches && macScreen && scroll < firstTurn) {
         const screenBounds = macScreen.getBoundingClientRect();
         if (screenBounds.height > 0) {
+          lastTrailX = null;
+          lastTrailY = null;
+          carveClipRectRef.current?.setAttribute("height", "0");
+
           const launchX = screenBounds.left + screenBounds.width * 0.5;
           const launchY = screenBounds.top + screenBounds.height * 0.58;
           const anchorX = bounds.left + (start.x / route.width) * bounds.width;
@@ -154,7 +164,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
             reducedMotion: false,
           });
           rider.style.opacity = String(jumpPose.opacity);
-          rider.style.transform = `translate3d(${jumpPose.x}px, ${jumpPose.y}px, 0) translate(-50%, -80%) scale(${jumpPose.scale})`;
+          rider.style.transform = `translate3d(${jumpPose.x}px, ${jumpPose.y}px, 0) translate(-${RIDER_ANCHOR_X_PCT}%, -${RIDER_ANCHOR_Y_PCT}%) scale(${jumpPose.scale})`;
 
           if (jumpPose.opacity > 0) {
             particles = [];
@@ -182,10 +192,24 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
         ? (scroll - firstTurn) / (lastTurn - firstTurn) * (route.checkpoints.length - 1)
         : 0;
       const pose = getSnowboardPose(route, progress, motion.matches);
+      carveClipRectRef.current?.setAttribute("height", pose.y.toFixed(2));
+
       const x = (pose.x - start.x) / route.width * bounds.width;
       const y = (pose.y - start.y) / route.height * bounds.height;
       rider.style.opacity = "1";
-      rider.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -80%) scale(1)`;
+      rider.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-${RIDER_ANCHOR_X_PCT}%, -${RIDER_ANCHOR_Y_PCT}%) scale(1)`;
+
+      const riderWidthPx = rider.offsetWidth;
+      const pxToBuffer = riderWidthPx > 0 ? RIDER_CANVAS_SIZE / riderWidthPx : 1;
+      const worldShift =
+        lastTrailX === null || lastTrailY === null
+          ? { dx: 0, dy: 0 }
+          : {
+              dx: (x - lastTrailX) * pxToBuffer,
+              dy: (y - lastTrailY) * pxToBuffer,
+            };
+      lastTrailX = x;
+      lastTrailY = y;
 
       const rigPose = deriveTrailRigPose(route, {
         progress,
@@ -195,7 +219,12 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
       });
       particles = motion.matches
         ? []
-        : stepPowderParticles(particles, rigPose, dtMs > 0 ? dtMs / 1000 : 1 / 60);
+        : stepPowderParticles(
+            particles,
+            rigPose,
+            dtMs > 0 ? dtMs / 1000 : 1 / 60,
+            worldShift
+          );
       renderNisekoPowderPro(pixelBuffer, rigPose, particles);
       paintCanvas();
 
@@ -291,7 +320,46 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
           preserveAspectRatio="none"
           aria-hidden="true"
         >
-          <path d={route.path} vectorEffect="non-scaling-stroke" />
+          <defs>
+            <clipPath id={carveClipId} clipPathUnits="userSpaceOnUse">
+              <rect
+                ref={carveClipRectRef}
+                x="-24"
+                y="0"
+                width={route.width + 48}
+                height="0"
+              />
+            </clipPath>
+          </defs>
+          <path
+            className="run-guide"
+            d={route.path}
+            vectorEffect="non-scaling-stroke"
+          />
+          <g className="run-trenches" clipPath={`url(#${carveClipId})`}>
+            {route.edgeTrenches.map((trench) => (
+              <g
+                key={trench.id}
+                data-gate={trench.isGateCheck ? "" : undefined}
+              >
+                <path
+                  className="run-trench-shadow"
+                  d={trench.groovePath}
+                  vectorEffect="non-scaling-stroke"
+                />
+                <path
+                  className="run-trench-berm"
+                  d={trench.bermPath}
+                  vectorEffect="non-scaling-stroke"
+                />
+                <path
+                  className="run-trench-groove"
+                  d={trench.groovePath}
+                  vectorEffect="non-scaling-stroke"
+                />
+              </g>
+            ))}
+          </g>
         </svg>
         {route.checkpoints.map((point, index) => {
           const waypoint = content.waypoints[index];
