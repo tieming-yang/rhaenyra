@@ -57,9 +57,40 @@
   letter-spacing: -0.06em;
 }
 
-.resume-cover-copy h1 span {
+.resume-cover-copy h1 .resume-cover-tagline {
   display: block;
   color: var(--primary);
+}
+
+.sakura-headline {
+  position: relative;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  color: var(--foreground);
+}
+
+.sakura-headline-text {
+  display: inline;
+  color: inherit;
+}
+
+.sakura-headline[data-sakura-canvas] .sakura-headline-text {
+  color: transparent;
+}
+
+.sakura-headline[data-sakura-canvas] .sakura-headline-text::selection {
+  background: var(--accent);
+  color: var(--foreground);
+}
+
+.sakura-headline-canvas {
+  position: absolute;
+  top: -84px;
+  left: -88px;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
 }
 
 .resume-cover-positioning,
@@ -1198,5 +1229,9 @@
 
   .resume-live-screen {
     animation: none;
+  }
+
+  .sakura-headline-canvas {
+    display: none;
   }
 }

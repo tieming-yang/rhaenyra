@@ -7,6 +7,7 @@ import { CANDIDATE_PROFILE } from "@/domain/portfolio-data";
 import { RESUME_PRODUCTS } from "@/domain/resume-showcase-data";
 import { ResumeBadge } from "./resume-badge";
 import { ResumeJobDeck } from "./resume-job-deck";
+import { SakuraHeadlineName } from "./sakura-headline-name";
 
 interface KeyCap {
   readonly id: string;
@@ -181,8 +182,8 @@ export function ResumeShowcase() {
           <div className="resume-cover-copy">
             <p className="resume-eyebrow">PROFILE / {CANDIDATE_PROFILE.targetCompany}</p>
             <h1 id="profile-title">
-              {CANDIDATE_PROFILE.name}
-              <span>把想法做成產品。</span>
+              <SakuraHeadlineName text={CANDIDATE_PROFILE.name} />
+              <span className="resume-cover-tagline">把想法做成產品。</span>
             </h1>
             <p className="resume-cover-positioning">{CANDIDATE_PROFILE.chinesePositioning}</p>
           </div>
