@@ -2,6 +2,7 @@
 
 import { ChevronDown } from "lucide-react";
 import { type MouseEvent, useEffect, useId, useMemo, useRef, useState } from "react";
+import { MountainCardBackdrop } from "@/components/mountain-card-backdrop";
 import {
   formatContentTemplate,
   type ProposalSectionContent,
@@ -269,44 +270,6 @@ function renderAlpineSlopeBackdrop(
     ctx.strokeStyle = `rgba(177, 47, 96, ${sakuraAlpha})`;
     ctx.stroke();
   }
-}
-
-const MOUNTAIN_SILHOUETTE_PATH =
-  "M 0 56 L 0 46 C 42 45, 82 36, 114 24 C 129 18.4, 141 12, 152 6 Q 166 1.5, 180 2.5 Q 194 1.5, 208 6 C 219 12, 231 18.4, 246 24 C 278 36, 318 45, 360 46 L 360 56 Z";
-const MOUNTAIN_RIDGE_BORDER_PATH =
-  "M 0.5 56 L 0.5 46 C 42 45, 82 36, 114 24 C 129 18.4, 141 12, 152 6 Q 166 1.5, 180 2.5 Q 194 1.5, 208 6 C 219 12, 231 18.4, 246 24 C 278 36, 318 45, 359.5 46 L 359.5 56";
-const MOUNTAIN_SNOWCAP_PATH =
-  "M 114 24 C 129 18.4, 141 12, 152 6 Q 166 1.5, 180 2.5 Q 194 1.5, 208 6 C 219 12, 231 18.4, 246 24 Q 228 28.5, 212 22 Q 196 31, 180 23.5 Q 164 31, 148 22 Q 132 28.5, 114 24 Z";
-const MOUNTAIN_SNOWCAP_LIP_PATH =
-  "M 114 24 Q 132 28.5, 148 22 Q 164 31, 180 23.5 Q 196 31, 212 22 Q 228 28.5, 246 24";
-
-function MountainCardCrest() {
-  return (
-    <svg
-      className="run-mountain-crest"
-      viewBox="0 0 360 56"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <path className="run-mountain-fill" d={MOUNTAIN_SILHOUETTE_PATH} />
-      <path className="run-mountain-snowcap" d={MOUNTAIN_SNOWCAP_PATH} />
-      <path
-        className="run-mountain-snowline"
-        d={MOUNTAIN_SNOWCAP_LIP_PATH}
-        vectorEffect="non-scaling-stroke"
-      />
-      <path
-        className="run-mountain-facet"
-        d="M 180 2.5 Q 173 13, 164 24.5 M 196 4.2 Q 204 13, 212 22"
-        vectorEffect="non-scaling-stroke"
-      />
-      <path
-        className="run-mountain-stroke"
-        d={MOUNTAIN_RIDGE_BORDER_PATH}
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
 }
 
 interface SnowboardRunProps {
@@ -768,7 +731,13 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
       window.history.pushState(null, "", hash);
     }
 
-    cardRefs.current[index]?.focus({ preventScroll: true });
+    const clickedCardWithPointer =
+      event !== undefined &&
+      event.detail > 0 &&
+      event.currentTarget === cardRefs.current[index];
+    if (!clickedCardWithPointer) {
+      cardRefs.current[index]?.focus({ preventScroll: true });
+    }
 
     const targetScrollY = getCheckpointScrollTarget(
       {
@@ -931,7 +900,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
                   className="run-mountain-card"
                   onClick={(event) => focusWaypoint(index, event)}
                 >
-                  <MountainCardCrest />
+                  <MountainCardBackdrop index={index} />
                   <div className="run-mountain-body">
                     <p className="run-waypoint-kicker">
                       <span>{String(index + 1).padStart(2, "0")}</span>

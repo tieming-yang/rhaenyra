@@ -347,9 +347,9 @@ html {
 }
 
 .run-trail {
-  --lane-width: clamp(5rem, 24vw, 6.75rem);
+  --lane-width: clamp(2.75rem, 11vw, 3.75rem);
   position: relative;
-  max-width: 67rem;
+  max-width: 84rem;
   margin-inline: auto;
 }
 
@@ -507,108 +507,135 @@ html {
   display: grid;
   grid-template-columns: var(--lane-width) minmax(0, 1fr);
   align-items: center;
-  gap: clamp(0.75rem, 3vw, 1.5rem);
-  min-height: clamp(26rem, 74svh, 38rem);
+  gap: clamp(0.5rem, 2vw, 1.25rem);
+  min-height: clamp(28rem, 76svh, 40rem);
 }
 
 .run-copy {
   grid-column: 2;
   width: 100%;
-  max-width: 24.5rem;
-  padding-block: 0.9rem;
-  scroll-margin-top: max(0.5rem, calc(50svh - 10rem));
+  max-width: 100%;
+  padding-block: 1.1rem;
+  scroll-margin-top: max(0.5rem, calc(50svh - 11rem));
 }
 
 .run-mountain-card {
-  --mountain-fill: color-mix(in oklch, var(--card) 84%, var(--background));
-  --mountain-stroke: var(--border);
-  --snowcap-fill: var(--secondary);
-  --snowcap-stroke: var(--border);
+  --mountain-peak-color: #fffdfd;
+  --mountain-core-color: #fffcfd;
+  --mountain-mid-color: #fff9fb;
+  --mountain-cap-top: #fbe4ed;
+  --mountain-cap-mid: #fdf1f6;
+  --mountain-facet-color: #d995ad;
+  --mountain-ridge-stroke: #d797ae;
+  --mountain-sky-shadow: rgb(177 47 96 / 0.07);
+  --mountain-ambient-shadow: rgb(49 27 37 / 0.04);
+  position: relative;
+  isolation: isolate;
   display: block;
-  border-radius: 1.15rem;
+  outline: none;
   color: inherit;
   text-decoration: none;
-  opacity: 0.74;
+  opacity: 0.84;
   transform: translateY(0) scale(0.985);
-  filter: drop-shadow(0 8px 18px rgb(49 27 37 / 0.05));
   transition:
-    opacity 240ms ease,
-    transform 280ms cubic-bezier(0.22, 0.74, 0.32, 1),
-    filter 280ms ease;
+    opacity 260ms ease,
+    transform 300ms cubic-bezier(0.22, 0.74, 0.32, 1);
 }
 
 .run-mountain-card:hover {
-  --mountain-stroke: var(--sakura-petal);
-  --snowcap-fill: var(--accent);
-  --snowcap-stroke: var(--sakura-line);
-  opacity: 0.94;
-  transform: translateY(-2px) scale(0.995);
-  filter: drop-shadow(0 14px 26px rgb(177 47 96 / 0.11));
+  --mountain-peak-color: #fff;
+  --mountain-core-color: #fff;
+  --mountain-mid-color: #fffbfd;
+  --mountain-cap-top: #f9d5e4;
+  --mountain-cap-mid: #fceaf2;
+  --mountain-facet-color: #e596b0;
+  --mountain-ridge-stroke: #dc86a6;
+  --mountain-sky-shadow: rgb(177 47 96 / 0.12);
+  --mountain-ambient-shadow: rgb(177 47 96 / 0.08);
+  opacity: 0.96;
+  transform: translateY(-3px) scale(0.996);
 }
 
 .run-stop[aria-current="step"] .run-mountain-card,
 .run-mountain-card:focus-visible {
-  --mountain-fill: var(--card);
-  --mountain-stroke: var(--sakura-petal);
-  --snowcap-fill: var(--accent);
-  --snowcap-stroke: var(--sakura-petal);
+  --mountain-peak-color: #fff;
+  --mountain-core-color: #fff;
+  --mountain-mid-color: #fffcfd;
+  --mountain-cap-top: #f7cde0;
+  --mountain-cap-mid: #fce6f0;
+  --mountain-facet-color: #e596b0;
+  --mountain-ridge-stroke: #d97a9d;
+  --mountain-sky-shadow: rgb(177 47 96 / 0.16);
+  --mountain-ambient-shadow: rgb(177 47 96 / 0.1);
   opacity: 1;
-  transform: translateY(-4px) scale(1);
-  filter:
-    drop-shadow(0 18px 34px rgb(177 47 96 / 0.16))
-    drop-shadow(0 3px 8px rgb(49 27 37 / 0.06));
+  transform: translateY(-5px) scale(1);
 }
 
-.run-mountain-crest {
+.run-mountain-stage {
+  position: absolute;
+  z-index: -1;
+  inset: clamp(-3.25rem, -5.5vw, -2.35rem) -16% clamp(-3.4rem, -6vw, -2.5rem);
+  padding-top: 1.75rem;
+  pointer-events: none;
+  -webkit-mask-image:
+    linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 54%,
+      rgb(0 0 0 / 0.5) 76%,
+      transparent 97%
+    ),
+    linear-gradient(
+      to right,
+      transparent 0%,
+      #000 8%,
+      #000 92%,
+      transparent 100%
+    );
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 54%,
+      rgb(0 0 0 / 0.5) 76%,
+      transparent 97%
+    ),
+    linear-gradient(
+      to right,
+      transparent 0%,
+      #000 8%,
+      #000 92%,
+      transparent 100%
+    );
+  mask-composite: intersect;
+}
+
+.run-mountain-backdrop {
   display: block;
   width: 100%;
-  height: clamp(2.4rem, 4.2vw, 3rem);
-  margin-bottom: -1px;
+  height: 100%;
   overflow: visible;
-}
-
-.run-mountain-fill {
-  fill: var(--mountain-fill);
-  transition: fill 240ms ease;
-}
-
-.run-mountain-snowcap {
-  fill: var(--snowcap-fill);
-  transition: fill 240ms ease;
-}
-
-.run-mountain-snowline,
-.run-mountain-facet {
-  fill: none;
-  stroke: var(--snowcap-stroke);
-  stroke-width: 1px;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: stroke 240ms ease;
-}
-
-.run-mountain-stroke {
-  fill: none;
-  stroke: var(--mountain-stroke);
-  stroke-width: 1px;
-  stroke-linejoin: round;
-  transition: stroke 240ms ease;
+  filter:
+    drop-shadow(0 -8px 20px var(--mountain-sky-shadow))
+    drop-shadow(0 16px 32px var(--mountain-ambient-shadow));
+  transition: filter 280ms ease;
 }
 
 .run-mountain-body {
-  padding: 0.4rem clamp(1rem, 2.4vw, 1.4rem) clamp(1.1rem, 2.4vw, 1.35rem);
-  border: 1px solid var(--mountain-stroke);
-  border-top: 0;
-  border-radius: 0 0 1.1rem 1.1rem;
-  background: var(--mountain-fill);
-  transition: background-color 240ms ease, border-color 240ms ease;
+  position: relative;
+  z-index: 1;
+  padding: clamp(2.85rem, 5.8vw, 4.25rem) clamp(1.1rem, 2.8vw, 2.35rem) clamp(1.6rem, 3.2vw, 2.4rem);
 }
 
 .run-waypoint-kicker {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.65rem;
   color: var(--muted-foreground);
+  font-size: clamp(0.75rem, 1vw, 0.84rem);
+  font-weight: 620;
+  letter-spacing: 0.08em;
   overflow-wrap: anywhere;
 }
 
@@ -616,21 +643,37 @@ html {
   display: grid;
   flex: none;
   place-items: center;
-  min-width: 1.875rem;
-  min-height: 1.625rem;
+  min-width: 2rem;
+  min-height: 1.7rem;
   border: 1px solid var(--primary);
-  border-radius: 0.25rem;
+  border-radius: 0.35rem;
   color: var(--primary);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
+  transition: background-color 200ms ease, color 200ms ease, box-shadow 200ms ease;
 }
 
-.run-stop[aria-current="step"] .run-waypoint-kicker > span {
+.run-stop[aria-current="step"] .run-waypoint-kicker > span,
+.run-mountain-card:focus-visible .run-waypoint-kicker > span {
   background: var(--primary);
   color: #fff;
 }
 
-.run-copy h2,
+.run-mountain-card:focus-visible .run-waypoint-kicker > span {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.run-copy h2 {
+  margin-top: 0.65rem;
+  color: var(--primary);
+  font-size: clamp(1.45rem, 2.55vw, 2.3rem);
+  font-weight: 690;
+  letter-spacing: -0.04em;
+  line-height: 1.24;
+  text-wrap: balance;
+}
+
 .run-finish h2,
 .profile-section > header h2 {
   margin-top: 0.5rem;
@@ -642,14 +685,17 @@ html {
 }
 
 .run-copy h2 + p {
-  margin-top: 0.625rem;
+  margin-top: 0.75rem;
   color: var(--muted-foreground);
-  font-size: clamp(0.875rem, 1.25vw, 1rem);
-  line-height: 1.7;
+  font-size: clamp(0.9375rem, 1.28vw, 1.075rem);
+  line-height: 1.78;
+  text-wrap: pretty;
   overflow-wrap: anywhere;
 }
 
 .run-next-topic {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -785,7 +831,7 @@ html {
 
 @media (min-width: 48rem) {
   .run-trail {
-    --lane-width: clamp(11.5rem, 23vw, 17.5rem);
+    --lane-width: clamp(9.5rem, 18vw, 14.5rem);
   }
 
   .run-lane {
@@ -799,6 +845,15 @@ html {
 
   .run-stop {
     grid-template-columns: minmax(0, 1fr) var(--lane-width) minmax(0, 1fr);
+    gap: clamp(1rem, 2.4vw, 2rem);
+  }
+
+  .run-copy {
+    max-width: clamp(24rem, 36vw, 35rem);
+  }
+
+  .run-mountain-stage {
+    inset: clamp(-3.5rem, -5.5vw, -2.5rem) -18% clamp(-3.6rem, -6vw, -2.6rem);
   }
 
   .run-stop:nth-child(odd) .run-copy {
@@ -825,12 +880,8 @@ html {
 
   .run-marker,
   .run-mountain-card,
-  .run-mountain-fill,
-  .run-mountain-snowcap,
-  .run-mountain-snowline,
-  .run-mountain-facet,
-  .run-mountain-stroke,
-  .run-mountain-body,
+  .run-mountain-backdrop,
+  .run-waypoint-kicker > span,
   .run-next-topic {
     transition: none;
   }
