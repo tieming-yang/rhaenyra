@@ -50,30 +50,32 @@
 
 :root {
   color-scheme: light;
-  --jstyle-blue: #023e69;
-  --jstyle-accent: #0075c1;
+  --sakura: #b12f60;
+  --sakura-deep: #91224c;
+  --sakura-petal: #e596b0;
+  --sakura-line: #d293a8;
   --interview-width: 76rem;
   --interview-gutter: clamp(1rem, 5vw, 4rem);
   --interview-header-height: 4rem;
   --interview-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
-  --background: #f7fbfe;
-  --foreground: #142c40;
-  --card: #fff;
+  --background: #fff8fa;
+  --foreground: #311b25;
+  --card: #fffcfd;
   --card-foreground: var(--foreground);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: var(--jstyle-blue);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: var(--sakura);
   --primary-foreground: #fff;
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: #4d6578;
-  --accent: #e9f5fc;
-  --accent-foreground: var(--jstyle-blue);
+  --secondary: #fcecf1;
+  --secondary-foreground: var(--foreground);
+  --muted: #fcf0f4;
+  --muted-foreground: #6d5260;
+  --accent: #fbe2ec;
+  --accent-foreground: var(--sakura-deep);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: #d9e8f2;
-  --input: oklch(0.922 0 0);
-  --ring: var(--jstyle-accent);
+  --border: #eed3dd;
+  --input: var(--border);
+  --ring: var(--sakura);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -150,9 +152,9 @@ html {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #fff;
+  background: var(--card);
   border-bottom: 1px solid var(--border);
-  color: var(--jstyle-blue);
+  color: var(--primary);
 }
 
 .interview-header-inner {
@@ -211,15 +213,15 @@ html {
 
 .interview-nav a:hover,
 .interview-nav a[aria-current="page"] {
-  color: var(--jstyle-blue);
-  border-bottom-color: var(--jstyle-blue);
+  color: var(--primary);
+  border-bottom-color: var(--primary);
 }
 
 .interview-pdf {
   justify-self: end;
   min-height: 2.75rem;
   padding-inline: 0.5rem;
-  border: 1px solid var(--jstyle-blue);
+  border: 1px solid var(--primary);
   border-radius: 0.5rem;
 }
 
@@ -229,7 +231,7 @@ html {
 
 .interview-kicker,
 .run-waypoint-kicker {
-  color: var(--jstyle-blue);
+  color: var(--primary);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.13em;
@@ -246,26 +248,26 @@ html {
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   background: var(--card);
-  color: var(--jstyle-blue);
+  color: var(--primary);
   font-size: 0.875rem;
   font-weight: 650;
 }
 
 .interview-button:hover,
 .choice-button[aria-pressed="true"] {
-  border-color: var(--jstyle-accent);
+  border-color: var(--sakura);
   background: var(--accent);
 }
 
 .interview-button-primary {
-  border-color: var(--jstyle-blue);
-  background: var(--jstyle-blue);
+  border-color: var(--primary);
+  background: var(--primary);
   color: #fff;
 }
 
 .interview-button-primary:hover {
-  border-color: #075483;
-  background: #075483;
+  border-color: var(--sakura-deep);
+  background: var(--sakura-deep);
 }
 
 .interview-run {
@@ -281,7 +283,7 @@ html {
 
 .run-intro h1 {
   margin-top: 0.7rem;
-  color: var(--jstyle-blue);
+  color: var(--primary);
   font-size: clamp(2.75rem, 8.2vw, 6.25rem);
   font-weight: 690;
   line-height: 1.03;
@@ -302,7 +304,7 @@ html {
   gap: 0.45rem;
   min-height: 2.75rem;
   margin-top: 1.125rem;
-  color: var(--jstyle-blue);
+  color: var(--primary);
   font-size: 0.875rem;
   font-weight: 650;
   text-underline-offset: 0.3rem;
@@ -336,7 +338,7 @@ html {
 
 .run-path path {
   fill: none;
-  stroke: #98bfd9;
+  stroke: var(--sakura-line);
   stroke-width: 2px;
   stroke-dasharray: 2 7;
   stroke-linecap: round;
@@ -351,14 +353,14 @@ html {
   width: 0.625rem;
   height: 0.625rem;
   transform: translate(-50%, -50%);
-  border: 1.5px solid var(--jstyle-blue);
+  border: 1.5px solid var(--primary);
   border-radius: 50%;
   background: var(--background);
 }
 
 .run-marker[data-active] {
-  background: var(--jstyle-blue);
-  box-shadow: 0 0 0 3px #d4eaf7;
+  background: var(--primary);
+  box-shadow: 0 0 0 3px var(--accent);
 }
 
 .run-rider {
@@ -410,15 +412,15 @@ html {
   place-items: center;
   min-width: 1.875rem;
   min-height: 1.625rem;
-  border: 1px solid var(--jstyle-blue);
+  border: 1px solid var(--primary);
   border-radius: 0.25rem;
-  color: var(--jstyle-blue);
+  color: var(--primary);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
 
 .run-stop[aria-current="step"] .run-waypoint-kicker > span {
-  background: var(--jstyle-blue);
+  background: var(--primary);
   color: #fff;
 }
 
@@ -426,7 +428,7 @@ html {
 .run-finish h2,
 .profile-section > header h2 {
   margin-top: 0.5rem;
-  color: var(--jstyle-blue);
+  color: var(--primary);
   font-size: clamp(1.3rem, 2.7vw, 2.125rem);
   font-weight: 680;
   letter-spacing: -0.04em;
@@ -492,13 +494,13 @@ html {
   flex: none;
   width: clamp(4rem, 12vw, 6rem);
   aspect-ratio: 1;
-  border: 2px solid var(--jstyle-blue);
+  border: 2px solid var(--primary);
   border-radius: 50%;
 }
 
 .profile-title {
   margin-block: 0.2rem 0.25rem;
-  color: var(--jstyle-blue);
+  color: var(--primary);
   font-size: clamp(1.65rem, 4.4vw, 3.5rem);
   font-weight: 680;
   letter-spacing: -0.045em;
@@ -535,7 +537,7 @@ html {
 
 .interview-metric-value {
   order: -1;
-  color: var(--jstyle-blue);
+  color: var(--primary);
   font-size: clamp(1.35rem, 2.55vw, 2rem);
   font-weight: 680;
   line-height: 1.1;

@@ -15,20 +15,20 @@ function PixelSnowboarder() {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <g fill="var(--jstyle-blue)">
+      <g fill="var(--sakura-deep)">
         <path d="M16 1h9v2h3v2h2v9h-2v3h-3v2h-9v-2h-3v-3h-2V6h2V3h3z" />
         <path d="M15 16h12v2h4v2h4v1h4v5h-6v-2h-4v4h-4v3H13v-4h-2v-4H8v2H3v-5h4v-2h4v-2z" />
         <path d="M13 25h14v2h2v3h3v5h-7v-2h-3v-3h-4v3h-2v2H9v-4h3v-4z" />
         <path d="M1 32h4v2h29v-2h4v-2h3v5h-3v2h-5v1H6v-1H3v-2H1z" />
       </g>
-      <path fill="#f78fbe" d="M16 3h9v2h3v4H13V6h3zM15 18h11v2h4v2h4v2h-5v-2h-3v5H14v-5h-3v1H7v-3h4v-2z" />
-      <path fill="#ffc4df" d="M17 4h6v2h-6zM14 19h6v2h-6zM12 21h3v2h-3z" />
-      <path fill="#80c6eb" d="M14 10h13v3H14z" />
-      <path fill="#e9f8ff" d="M15 10h5v1h-5z" />
+      <path fill="#f18eb3" d="M16 3h9v2h3v4H13V6h3zM15 18h11v2h4v2h4v2h-5v-2h-3v5H14v-5h-3v1H7v-3h4v-2z" />
+      <path fill="#ffc7da" d="M17 4h6v2h-6zM14 19h6v2h-6zM12 21h3v2h-3z" />
+      <path fill="#e6a0c0" d="M14 10h13v3H14z" />
+      <path fill="#fff4f9" d="M15 10h5v1h-5z" />
       <path fill="#f8c3a5" d="M16 14h10v2h-3v1h-5v-1h-2z" />
-      <path fill="#d9619b" d="M23 20h3v7h-3zM14 27h11v2h3v3h-3v-1h-3v-2h-5v3h-5v-2h2z" />
-      <path fill="#bde7f9" d="M5 35h29v-2h4v2h-4v1H6v-1z" />
-      <path fill="var(--jstyle-accent)" d="M16 35h10v1H16z" />
+      <path fill="#d1578a" d="M23 20h3v7h-3zM14 27h11v2h3v3h-3v-1h-3v-2h-5v3h-5v-2h2z" />
+      <path fill="#f8d7e4" d="M5 35h29v-2h4v2h-4v1H6v-1z" />
+      <path fill="var(--sakura)" d="M16 35h10v1H16z" />
     </svg>
   );
 }
