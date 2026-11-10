@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 550" fill="none">
+  <defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#281320"/><stop offset="1" stop-color="#692747"/></linearGradient>
+  <pattern id="p" width="83" height="65" patternUnits="userSpaceOnUse" patternTransform="rotate(-24)"><path d="M0 0v65h83M41 0v65M0 33h83" stroke="#f7adc8" stroke-opacity=".22" stroke-width="2"/></pattern></defs>
+  <rect width="880" height="550" fill="url(#g)"/><rect width="880" height="550" fill="url(#p)"/>
+  <path d="M358 578c62-210 52-300 151-355 92-52 220 29 409-76" stroke="#b44371" stroke-opacity=".55" stroke-width="35"/>
+  <g stroke="#ffb5d3" stroke-width="2"><circle cx="649" cy="255" r="62"/><circle cx="649" cy="255" r="112" opacity=".6"/><circle cx="649" cy="255" r="166" opacity=".3"/><circle cx="649" cy="255" r="214" opacity=".18"/></g>
+  <path d="M649 216c-24 0-42 18-42 41 0 28 42 66 42 66s42-38 42-66c0-23-18-41-42-41z" fill="#ffc0d9"/>
+  <circle cx="649" cy="256" r="14" fill="#722c4f"/>
+  <circle cx="513" cy="390" r="7" fill="#ffe0ed"/><circle cx="769" cy="113" r="7" fill="#ffe0ed"/><circle cx="785" cy="395" r="7" fill="#ffe0ed"/>
+</svg>

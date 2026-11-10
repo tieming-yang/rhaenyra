@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 550" fill="none">
+  <defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#241222"/><stop offset="1" stop-color="#4e2b42"/></linearGradient></defs>
+  <rect width="880" height="550" fill="url(#g)"/>
+  <g shape-rendering="crispEdges">
+    <path d="M640 89h112v16h24v24h16v104h-16v24h-24v16H640v-16h-24v-24h-16V129h16v-24h24z" fill="#f3cde1"/>
+    <path d="M412 458h47v-54h55v-53h62v-56h63v-47h57v47h62v56h61v53h61v146H412z" fill="#321d34"/>
+    <path d="M492 185h32v15h267v-15h31v35H492zM520 250h273v20H520zM547 220h27v206h-27zM740 220h27v206h-27zM638 219h35v32h-35z" fill="#b3547e"/>
+    <path d="M492 185h32v15h267v-15h31v9h-30v16H523v-16h-31zM547 271h11v155h-11zM740 271h11v155h-11z" fill="#e08ab8"/>
+    <path d="M574 430h166v18H574zM548 455h218v16H548zM516 479h283v14H516zM478 505h355v15H478z" fill="#79516b"/>
+    <path d="M473 127h9v9h-9zM803 103h9v9h-9zM837 278h7v7h-7zM527 88h7v7h-7zM585 160h7v7h-7z" fill="#f6c3da"/>
+  </g>
+</svg>

@@ -1,16 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import {
   ArrowRight,
   CheckCircle2,
   ExternalLink,
-  FileDown,
   GraduationCap,
   Mail,
-  Presentation,
   Sparkles,
 } from "lucide-react";
 import {
@@ -43,44 +40,7 @@ export function ProfileResumeView() {
 
   return (
     <div className="profile-page">
-      <section className="profile-hero interview-panel" aria-labelledby="profile-title">
-        <div className="profile-intro">
-          <div className="profile-identity">
-            <Image
-              src={CANDIDATE_PROFILE.photoUrl}
-              alt={CANDIDATE_PROFILE.name}
-              width={278}
-              height={278}
-              sizes="(min-width: 640px) 96px, 64px"
-            />
-            <div>
-              <p className="interview-kicker">PROFILE · 應徵履歷</p>
-              <h1 id="profile-title" className="profile-title" tabIndex={-1}>
-                {CANDIDATE_PROFILE.name}
-              </h1>
-              <p className="text-sm font-semibold text-accent-foreground">
-                {CANDIDATE_PROFILE.chinesePositioning}
-              </p>
-            </div>
-          </div>
-          <p className="profile-summary">{CANDIDATE_PROFILE.executiveSummary}</p>
-          <div className="flex flex-wrap gap-2.5">
-            <Link href="/" className="interview-button interview-button-primary">
-              <Presentation className="size-4" aria-hidden="true" />
-              查看面試提案
-            </Link>
-            <a
-              href={CANDIDATE_PROFILE.resumePdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="interview-button"
-            >
-              <FileDown className="size-4" aria-hidden="true" />
-              履歷 PDF
-            </a>
-          </div>
-        </div>
-
+      <section className="profile-overview" aria-label="實戰量化指標">
         <dl className="profile-metrics" aria-label="實戰量化指標">
           {KEY_METRICS.map((metric) => (
             <div key={metric.id}>
@@ -123,11 +83,11 @@ export function ProfileResumeView() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span
                       className={`h-3.5 w-1.5 rounded-full ${
-                        exp.accentAxis === "snow" ? "bg-sky-500" : "bg-rose-500"
+                        exp.accentAxis === "snow" ? "bg-(--sakura-petal)" : "bg-primary"
                       }`}
                     />
                     <h3 className="text-base font-extrabold">{exp.company}</h3>
-                    <span className="text-xs font-bold text-rose-700">
+                    <span className="text-xs font-bold text-primary">
                       ｜{exp.role}
                     </span>
                   </div>
@@ -136,7 +96,7 @@ export function ProfileResumeView() {
                       {exp.subRoles.map((sr) => (
                         <span
                           key={sr}
-                          className="rounded-md bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-accent-foreground"
+                          className="rounded-md bg-accent px-2 py-0.5 text-xs font-semibold text-accent-foreground"
                         >
                           {sr}
                         </span>
@@ -144,7 +104,7 @@ export function ProfileResumeView() {
                     </div>
                   )}
                 </div>
-                <span className="rounded-lg bg-slate-500/10 px-2.5 py-1 font-mono text-xs font-medium">
+                <span className="rounded-lg bg-muted px-2.5 py-1 font-mono text-xs font-medium">
                   {exp.period}
                 </span>
               </div>
@@ -160,15 +120,15 @@ export function ProfileResumeView() {
               <div
                 className={`rounded-xl border px-3.5 py-2.5 text-xs flex items-start gap-2 ${
                   exp.accentAxis === "snow"
-                    ? "border-sky-500/25 bg-sky-500/5"
-                    : "border-rose-500/25 bg-rose-500/5"
+                    ? "border-border bg-muted"
+                    : "border-primary/25 bg-accent/40"
                 }`}
               >
                 <Sparkles
                   className={`h-4 w-4 shrink-0 mt-0.5 ${
                     exp.accentAxis === "snow"
                       ? "text-accent-foreground"
-                      : "text-rose-700"
+                      : "text-primary"
                   }`}
                 />
                 <div>
@@ -197,7 +157,7 @@ export function ProfileResumeView() {
                   <div className="flex items-center gap-2 mb-1.5">
                     <span
                       className={`h-3.5 w-1.5 rounded-full ${
-                        sg.accentAxis === "snow" ? "bg-sky-500" : "bg-rose-500"
+                        sg.accentAxis === "snow" ? "bg-(--sakura-petal)" : "bg-primary"
                       }`}
                     />
                     <h3 className="text-sm font-extrabold">{sg.title}</h3>
@@ -210,7 +170,7 @@ export function ProfileResumeView() {
                   {sg.tools.map((tool) => (
                     <span
                       key={tool}
-                      className="rounded-md border border-slate-200 px-2 py-0.5 text-xs font-medium"
+                      className="rounded-md border border-border px-2 py-0.5 text-xs font-medium"
                     >
                       {tool}
                     </span>
@@ -231,7 +191,7 @@ export function ProfileResumeView() {
                 </h3>
               </div>
 
-              <div className="rounded-xl bg-slate-500/5 p-3">
+              <div className="rounded-xl bg-muted p-3">
                 <div className="text-xs font-bold">
                   {EDUCATION_AND_TEACHING.degree}
                 </div>
@@ -243,7 +203,7 @@ export function ProfileResumeView() {
               </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-200/70 space-y-1 text-xs">
+            <div className="mt-4 pt-3 border-t border-border space-y-1 text-xs">
               <div className="font-bold">語言能力</div>
               <div className="opacity-80">
                 • 英文：全英文看美劇、電影及文獻，並在美國休士頓教授過舞蹈
@@ -278,14 +238,14 @@ export function ProfileResumeView() {
                   <div className="flex items-center gap-2">
                     <span
                       className={`h-4 w-1.5 rounded-full ${
-                        prop.axis === "snow" ? "bg-sky-500" : "bg-rose-500"
+                        prop.axis === "snow" ? "bg-(--sakura-petal)" : "bg-primary"
                       }`}
                     />
                     <span
                       className={`font-mono text-xs font-bold ${
                         prop.axis === "snow"
                           ? "text-accent-foreground"
-                          : "text-rose-700"
+                          : "text-primary"
                       }`}
                     >
                       PROPOSAL {prop.numberLabel} · {prop.axisLabel}
@@ -300,7 +260,7 @@ export function ProfileResumeView() {
                   對應事業：{prop.targetBusiness}
                 </div>
 
-                <div className="rounded-xl bg-slate-500/5 p-3 mb-3 text-sm leading-relaxed">
+                <div className="rounded-xl bg-muted p-3 mb-3 text-sm leading-relaxed">
                   <span className="font-bold">現況挑戰：</span>
                   <span className="opacity-85">{prop.currentPainPoint}</span>
                 </div>
@@ -311,8 +271,8 @@ export function ProfileResumeView() {
                       <CheckCircle2
                         className={`h-3.5 w-3.5 shrink-0 mt-0.5 ${
                           prop.axis === "snow"
-                            ? "text-sky-700"
-                            : "text-rose-500"
+                            ? "text-accent-foreground"
+                            : "text-primary"
                         }`}
                       />
                       <span>{sol}</span>
@@ -321,9 +281,9 @@ export function ProfileResumeView() {
                 </ul>
               </div>
 
-              <div className="pt-3 border-t border-slate-200/70 space-y-2">
+              <div className="pt-3 border-t border-border space-y-2">
                 <div className="text-xs">
-                  <span className="font-bold text-rose-700">
+                  <span className="font-bold text-primary">
                     過往實績佐證：
                   </span>
                   <span className="opacity-80">{prop.resumeProof}</span>
@@ -332,7 +292,7 @@ export function ProfileResumeView() {
                   {prop.tags.map((t) => (
                     <span
                       key={t}
-                      className="rounded-md bg-slate-500/10 px-2 py-0.5 text-xs font-medium"
+                      className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium"
                     >
                       {t}
                     </span>
@@ -360,7 +320,7 @@ export function ProfileResumeView() {
                   className={
                     r.axis === "snow"
                       ? "text-accent-foreground"
-                      : "text-rose-700"
+                      : "text-primary"
                   }
                 >
                   {r.phase}
@@ -393,7 +353,7 @@ export function ProfileResumeView() {
         <div className="flex flex-wrap items-center gap-3">
           <a
             href={`mailto:${CANDIDATE_PROFILE.email}`}
-            className="inline-flex items-center gap-1.5 font-semibold text-rose-700 underline"
+            className="inline-flex items-center gap-1.5 font-semibold text-primary underline"
           >
             <Mail className="size-4 shrink-0" aria-hidden="true" />
             {CANDIDATE_PROFILE.email}
