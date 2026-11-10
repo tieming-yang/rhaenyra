@@ -4,13 +4,14 @@ import {
   type MouseEvent as ReactMouseEvent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { FileDown } from "lucide-react";
-import { CANDIDATE_PROFILE } from "@/domain/portfolio-data";
+import type { HeaderContent } from "@/content";
 import {
-  HEADER_NAV_ITEMS,
+  buildHeaderNavItems,
   HEADER_SECTION_HASH,
   HEADER_SECTION_HREF,
   resolveActiveHeaderSection,
@@ -18,6 +19,11 @@ import {
   resolveSectionFromHash,
   type HeaderSection,
 } from "@/lib/header-navigation";
+
+interface InterviewHeaderProps {
+  readonly content: HeaderContent;
+  readonly resumePdfHref: string;
+}
 
 const PROGRAMMATIC_SCROLL_LOCK_MS = 1600;
 
@@ -27,7 +33,14 @@ function getPreferredScrollBehavior(): ScrollBehavior {
     : "smooth";
 }
 
-export function InterviewHeader() {
+export function InterviewHeader({
+  content,
+  resumePdfHref,
+}: InterviewHeaderProps) {
+  const navItems = useMemo(
+    () => buildHeaderNavItems(content.nav),
+    [content.nav]
+  );
   const [activeSection, setActiveSection] = useState<HeaderSection>("hero");
   const pendingSectionRef = useRef<HeaderSection | null>(null);
   const pendingUntilMsRef = useRef(0);
@@ -282,10 +295,10 @@ export function InterviewHeader() {
           onClick={(event) => handleSectionClick(event, "hero")}
           className="interview-wordmark"
         >
-          {CANDIDATE_PROFILE.name}
+          {content.wordmark}
         </a>
-        <nav className="interview-nav" aria-label="網站導覽">
-          {HEADER_NAV_ITEMS.map((item) => (
+        <nav className="interview-nav" aria-label={content.navAriaLabel}>
+          {navItems.map((item) => (
             <a
               key={item.id}
               href={item.href}
@@ -297,13 +310,13 @@ export function InterviewHeader() {
           ))}
         </nav>
         <a
-          href={CANDIDATE_PROFILE.resumePdfUrl}
+          href={resumePdfHref}
           target="_blank"
           rel="noopener noreferrer"
           className="interview-pdf"
         >
           <FileDown className="hidden size-4 sm:block" aria-hidden="true" />
-          履歷 PDF
+          {content.resumePdfLabel}
         </a>
       </div>
     </header>

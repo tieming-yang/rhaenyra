@@ -2,16 +2,27 @@ import { ArrowDown, ArrowUp, Mail } from "lucide-react";
 import { InterviewHeader } from "@/components/interview-header";
 import { ResumeShowcase } from "@/components/resume-showcase";
 import { SnowboardRun } from "@/components/snowboard-run";
-import { CANDIDATE_PROFILE } from "@/domain/portfolio-data";
+import { getSiteContent } from "@/content";
 import { HEADER_SECTION_HREF } from "@/lib/header-navigation";
 import "./resume-showcase.css";
 
 export default function HomePage() {
+  const content = getSiteContent();
+  const firstWaypointId = content.proposal.waypoints[0].id;
+
   return (
     <>
-      <InterviewHeader />
+      <InterviewHeader
+        content={content.common.header}
+        resumePdfHref={content.site.profile.resumePdfHref}
+      />
       <main id="profile">
-        <ResumeShowcase />
+        <ResumeShowcase
+          profile={content.site.profile}
+          hero={content.hero}
+          experience={content.experience}
+          products={content.products}
+        />
 
         <section
           id="proposal"
@@ -19,37 +30,39 @@ export default function HomePage() {
           aria-labelledby="proposal-title"
         >
           <header className="run-intro">
-            <p className="interview-kicker">
-              04 / PROPOSAL · {CANDIDATE_PROFILE.targetCompany}
+            <p className="interview-kicker">{content.proposal.intro.eyebrow}</p>
+            <h2 id="proposal-title">{content.proposal.intro.title}</h2>
+            <p className="run-intro-subtitle">
+              {content.proposal.intro.subtitle}
             </p>
-            <h2 id="proposal-title">面試與成長提案</h2>
-            <p className="run-intro-subtitle">{CANDIDATE_PROFILE.coreTagline}</p>
-            <a className="run-start" href="#intro">
-              向下探索
+            <a className="run-start" href={`#${firstWaypointId}`}>
+              {content.proposal.intro.startCtaLabel}
               <ArrowDown className="size-4" aria-hidden="true" />
             </a>
           </header>
 
-          <SnowboardRun />
+          <SnowboardRun content={content.proposal} />
 
           <footer className="run-finish">
-            <p className="interview-kicker">FINISH</p>
-            <h2>感謝閱讀</h2>
+            <p className="interview-kicker">
+              {content.proposal.finish.eyebrow}
+            </p>
+            <h2>{content.proposal.finish.title}</h2>
             <div className="flex flex-wrap justify-center gap-3">
               <a
                 href={HEADER_SECTION_HREF.hero}
                 data-scroll-section="hero"
                 className="interview-button interview-button-primary"
               >
-                回到頂部
+                {content.proposal.finish.backToTopLabel}
                 <ArrowUp className="size-4" aria-hidden="true" />
               </a>
               <a
-                href={`mailto:${CANDIDATE_PROFILE.email}`}
+                href={`mailto:${content.site.profile.email}`}
                 className="interview-button"
               >
                 <Mail className="size-4" aria-hidden="true" />
-                聯絡我
+                {content.proposal.finish.contactLabel}
               </a>
             </div>
           </footer>

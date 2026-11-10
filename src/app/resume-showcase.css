@@ -686,7 +686,7 @@
     letter-spacing: -0.07em;
     writing-mode: vertical-rl;
     transform: rotate(180deg);
-    content: "Work History";
+    content: attr(data-watermark);
     pointer-events: none;
   }
 

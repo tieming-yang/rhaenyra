@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { ArrowDownRight, ArrowUpLeft, ArrowUpRight } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import { CANDIDATE_PROFILE } from "@/domain/portfolio-data";
+import type { HeroBadgeContent, SiteProfileAssets } from "@/content";
 import {
   DEFAULT_RESTING_STRAP_PATH,
   DEFAULT_RESTING_VIEWBOX,
@@ -67,7 +67,12 @@ function readBadgeFieldMetrics(
   };
 }
 
-export function ResumeBadge() {
+interface ResumeBadgeProps {
+  readonly content: HeroBadgeContent;
+  readonly profile: SiteProfileAssets;
+}
+
+export function ResumeBadge({ content, profile }: ResumeBadgeProps) {
   const [flipped, setFlipped] = useState(false);
   const fieldRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -288,19 +293,19 @@ export function ResumeBadge() {
   }, []);
 
   return (
-    <div className="resume-badge" role="group" aria-label="Rhaenyra Liang 個人名牌">
+    <div className="resume-badge" role="group" aria-label={content.groupAriaLabel}>
       <div className="resume-badge-field" ref={fieldRef}>
         <svg className="resume-strap" ref={svgRef} viewBox={DEFAULT_RESTING_VIEWBOX} aria-hidden="true">
           <path id={strapId} ref={strapRef} d={DEFAULT_RESTING_STRAP_PATH} />
           <use href={`#${strapId}`} className="resume-strap-weave" />
-          <text><textPath href={`#${strapId}`} startOffset="48%">RHAENYRA LIANG</textPath></text>
+          <text><textPath href={`#${strapId}`} startOffset="48%">{content.strapText}</textPath></text>
         </svg>
 
         <div className="resume-badge-anchor" ref={anchorRef}>
           <div className="resume-badge-swing" ref={badgeRef}>
             <Image
               ref={clipRef}
-              src="/resume/badge-clip.svg"
+              src={profile.badgeClipSrc}
               alt=""
               width={40}
               height={54}
@@ -310,7 +315,7 @@ export function ResumeBadge() {
             <button
               type="button"
               className="resume-badge-flip"
-              aria-label={flipped ? "翻回名牌正面" : "翻看聯絡方式"}
+              aria-label={flipped ? content.flipToFrontAriaLabel : content.flipToBackAriaLabel}
               aria-pressed={flipped}
               onClick={() => setFlipped((value) => !value)}
             >
@@ -319,11 +324,11 @@ export function ResumeBadge() {
             <div className="resume-badge-card" data-flipped={flipped ? "" : undefined}>
               <div className="resume-badge-face resume-badge-front" aria-hidden={flipped}>
                 <div className="resume-badge-label">
-                  <span>PRODUCT · AI OPERATIONS</span>
-                  <span>#01</span>
+                  <span>{content.front.topLabel}</span>
+                  <span>{content.front.numberLabel}</span>
                 </div>
                 <Image
-                  src="/resume/badge-portrait-sakura.webp"
+                  src={profile.badgePortraitSrc}
                   alt=""
                   width={640}
                   height={640}
@@ -334,25 +339,25 @@ export function ResumeBadge() {
                   className="resume-badge-portrait"
                 />
                 <div className="resume-badge-name">
-                  <p>{CANDIDATE_PROFILE.name}</p>
-                  <span>產品管理 · AI 營運</span>
+                  <p>{content.front.name}</p>
+                  <span>{content.front.role}</span>
                 </div>
               </div>
               <div className="resume-badge-face resume-badge-back" aria-hidden={!flipped} inert={!flipped}>
-                <div className="resume-badge-label"><span>CONTACT</span><span>#01</span></div>
-                <p className="resume-badge-company">{CANDIDATE_PROFILE.name}</p>
-                <p className="resume-badge-period">{CANDIDATE_PROFILE.chinesePositioning}</p>
+                <div className="resume-badge-label"><span>{content.back.topLabel}</span><span>{content.back.numberLabel}</span></div>
+                <p className="resume-badge-company">{content.back.name}</p>
+                <p className="resume-badge-period">{content.back.positioning}</p>
                 <div className="resume-badge-contact">
-                  <a href={`mailto:${CANDIDATE_PROFILE.email}`}>
-                    <span>EMAIL</span>
-                    {CANDIDATE_PROFILE.email}
+                  <a href={`mailto:${profile.email}`}>
+                    <span>{content.back.emailLabel}</span>
+                    {profile.email}
                   </a>
-                  <a href={CANDIDATE_PROFILE.resumePdfUrl} target="_blank" rel="noopener noreferrer">
-                    <span>RÉSUMÉ</span>
-                    <span>開啟 PDF <ArrowUpRight aria-hidden="true" /></span>
+                  <a href={profile.resumePdfHref} target="_blank" rel="noopener noreferrer">
+                    <span>{content.back.resumeLabel}</span>
+                    <span>{content.back.openPdfLabel} <ArrowUpRight aria-hidden="true" /></span>
                   </a>
                 </div>
-                <span className="resume-badge-signature">Jstyle北海道 · Interview</span>
+                <span className="resume-badge-signature">{content.back.signature}</span>
               </div>
             </div>
           </div>

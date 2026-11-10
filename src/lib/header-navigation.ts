@@ -1,4 +1,4 @@
-import { INTERVIEW_WAYPOINTS } from "../domain/portfolio-data";
+import { getSiteContent, type HeaderNavLabels } from "../content";
 
 export type HeaderSection = "hero" | "job-desk" | "product-cases" | "proposal";
 
@@ -9,12 +9,40 @@ export interface HeaderNavItem {
   readonly hash: string;
 }
 
-export const HEADER_NAV_ITEMS: readonly HeaderNavItem[] = [
-  { id: "hero", label: "簡介", href: "/", hash: "" },
-  { id: "job-desk", label: "經歷", href: "#job-desk", hash: "#job-desk" },
-  { id: "product-cases", label: "產品", href: "#product-cases", hash: "#product-cases" },
-  { id: "proposal", label: "提案", href: "#proposal", hash: "#proposal" },
-];
+const DEFAULT_CONTENT = getSiteContent();
+
+/**
+ * Builds ordered top-level navigation items from localized header labels.
+ */
+export function buildHeaderNavItems(
+  labels: HeaderNavLabels
+): readonly HeaderNavItem[] {
+  return [
+    { id: "hero", label: labels.hero, href: "/", hash: "" },
+    {
+      id: "job-desk",
+      label: labels["job-desk"],
+      href: "#job-desk",
+      hash: "#job-desk",
+    },
+    {
+      id: "product-cases",
+      label: labels["product-cases"],
+      href: "#product-cases",
+      hash: "#product-cases",
+    },
+    {
+      id: "proposal",
+      label: labels.proposal,
+      href: "#proposal",
+      hash: "#proposal",
+    },
+  ];
+}
+
+export const HEADER_NAV_ITEMS: readonly HeaderNavItem[] = buildHeaderNavItems(
+  DEFAULT_CONTENT.common.header.nav
+);
 
 export const HEADER_SECTION_HREF: Readonly<Record<HeaderSection, string>> = {
   hero: "/",
@@ -51,7 +79,7 @@ const MIN_SECTION_ACTIVE_TOP_PX = 96;
 const SECTION_VIEWPORT_RATIO = 0.35;
 
 const PROPOSAL_WAYPOINT_HASHES: ReadonlySet<string> = new Set(
-  INTERVIEW_WAYPOINTS.map((waypoint) => `#${waypoint.id}`)
+  DEFAULT_CONTENT.proposal.waypoints.map((waypoint) => `#${waypoint.id}`)
 );
 
 function assertFiniteNullableOffset(value: number | null, label: string): void {

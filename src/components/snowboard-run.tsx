@@ -1,7 +1,10 @@
 "use client";
 
-import { type MouseEvent, useEffect, useRef, useState } from "react";
-import { INTERVIEW_WAYPOINTS } from "@/domain/portfolio-data";
+import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  formatContentTemplate,
+  type ProposalSectionContent,
+} from "@/content";
 import {
   createSnowboardRoute,
   deriveAirborneRigPose,
@@ -20,9 +23,6 @@ import {
   RIDER_CANVAS_SIZE,
   stepPowderParticles,
 } from "@/lib/snowboarder-pixel-3d";
-
-const route = createSnowboardRoute(INTERVIEW_WAYPOINTS.length);
-const start = route.checkpoints[0];
 
 const MOUNTAIN_SILHOUETTE_PATH =
   "M 0 56 L 0 46 C 42 45, 82 36, 114 24 C 129 18.4, 141 12, 152 6 Q 166 1.5, 180 2.5 Q 194 1.5, 208 6 C 219 12, 231 18.4, 246 24 C 278 36, 318 45, 360 46 L 360 56 Z";
@@ -62,7 +62,16 @@ function MountainCardCrest() {
   );
 }
 
-export function SnowboardRun() {
+interface SnowboardRunProps {
+  readonly content: ProposalSectionContent;
+}
+
+export function SnowboardRun({ content }: SnowboardRunProps) {
+  const route = useMemo(
+    () => createSnowboardRoute(content.waypoints.length),
+    [content.waypoints.length]
+  );
+  const start = route.checkpoints[0];
   const laneRef = useRef<HTMLDivElement>(null);
   const riderRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -222,7 +231,7 @@ export function SnowboardRun() {
       window.removeEventListener("resize", schedule);
       motion.removeEventListener("change", schedule);
     };
-  }, []);
+  }, [route, start]);
 
   function focusWaypoint(index: number, event?: MouseEvent<HTMLElement>) {
     if (
@@ -245,7 +254,7 @@ export function SnowboardRun() {
     const bounds = lane.getBoundingClientRect();
     if (bounds.height <= 0) return;
 
-    const waypoint = INTERVIEW_WAYPOINTS[index];
+    const waypoint = content.waypoints[index];
     if (!waypoint) return;
 
     const hash = `#${waypoint.id}`;
@@ -285,14 +294,20 @@ export function SnowboardRun() {
           <path d={route.path} vectorEffect="non-scaling-stroke" />
         </svg>
         {route.checkpoints.map((point, index) => {
-          const waypoint = INTERVIEW_WAYPOINTS[index];
+          const waypoint = content.waypoints[index];
           return (
             <button
               key={point.y}
               type="button"
               className="run-marker"
               data-active={index === activeIndex ? "" : undefined}
-              aria-label={`前往第 ${index + 1} 站：${waypoint.title}`}
+              aria-label={formatContentTemplate(
+                content.trail.markerAriaTemplate,
+                {
+                  step: index + 1,
+                  title: waypoint.title,
+                }
+              )}
               aria-current={index === activeIndex ? "step" : undefined}
               style={{
                 left: `${(point.x / route.width) * 100}%`,
@@ -317,8 +332,8 @@ export function SnowboardRun() {
         </div>
       </div>
 
-      <ol className="run-stops" aria-label="面試提案的八個轉彎">
-        {INTERVIEW_WAYPOINTS.map((waypoint, index) => (
+      <ol className="run-stops" aria-label={content.trail.stopsAriaLabel}>
+        {content.waypoints.map((waypoint, index) => (
           <li className="run-stop" key={waypoint.id} aria-current={index === activeIndex ? "step" : undefined}>
             <article className="run-copy" id={waypoint.id}>
               <a

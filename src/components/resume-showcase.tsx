@@ -3,8 +3,13 @@
 import Image from "next/image";
 import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { CANDIDATE_PROFILE } from "@/domain/portfolio-data";
-import { RESUME_PRODUCTS } from "@/domain/resume-showcase-data";
+import {
+  formatContentTemplate,
+  type ExperienceSectionContent,
+  type HeroContent,
+  type ProductsSectionContent,
+  type SiteProfileAssets,
+} from "@/content";
 import { ResumeBadge } from "./resume-badge";
 import { ResumeJobDeck } from "./resume-job-deck";
 import { SakuraHeadlineName } from "./sakura-headline-name";
@@ -108,17 +113,30 @@ const keyboardRows: readonly (readonly KeyCap[])[] = [
   ],
 ];
 
-function productArt(id: string) {
-  return { backgroundImage: `url(/resume/${id}.svg)` };
+interface ResumeShowcaseProps {
+  readonly profile: SiteProfileAssets;
+  readonly hero: HeroContent;
+  readonly experience: ExperienceSectionContent;
+  readonly products: ProductsSectionContent;
 }
 
-export function ResumeShowcase() {
+function productArtStyle(artSrc: string) {
+  return { backgroundImage: `url(${artSrc})` };
+}
+
+export function ResumeShowcase({
+  profile,
+  hero,
+  experience,
+  products,
+}: ResumeShowcaseProps) {
   const coverRef = useRef<HTMLElement>(null);
   const deskRef = useRef<HTMLElement>(null);
   const studioRef = useRef<HTMLElement>(null);
   const [selected, setSelected] = useState(0);
   const [nearStudio, setNearStudio] = useState(false);
-  const product = RESUME_PRODUCTS[selected];
+  const safeSelected = selected < products.items.length ? selected : 0;
+  const product = products.items[safeSelected];
 
   useEffect(() => {
     const cover = coverRef.current;
@@ -180,32 +198,32 @@ export function ResumeShowcase() {
       <section className="resume-cover-rail" ref={coverRef} aria-labelledby="profile-title">
         <div className="resume-cover">
           <div className="resume-cover-copy">
-            <p className="resume-eyebrow">PROFILE / {CANDIDATE_PROFILE.targetCompany}</p>
+            <p className="resume-eyebrow">{hero.cover.eyebrow}</p>
             <h1 id="profile-title">
-              <SakuraHeadlineName text={CANDIDATE_PROFILE.name} />
-              <span className="resume-cover-tagline">把想法做成產品。</span>
+              <SakuraHeadlineName text={hero.cover.headline} />
+              <span className="resume-cover-tagline">{hero.cover.tagline}</span>
             </h1>
-            <p className="resume-cover-positioning">{CANDIDATE_PROFILE.chinesePositioning}</p>
+            <p className="resume-cover-positioning">{hero.cover.positioning}</p>
           </div>
 
-          <ResumeBadge />
+          <ResumeBadge content={hero.badge} profile={profile} />
 
           <div className="resume-cover-aside">
-            <p>{CANDIDATE_PROFILE.executiveSummary}</p>
-            <nav aria-label="履歷內容">
-              <a href="#job-desk">工作與實習 <ArrowDown aria-hidden="true" /></a>
-              <a href="#product-cases">產品案例 <ArrowDown aria-hidden="true" /></a>
+            <p>{hero.cover.summary}</p>
+            <nav aria-label={hero.cover.sectionNavAriaLabel}>
+              <a href="#job-desk">{hero.cover.experienceLinkLabel} <ArrowDown aria-hidden="true" /></a>
+              <a href="#product-cases">{hero.cover.productsLinkLabel} <ArrowDown aria-hidden="true" /></a>
             </nav>
           </div>
 
-          <span className="resume-cover-mark" aria-hidden="true">{CANDIDATE_PROFILE.name}</span>
+          <span className="resume-cover-mark" aria-hidden="true">{hero.cover.watermark}</span>
         </div>
       </section>
 
       <section className="resume-desk" id="job-desk" ref={deskRef} aria-labelledby="job-desk-title">
-        <div className="resume-desk-inner">
-          <ResumeJobDeck />
-          <a className="resume-desk-next" href="#product-cases">產品案例 <ArrowDown aria-hidden="true" /></a>
+        <div className="resume-desk-inner" data-watermark={experience.watermark}>
+          <ResumeJobDeck content={experience} />
+          <a className="resume-desk-next" href="#product-cases">{experience.nextSectionLabel} <ArrowDown aria-hidden="true" /></a>
         </div>
       </section>
 
@@ -213,15 +231,17 @@ export function ResumeShowcase() {
         <div className="resume-studio">
           <div className="resume-studio-inner">
             <div className="resume-case-copy">
-              <p className="resume-eyebrow">03 / PRODUCT CASES / 0{selected + 1}</p>
+              <p className="resume-eyebrow">
+                {products.eyebrowPrefix} / {String(safeSelected + 1).padStart(2, "0")}
+              </p>
               <h2 id="product-cases-title">{product.name}</h2>
               <p className="resume-case-title">{product.title}</p>
               <p className="resume-case-summary">{product.summary}</p>
-              <a className="resume-product-site" href={product.site} target="_blank" rel="noopener noreferrer">
-                開啟產品網站 <ArrowUpRight aria-hidden="true" />
+              <a className="resume-product-site" href={product.siteUrl} target="_blank" rel="noopener noreferrer">
+                {products.openSiteLabel} <ArrowUpRight aria-hidden="true" />
               </a>
               <details className="resume-case-details" key={product.id}>
-                <summary>閱讀案例</summary>
+                <summary>{products.readCaseLabel}</summary>
                 {product.details.map((detail) => (
                   <div key={detail.title}>
                     <strong>{detail.title}</strong>
@@ -237,11 +257,11 @@ export function ResumeShowcase() {
                 <div className="resume-device-screen" id="resume-mac-screen">
                   <div
                     className="resume-screen-strip"
-                    style={{ transform: `translateX(-${selected * 100}%)` }}
+                    style={{ transform: `translateX(-${safeSelected * 100}%)` }}
                     aria-hidden="true"
                   >
-                    {RESUME_PRODUCTS.map((entry) => (
-                      <div className="resume-screen-frame" style={productArt(entry.id)} key={entry.id}>
+                    {products.items.map((entry) => (
+                      <div className="resume-screen-frame" style={productArtStyle(entry.artSrc)} key={entry.id}>
                         <span>{entry.name}</span>
                         <strong>{entry.display}</strong>
                         <small>{entry.caption}</small>
@@ -249,14 +269,23 @@ export function ResumeShowcase() {
                     ))}
                   </div>
                   <div className="resume-live-screen" key={product.id}>
-                    {product.preview ? (
+                    {product.previewSrc ? (
                       <div className="resume-live-preview">
-                        <Image src={product.preview} alt={`${product.name} 網站預覽`} fill sizes="(max-width: 767px) 94vw, 740px" />
+                        <Image
+                          src={product.previewSrc}
+                          alt={formatContentTemplate(products.previewAltTemplate, {
+                            name: product.name,
+                          })}
+                          fill
+                          sizes="(max-width: 767px) 94vw, 740px"
+                        />
                       </div>
                     ) : nearStudio && (
                       <iframe
-                        title={`${product.name} 即時網站`}
-                        src={product.site}
+                        title={formatContentTemplate(products.liveSiteTitleTemplate, {
+                          name: product.name,
+                        })}
+                        src={product.siteUrl}
                         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
                         referrerPolicy="strict-origin-when-cross-origin"
                         inert
@@ -289,15 +318,15 @@ export function ResumeShowcase() {
               </div>
             </div>
 
-            <div className="resume-project-dock" role="group" aria-label="選擇產品案例">
-              {RESUME_PRODUCTS.map((entry, index) => (
+            <div className="resume-project-dock" role="group" aria-label={products.dockAriaLabel}>
+              {products.items.map((entry, index) => (
                 <button
                   key={entry.id}
                   type="button"
-                  aria-pressed={selected === index}
+                  aria-pressed={safeSelected === index}
                   onClick={() => setSelected(index)}
                 >
-                  <span style={productArt(entry.id)} aria-hidden="true" />
+                  <span style={productArtStyle(entry.artSrc)} aria-hidden="true" />
                   {entry.name}
                 </button>
               ))}

@@ -3,37 +3,20 @@
 import Image from "next/image";
 import { Layers } from "lucide-react";
 import { type CSSProperties, useLayoutEffect, useRef, useState } from "react";
-import { RESUME_BADGES } from "@/domain/resume-showcase-data";
+import {
+  formatContentTemplate,
+  type ExperienceSectionContent,
+} from "@/content";
 
-const logos: Readonly<Record<string, string>> = {
-  beacon: "/resume/jobs/beacon.webp",
-  "thinker-data": "/resume/jobs/thinker-data.png",
-  "eternal-story": "/resume/jobs/eternal-story.png",
-  "youtube-creator": "/resume/jobs/youtube-creator.svg",
-  tvbs: "/resume/jobs/tvbs.svg",
-  dentall: "/resume/jobs/dentall.svg",
-  bole: "/resume/jobs/bole.png",
-  nuturefit: "/resume/jobs/nuturefit.png",
-};
+interface ResumeJobDeckProps {
+  readonly content: ExperienceSectionContent;
+}
 
-const marks: Readonly<Record<string, string>> = {
-  beacon: "B",
-  "thinker-data": "TD",
-  "eternal-story": "ES",
-  "youtube-creator": "YT",
-  tvbs: "TV",
-  dentall: "dt",
-  bole: "博樂",
-  nuturefit: "NF",
-  "houston-teaching": "HT",
-  "taiwan-teaching": "臺灣",
-};
-
-export function ResumeJobDeck() {
+export function ResumeJobDeck({ content }: ResumeJobDeckProps) {
   const listRef = useRef<HTMLOListElement>(null);
   const [flipped, setFlipped] = useState<ReadonlySet<string>>(new Set());
   const [flipDelays, setFlipDelays] = useState<ReadonlyMap<string, number>>(new Map());
-  const allFlipped = flipped.size === RESUME_BADGES.length;
+  const allFlipped = flipped.size === content.items.length;
 
   function flipAll() {
     const slots = Array.from(listRef.current?.children ?? []);
@@ -43,7 +26,7 @@ export function ResumeJobDeck() {
     });
     positions.sort((a, b) => a.distance - b.distance);
     setFlipDelays(new Map(positions.map(({ id }, index) => [id, index * 38])));
-    setFlipped(new Set(allFlipped ? [] : RESUME_BADGES.map((job) => job.id)));
+    setFlipped(new Set(allFlipped ? [] : content.items.map((job) => job.id)));
   }
 
   function flip(id: string) {
@@ -72,18 +55,18 @@ export function ResumeJobDeck() {
     alignStack();
 
     return () => observer.disconnect();
-  }, []);
+  }, [content.items.length]);
 
   return (
     <>
       <header className="resume-desk-header">
         <div>
-          <p className="resume-eyebrow">02 / WORK & INTERNSHIPS</p>
-          <h2 id="job-desk-title">工作與實習名牌</h2>
+          <p className="resume-eyebrow">{content.eyebrow}</p>
+          <h2 id="job-desk-title">{content.title}</h2>
         </div>
         <div className="resume-deck-controls">
           <button type="button" onClick={flipAll} aria-pressed={allFlipped}>
-            <Layers aria-hidden="true" /> {allFlipped ? "顯示正面" : "顯示全部詳情"}
+            <Layers aria-hidden="true" /> {allFlipped ? content.showFrontLabel : content.showAllDetailsLabel}
           </button>
         </div>
       </header>
@@ -92,7 +75,7 @@ export function ResumeJobDeck() {
         className="resume-job-deck grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5"
         ref={listRef}
       >
-        {RESUME_BADGES.map((job, index) => {
+        {content.items.map((job, index) => {
           const isFlipped = flipped.has(job.id);
           const number = index + 1;
           const face = `job-${job.id}-${isFlipped ? "back" : "front"}`;
@@ -109,7 +92,12 @@ export function ResumeJobDeck() {
                 <button
                   className="resume-job-button"
                   type="button"
-                  aria-label={isFlipped ? `顯示 ${job.company} 的名牌正面` : `翻看 ${job.company} 的經歷`}
+                  aria-label={formatContentTemplate(
+                    isFlipped
+                      ? content.cardFlipToFrontAriaTemplate
+                      : content.cardFlipToBackAriaTemplate,
+                    { company: job.company }
+                  )}
                   aria-describedby={face}
                   aria-pressed={isFlipped}
                   onClick={() => flip(job.id)}
@@ -121,26 +109,26 @@ export function ResumeJobDeck() {
                       id={`job-${job.id}-front`}
                       aria-hidden={isFlipped}
                     >
-                      <span className="resume-job-num">EXPERIENCE <span>{String(number).padStart(2, "0")}</span></span>
+                      <span className="resume-job-num">{content.frontCardLabel} <span>{String(number).padStart(2, "0")}</span></span>
                       <span className="resume-job-mark" aria-hidden="true">
-                        {logos[job.id] ? (
+                        {job.logoSrc ? (
                           <Image
                             className="resume-job-logo"
-                            src={logos[job.id]}
+                            src={job.logoSrc}
                             alt=""
                             width={128}
                             height={128}
                             draggable={false}
                           />
                         ) : (
-                          marks[job.id]
+                          job.fallbackMark
                         )}
                       </span>
                       <span className="resume-job-name">{job.company}</span>
                       <span className="resume-job-role">{job.role}</span>
                     </span>
                     <span className="resume-job-face resume-job-back" id={`job-${job.id}-back`} aria-hidden={!isFlipped}>
-                      <span className="resume-job-num">WORK HISTORY <span>{String(number).padStart(2, "0")}</span></span>
+                      <span className="resume-job-num">{content.backCardLabel} <span>{String(number).padStart(2, "0")}</span></span>
                       <span className="resume-job-name">{job.company}</span>
                       <span className="resume-job-period">{job.period}</span>
                       <span className="resume-job-note">{job.note}</span>
