@@ -134,7 +134,11 @@ export type MacJumpPose = Readonly<{
   opacity: number;
 }>;
 
-const MAC_LAUNCH_SCALE = 0.42;
+const MAC_LAUNCH_SCALE = 0.9;
+const MAC_PEAK_SCALE = 2.5;
+const MAC_APEX_EASE = 7 / 27;
+const MAC_SCALE_BOOST =
+  MAC_PEAK_SCALE - (MAC_LAUNCH_SCALE + (1 - MAC_LAUNCH_SCALE) * MAC_APEX_EASE);
 const MAC_FADE_IN_END = 0.12;
 
 /** Computes normalized jump progress between scrolling past the Mac screen and reaching Turn 01. */
@@ -195,12 +199,13 @@ export function getMacJumpPose(input: MacJumpInput): MacJumpPose {
   const ease = progress * progress * (3 - 2 * progress);
   const oneMinusT = 1 - progress;
   const arc = 6.75 * progress * oneMinusT * oneMinusT;
+  const baseScale = MAC_LAUNCH_SCALE + (1 - MAC_LAUNCH_SCALE) * ease;
   const direction = launchDeltaX === 0 ? 1 : -Math.sign(launchDeltaX);
 
   return {
     x: launchDeltaX * (1 - ease),
     y: launchDeltaY * (1 - ease) - arcLift * arc,
-    scale: MAC_LAUNCH_SCALE + (1 - MAC_LAUNCH_SCALE) * ease,
+    scale: baseScale + MAC_SCALE_BOOST * arc,
     lean: direction * 16 * Math.sin(Math.PI * progress),
     opacity: Math.min(1, progress / MAC_FADE_IN_END),
   };

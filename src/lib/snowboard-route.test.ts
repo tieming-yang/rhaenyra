@@ -99,7 +99,7 @@ describe("Mac-to-trail jump kinematics", () => {
     expect(before).toEqual({
       x: 240,
       y: -620,
-      scale: 0.42,
+      scale: 0.9,
       lean: 0,
       opacity: 0,
     });
@@ -120,9 +120,23 @@ describe("Mac-to-trail jump kinematics", () => {
     });
   });
 
-  it("lifts above the linear path in mid-air while scaling up and tilting toward the landing lane", () => {
+  it("surges to 2.5x foreground scale at the mid-air apex before settling down to 1x on landing", () => {
     const mid = getMacJumpPose({
       progress: 1 / 3,
+      launchDeltaX: 240,
+      launchDeltaY: -600,
+      arcLift: 120,
+      reducedMotion: false,
+    });
+    const descending = getMacJumpPose({
+      progress: 0.8,
+      launchDeltaX: 240,
+      launchDeltaY: -600,
+      arcLift: 120,
+      reducedMotion: false,
+    });
+    const nearlyLanded = getMacJumpPose({
+      progress: 0.98,
       launchDeltaX: 240,
       launchDeltaY: -600,
       arcLift: 120,
@@ -133,8 +147,11 @@ describe("Mac-to-trail jump kinematics", () => {
 
     expect(mid.opacity).toBe(1);
     expect(mid.y).toBeCloseTo(linearY - 120, 5);
-    expect(mid.scale).toBeGreaterThan(0.42);
-    expect(mid.scale).toBeLessThan(1);
+    expect(mid.scale).toBeCloseTo(2.5, 5);
+    expect(descending.scale).toBeGreaterThan(1);
+    expect(descending.scale).toBeLessThan(mid.scale);
+    expect(nearlyLanded.scale).toBeGreaterThan(1);
+    expect(nearlyLanded.scale).toBeLessThan(1.03);
     expect(mid.lean).toBeLessThan(0);
   });
 
