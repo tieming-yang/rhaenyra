@@ -296,6 +296,8 @@ html {
 }
 
 .interview-run {
+  position: relative;
+  z-index: 2;
   padding-inline: var(--interview-gutter);
   border-top: 1px solid var(--border);
   scroll-margin-top: calc(-1 * (var(--interview-header-height) + 0.75rem));
@@ -395,7 +397,7 @@ html {
   width: clamp(3.25rem, 12vw, 4rem);
   transform: translate(-50%, -88%);
   transform-origin: 50% 88%;
-  will-change: transform;
+  will-change: transform, opacity;
 }
 
 .run-rider svg {

@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { INTERVIEW_WAYPOINTS } from "@/domain/portfolio-data";
-import { createSnowboardRoute, getSnowboardPose } from "@/lib/snowboard-route";
+import {
+  createSnowboardRoute,
+  getMacJumpPose,
+  getMacJumpProgress,
+  getSnowboardPose,
+} from "@/lib/snowboard-route";
 
 const route = createSnowboardRoute(INTERVIEW_WAYPOINTS.length);
 const start = route.checkpoints[0];
@@ -50,10 +55,10 @@ export function SnowboardRun() {
     const update = () => {
       frame = 0;
       const bounds = lane.getBoundingClientRect();
-      if (bounds.height === 0) return;
+      const viewportHeight = window.innerHeight;
+      if (bounds.height === 0 || viewportHeight <= 0) return;
 
       const scroll = window.scrollY;
-      const viewportHeight = window.innerHeight;
       const center = viewportHeight / 2;
       const halfRow = bounds.height / route.checkpoints.length / 2;
       const firstTurn = Math.max(0, bounds.top + scroll + halfRow - center);
@@ -61,13 +66,48 @@ export function SnowboardRun() {
         document.documentElement.scrollHeight - viewportHeight,
         bounds.bottom + scroll - halfRow - center
       );
+
+      const macScreen = document.getElementById("resume-mac-screen");
+      if (!motion.matches && macScreen && scroll < firstTurn) {
+        const screenBounds = macScreen.getBoundingClientRect();
+        if (screenBounds.height > 0) {
+          const launchX = screenBounds.left + screenBounds.width * 0.5;
+          const launchY = screenBounds.top + screenBounds.height * 0.58;
+          const anchorX = bounds.left + (start.x / route.width) * bounds.width;
+          const anchorY = bounds.top + (start.y / route.height) * bounds.height;
+          const jumpProgress = getMacJumpProgress(
+            scroll,
+            launchY + scroll,
+            firstTurn,
+            viewportHeight
+          );
+          const arcLift = Math.min(180, Math.max(96, viewportHeight * 0.15));
+          const jumpPose = getMacJumpPose({
+            progress: jumpProgress,
+            launchDeltaX: launchX - anchorX,
+            launchDeltaY: launchY - anchorY,
+            arcLift,
+            reducedMotion: false,
+          });
+          rider.style.opacity = String(jumpPose.opacity);
+          rider.style.transform = `translate3d(${jumpPose.x}px, ${jumpPose.y}px, 0) translate(-50%, -88%) scale(${jumpPose.scale}) rotate(${jumpPose.lean}deg)`;
+
+          if (activeIndexRef.current !== 0) {
+            activeIndexRef.current = 0;
+            setActiveIndex(0);
+          }
+          return;
+        }
+      }
+
       const progress = lastTurn > firstTurn
         ? (scroll - firstTurn) / (lastTurn - firstTurn) * (route.checkpoints.length - 1)
         : 0;
       const pose = getSnowboardPose(route, progress, motion.matches);
       const x = (pose.x - start.x) / route.width * bounds.width;
       const y = (pose.y - start.y) / route.height * bounds.height;
-      rider.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -88%) rotate(${pose.lean}deg)`;
+      rider.style.opacity = "1";
+      rider.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -88%) scale(1) rotate(${pose.lean}deg)`;
 
       if (pose.activeIndex !== activeIndexRef.current) {
         activeIndexRef.current = pose.activeIndex;
@@ -81,6 +121,7 @@ export function SnowboardRun() {
 
     const observer = new ResizeObserver(schedule);
     observer.observe(lane);
+    observer.observe(document.body);
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
     motion.addEventListener("change", schedule);

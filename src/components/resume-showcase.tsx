@@ -240,7 +240,7 @@ export function ResumeShowcase() {
             <div className="resume-device">
               <div className="resume-device-lid">
                 <div className="resume-device-camera" aria-hidden="true" />
-                <div className="resume-device-screen">
+                <div className="resume-device-screen" id="resume-mac-screen">
                   <div
                     className="resume-screen-strip"
                     style={{ transform: `translateX(-${selected * 100}%)` }}
