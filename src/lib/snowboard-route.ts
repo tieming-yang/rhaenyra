@@ -47,3 +47,91 @@ export function getSnowboardPose(
     lean: Math.sign(to.x - from.x) * 18 * Math.sin(Math.PI * t),
   };
 }
+
+export type MacJumpInput = Readonly<{
+  progress: number;
+  launchDeltaX: number;
+  launchDeltaY: number;
+  arcLift: number;
+  reducedMotion: boolean;
+}>;
+
+export type MacJumpPose = Readonly<{
+  x: number;
+  y: number;
+  scale: number;
+  lean: number;
+  opacity: number;
+}>;
+
+const MAC_LAUNCH_SCALE = 0.42;
+const MAC_FADE_IN_END = 0.12;
+
+/** Computes normalized jump progress between scrolling past the Mac screen and reaching Turn 01. */
+export function getMacJumpProgress(
+  scrollY: number,
+  macLaunchDocY: number,
+  firstTurnScrollY: number,
+  viewportHeight: number
+): number {
+  if (
+    !Number.isFinite(scrollY) ||
+    !Number.isFinite(macLaunchDocY) ||
+    !Number.isFinite(firstTurnScrollY) ||
+    !Number.isFinite(viewportHeight) ||
+    viewportHeight <= 0
+  ) {
+    throw new Error(
+      "Mac jump progress requires finite scroll offsets and positive viewport height"
+    );
+  }
+
+  const minSpan = Math.max(180, viewportHeight * 0.25);
+  const jumpStart = Math.min(
+    firstTurnScrollY - minSpan,
+    macLaunchDocY - viewportHeight * 0.34
+  );
+  return (scrollY - jumpStart) / (firstTurnScrollY - jumpStart);
+}
+
+/** Computes the parabolic jump pose from the MacBook screen onto Checkpoint 01. */
+export function getMacJumpPose(input: MacJumpInput): MacJumpPose {
+  const { progress, launchDeltaX, launchDeltaY, arcLift, reducedMotion } = input;
+  if (
+    !Number.isFinite(progress) ||
+    !Number.isFinite(launchDeltaX) ||
+    !Number.isFinite(launchDeltaY) ||
+    !Number.isFinite(arcLift) ||
+    arcLift < 0
+  ) {
+    throw new Error(
+      "Mac jump pose requires finite coordinates and a non-negative arc lift"
+    );
+  }
+
+  if (reducedMotion || progress >= 1) {
+    return { x: 0, y: 0, scale: 1, lean: 0, opacity: 1 };
+  }
+  if (progress <= 0) {
+    return {
+      x: launchDeltaX,
+      y: launchDeltaY,
+      scale: MAC_LAUNCH_SCALE,
+      lean: 0,
+      opacity: 0,
+    };
+  }
+
+  const ease = progress * progress * (3 - 2 * progress);
+  const oneMinusT = 1 - progress;
+  const arc = 6.75 * progress * oneMinusT * oneMinusT;
+  const direction = launchDeltaX === 0 ? 1 : -Math.sign(launchDeltaX);
+
+  return {
+    x: launchDeltaX * (1 - ease),
+    y: launchDeltaY * (1 - ease) - arcLift * arc,
+    scale: MAC_LAUNCH_SCALE + (1 - MAC_LAUNCH_SCALE) * ease,
+    lean: direction * 16 * Math.sin(Math.PI * progress),
+    opacity: Math.min(1, progress / MAC_FADE_IN_END),
+  };
+}
