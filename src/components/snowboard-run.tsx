@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useRef, useState } from "react";
 import { INTERVIEW_WAYPOINTS } from "@/domain/portfolio-data";
 import {
   createSnowboardRoute,
   deriveAirborneRigPose,
   deriveTrailRigPose,
+  getCheckpointScrollTarget,
   getMacJumpPose,
   getMacJumpProgress,
   getSnowboardPose,
+  getTrailScrollSpan,
   stepSettleEnergy,
 } from "@/lib/snowboard-route";
 import {
@@ -22,10 +24,49 @@ import {
 const route = createSnowboardRoute(INTERVIEW_WAYPOINTS.length);
 const start = route.checkpoints[0];
 
+const MOUNTAIN_SILHOUETTE_PATH =
+  "M 0 56 L 0 46 C 42 45, 82 36, 114 24 C 129 18.4, 141 12, 152 6 Q 166 1.5, 180 2.5 Q 194 1.5, 208 6 C 219 12, 231 18.4, 246 24 C 278 36, 318 45, 360 46 L 360 56 Z";
+const MOUNTAIN_RIDGE_BORDER_PATH =
+  "M 0.5 56 L 0.5 46 C 42 45, 82 36, 114 24 C 129 18.4, 141 12, 152 6 Q 166 1.5, 180 2.5 Q 194 1.5, 208 6 C 219 12, 231 18.4, 246 24 C 278 36, 318 45, 359.5 46 L 359.5 56";
+const MOUNTAIN_SNOWCAP_PATH =
+  "M 114 24 C 129 18.4, 141 12, 152 6 Q 166 1.5, 180 2.5 Q 194 1.5, 208 6 C 219 12, 231 18.4, 246 24 Q 228 28.5, 212 22 Q 196 31, 180 23.5 Q 164 31, 148 22 Q 132 28.5, 114 24 Z";
+const MOUNTAIN_SNOWCAP_LIP_PATH =
+  "M 114 24 Q 132 28.5, 148 22 Q 164 31, 180 23.5 Q 196 31, 212 22 Q 228 28.5, 246 24";
+
+function MountainCardCrest() {
+  return (
+    <svg
+      className="run-mountain-crest"
+      viewBox="0 0 360 56"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <path className="run-mountain-fill" d={MOUNTAIN_SILHOUETTE_PATH} />
+      <path className="run-mountain-snowcap" d={MOUNTAIN_SNOWCAP_PATH} />
+      <path
+        className="run-mountain-snowline"
+        d={MOUNTAIN_SNOWCAP_LIP_PATH}
+        vectorEffect="non-scaling-stroke"
+      />
+      <path
+        className="run-mountain-facet"
+        d="M 180 2.5 Q 173 13, 164 24.5 M 196 4.2 Q 204 13, 212 22"
+        vectorEffect="non-scaling-stroke"
+      />
+      <path
+        className="run-mountain-stroke"
+        d={MOUNTAIN_RIDGE_BORDER_PATH}
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
 export function SnowboardRun() {
   const laneRef = useRef<HTMLDivElement>(null);
   const riderRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const cardRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const activeIndexRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -73,13 +114,13 @@ export function SnowboardRun() {
       );
       const elapsedSec = nowMs / 1000;
 
-      const center = viewportHeight / 2;
-      const halfRow = bounds.height / route.checkpoints.length / 2;
-      const firstTurn = Math.max(0, bounds.top + scroll + halfRow - center);
-      const lastTurn = Math.min(
-        document.documentElement.scrollHeight - viewportHeight,
-        bounds.bottom + scroll - halfRow - center
-      );
+      const { firstTurn, lastTurn } = getTrailScrollSpan({
+        laneTopDocY: bounds.top + scroll,
+        laneHeight: bounds.height,
+        checkpointCount: route.checkpoints.length,
+        viewportHeight,
+        scrollHeight: Math.max(viewportHeight, document.documentElement.scrollHeight),
+      });
 
       const macScreen = document.getElementById("resume-mac-screen");
       if (!motion.matches && macScreen && scroll < firstTurn) {
@@ -183,23 +224,88 @@ export function SnowboardRun() {
     };
   }, []);
 
+  function focusWaypoint(index: number, event?: MouseEvent<HTMLElement>) {
+    if (
+      event &&
+      (event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey)
+    ) {
+      return;
+    }
+    event?.preventDefault();
+
+    const lane = laneRef.current;
+    const viewportHeight = window.innerHeight;
+    if (!lane || viewportHeight <= 0) return;
+
+    const bounds = lane.getBoundingClientRect();
+    if (bounds.height <= 0) return;
+
+    const waypoint = INTERVIEW_WAYPOINTS[index];
+    if (!waypoint) return;
+
+    const hash = `#${waypoint.id}`;
+    if (window.location.hash !== hash) {
+      window.history.pushState(null, "", hash);
+    }
+
+    cardRefs.current[index]?.focus({ preventScroll: true });
+
+    const targetScrollY = getCheckpointScrollTarget(
+      {
+        laneTopDocY: bounds.top + window.scrollY,
+        laneHeight: bounds.height,
+        checkpointCount: route.checkpoints.length,
+        viewportHeight,
+        scrollHeight: Math.max(viewportHeight, document.documentElement.scrollHeight),
+      },
+      index
+    );
+    const behavior: ScrollBehavior = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches
+      ? "auto"
+      : "smooth";
+    window.scrollTo({ top: targetScrollY, behavior });
+  }
+
   return (
     <div className="run-trail">
-      <div className="run-lane" ref={laneRef} aria-hidden="true">
-        <svg className="run-path" viewBox={`0 0 ${route.width} ${route.height}`} preserveAspectRatio="none">
+      <div className="run-lane" ref={laneRef}>
+        <svg
+          className="run-path"
+          viewBox={`0 0 ${route.width} ${route.height}`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
           <path d={route.path} vectorEffect="non-scaling-stroke" />
         </svg>
-        {route.checkpoints.map((point, index) => (
-          <span
-            key={point.y}
-            className="run-marker"
-            data-active={index === activeIndex ? "" : undefined}
-            style={{ left: `${point.x / route.width * 100}%`, top: `${point.y / route.height * 100}%` }}
-          />
-        ))}
+        {route.checkpoints.map((point, index) => {
+          const waypoint = INTERVIEW_WAYPOINTS[index];
+          return (
+            <button
+              key={point.y}
+              type="button"
+              className="run-marker"
+              data-active={index === activeIndex ? "" : undefined}
+              aria-label={`前往第 ${index + 1} 站：${waypoint.title}`}
+              aria-current={index === activeIndex ? "step" : undefined}
+              style={{
+                left: `${(point.x / route.width) * 100}%`,
+                top: `${(point.y / route.height) * 100}%`,
+              }}
+              onClick={(event) => focusWaypoint(index, event)}
+            />
+          );
+        })}
         <div
           className="run-rider"
           ref={riderRef}
+          aria-hidden="true"
           style={{ left: `${start.x / route.width * 100}%`, top: `${start.y / route.height * 100}%` }}
         >
           <canvas
@@ -214,13 +320,25 @@ export function SnowboardRun() {
       <ol className="run-stops" aria-label="面試提案的八個轉彎">
         {INTERVIEW_WAYPOINTS.map((waypoint, index) => (
           <li className="run-stop" key={waypoint.id} aria-current={index === activeIndex ? "step" : undefined}>
-            <article className="run-copy" id={waypoint.id} tabIndex={-1}>
-              <p className="run-waypoint-kicker">
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                {waypoint.label}
-              </p>
-              <h2>{waypoint.title}</h2>
-              <p>{waypoint.description}</p>
+            <article className="run-copy" id={waypoint.id}>
+              <a
+                href={`#${waypoint.id}`}
+                ref={(node) => {
+                  cardRefs.current[index] = node;
+                }}
+                className="run-mountain-card"
+                onClick={(event) => focusWaypoint(index, event)}
+              >
+                <MountainCardCrest />
+                <div className="run-mountain-body">
+                  <p className="run-waypoint-kicker">
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    {waypoint.label}
+                  </p>
+                  <h2>{waypoint.title}</h2>
+                  <p>{waypoint.description}</p>
+                </div>
+              </a>
             </article>
           </li>
         ))}
