@@ -697,84 +697,101 @@ html {
   overflow-wrap: anywhere;
 }
 
-.run-step-controls {
-  position: relative;
-  z-index: 2;
-  grid-column: 2;
-  justify-self: center;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 0.15rem;
-  padding: 0.2rem;
-  border: 1px solid color-mix(in oklch, var(--sakura-petal) 38%, rgb(255 255 255 / 0.85));
+.run-trail[data-hover-zone="up"],
+.run-trail[data-hover-zone="down"] {
+  cursor: pointer;
+}
+
+.run-trail[data-hover-zone="neutral"] .run-mountain-card {
+  cursor: auto;
+}
+
+.run-zone-follower {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 15;
+  display: grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 1px solid color-mix(in oklch, var(--sakura-petal) 46%, rgb(255 255 255 / 0.9));
   border-radius: 9999px;
-  background: color-mix(in oklch, var(--card) 72%, transparent);
-  backdrop-filter: blur(12px) saturate(160%);
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
-  box-shadow:
-    0 10px 24px -10px rgb(145 34 76 / 0.14),
-    inset 0 1px 0 rgb(255 255 255 / 0.85);
-  opacity: 0.44;
-  transition:
-    opacity 200ms ease,
-    border-color 200ms ease,
-    box-shadow 220ms ease;
-}
-
-.run-stop[aria-current="step"] .run-step-controls {
-  opacity: 0.78;
-}
-
-.run-step-controls:hover,
-.run-step-controls:focus-within {
-  opacity: 1;
-  border-color: var(--sakura-petal);
-  box-shadow:
-    0 12px 28px -8px rgb(177 47 96 / 0.22),
-    inset 0 1px 0 #fff;
-}
-
-.run-step-divider {
-  width: 1.05rem;
-  height: 1px;
-  background: color-mix(in oklch, var(--sakura-line) 36%, transparent);
-}
-
-.run-step-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.3rem;
-  height: 2.3rem;
-  border-radius: 9999px;
+  background: color-mix(in oklch, var(--card) 78%, transparent);
   color: var(--primary);
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  box-shadow:
+    0 8px 20px -8px rgb(177 47 96 / 0.22),
+    inset 0 1px 0 rgb(255 255 255 / 0.9);
+  pointer-events: none;
+  will-change: transform, opacity;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.run-zone-follower[data-zone="up"],
+.run-zone-follower[data-zone="down"] {
+  opacity: 0.9;
+}
+
+.run-zone-follower svg {
+  grid-area: 1 / 1;
+  width: 1.05rem;
+  height: 1.05rem;
+  stroke-width: 2;
+  opacity: 0;
+  transform: scale(0.78);
   transition:
-    transform 180ms cubic-bezier(0.22, 0.74, 0.32, 1),
-    background-color 180ms ease,
-    color 180ms ease;
+    opacity 140ms ease,
+    transform 180ms cubic-bezier(0.22, 0.74, 0.32, 1);
 }
 
-.run-step-button svg {
-  width: 1.15rem;
-  height: 1.15rem;
-  stroke-width: 1.85;
+.run-zone-follower[data-zone="up"] .run-zone-icon-up {
+  opacity: 1;
+  transform: translateY(-0.5px) scale(1);
 }
 
-.run-step-button:hover,
-.run-step-button:focus-visible {
-  background: color-mix(in oklch, var(--accent) 82%, transparent);
-  color: var(--sakura-deep);
+.run-zone-follower[data-zone="down"] .run-zone-icon-down {
+  opacity: 1;
+  transform: translateY(0.5px) scale(1);
 }
 
-.run-step-button[data-direction="up"]:hover,
-.run-step-button[data-direction="up"]:focus-visible {
-  transform: translateY(-1.5px);
+.run-tap-ripple {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 14;
+  width: 3.25rem;
+  height: 3.25rem;
+  border: 1.5px solid color-mix(in oklch, var(--sakura) 62%, #fff);
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    rgb(255 255 255 / 0.78) 0%,
+    color-mix(in oklch, var(--sakura-soft) 58%, transparent) 56%,
+    transparent 100%
+  );
+  box-shadow: 0 0 18px rgb(177 47 96 / 0.18);
+  pointer-events: none;
+  animation: run-tap-ripple-burst 460ms cubic-bezier(0.18, 0.78, 0.28, 1) forwards;
 }
 
-.run-step-button[data-direction="down"]:hover,
-.run-step-button[data-direction="down"]:focus-visible {
-  transform: translateY(1.5px);
+@keyframes run-tap-ripple-burst {
+  0% {
+    opacity: 0.82;
+    transform: translate(-50%, -50%) scale(0.32);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.92);
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .run-zone-follower {
+    display: none;
+  }
 }
 
 .run-finish {
@@ -911,24 +928,10 @@ html {
     justify-self: end;
   }
 
-  .run-stop:nth-child(odd) .run-step-controls {
-    grid-column: 3;
-    grid-row: 1;
-    justify-self: start;
-    margin-top: 0;
-  }
-
   .run-stop:nth-child(even) .run-copy {
     grid-column: 3;
     grid-row: 1;
     justify-self: start;
-  }
-
-  .run-stop:nth-child(even) .run-step-controls {
-    grid-column: 1;
-    grid-row: 1;
-    justify-self: end;
-    margin-top: 0;
   }
 }
 
@@ -947,8 +950,12 @@ html {
   .run-mountain-card,
   .run-mountain-backdrop,
   .run-waypoint-kicker > span,
-  .run-step-controls,
-  .run-step-button {
+  .run-zone-follower,
+  .run-zone-follower svg {
     transition: none;
+  }
+
+  .run-tap-ripple {
+    display: none;
   }
 }

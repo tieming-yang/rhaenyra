@@ -1,7 +1,15 @@
 "use client";
 
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { type MouseEvent, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  type MouseEvent,
+  type PointerEvent,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { MountainCardBackdrop } from "@/components/mountain-card-backdrop";
 import {
   formatContentTemplate,
@@ -9,7 +17,6 @@ import {
 } from "@/content";
 import {
   HEADER_SECTION_HASH,
-  HEADER_SECTION_HREF,
   PROPOSAL_FINISH_HASH,
   PROPOSAL_FINISH_ID,
 } from "@/lib/header-navigation";
@@ -24,6 +31,8 @@ import {
   getMacJumpProgress,
   getSnowboardPose,
   getTrailScrollSpan,
+  resolveRunScreenZone,
+  resolveRunZoneStep,
   type RiderSpringState,
   stepRiderSpringState,
   stepSettleEnergy,
@@ -81,6 +90,16 @@ const SLOPE_STREAKS: readonly SlopeStreak[] = Array.from(
     };
   }
 );
+
+const HEADER_GUARD_PX = 68;
+const DRAG_CANCEL_THRESHOLD_PX = 6;
+
+type RunTapRipple = Readonly<{
+  id: number;
+  x: number;
+  y: number;
+  zone: "up" | "down";
+}>;
 
 const SCROLL_CANCEL_KEYS = new Set([
   "ArrowUp",
@@ -286,6 +305,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
   );
   const start = route.checkpoints[0];
   const trailRef = useRef<HTMLDivElement>(null);
+  const followerRef = useRef<HTMLDivElement>(null);
   const slopeCanvasRef = useRef<HTMLCanvasElement>(null);
   const laneRef = useRef<HTMLDivElement>(null);
   const carveClipRectRef = useRef<SVGRectElement>(null);
@@ -296,10 +316,20 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
     null
   );
   const activeIndexRef = useRef(0);
+  const inFlightWaypointRef = useRef<number | null>(null);
+  const pointerDownPosRef = useRef<Readonly<{ x: number; y: number }> | null>(
+    null
+  );
+  const finePointerPosRef = useRef<Readonly<{ x: number; y: number }> | null>(
+    null
+  );
+  const rippleIdRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [ripples, setRipples] = useState<readonly RunTapRipple[]>([]);
 
   useEffect(() => {
     const trail = trailRef.current;
+    const follower = followerRef.current;
     const slopeCanvas = slopeCanvasRef.current;
     const lane = laneRef.current;
     const rider = riderRef.current;
@@ -409,6 +439,21 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
       const viewportHeight = window.innerHeight;
       if (bounds.height === 0 || viewportHeight <= 0) return;
 
+      const pointerPos = finePointerPosRef.current;
+      if (pointerPos && follower) {
+        const trailBounds = trail.getBoundingClientRect();
+        const insideTrail =
+          pointerPos.y > HEADER_GUARD_PX &&
+          pointerPos.x >= trailBounds.left &&
+          pointerPos.x <= trailBounds.right &&
+          pointerPos.y >= trailBounds.top &&
+          pointerPos.y <= trailBounds.bottom;
+        if (!insideTrail) {
+          follower.dataset.zone = "hidden";
+          trail.dataset.hoverZone = "neutral";
+        }
+      }
+
       const scroll = window.scrollY;
       const scrollDelta = scroll - lastScrollY;
       lastScrollY = scroll;
@@ -474,6 +519,9 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
           if (activeIndexRef.current !== 0) {
             activeIndexRef.current = 0;
             setActiveIndex(0);
+          }
+          if (sprintState.kind === "idle") {
+            inFlightWaypointRef.current = null;
           }
           if (
             !document.hidden &&
@@ -562,6 +610,9 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
         activeIndexRef.current = pose.activeIndex;
         setActiveIndex(pose.activeIndex);
       }
+      if (sprintState.kind === "idle") {
+        inFlightWaypointRef.current = null;
+      }
 
       const springSettling =
         Math.abs(riderSpring.progress - clampedTargetProgress) > 1e-3 ||
@@ -589,6 +640,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
 
     const cancelSprint = () => {
       sprintState = { kind: "idle" };
+      inFlightWaypointRef.current = null;
     };
 
     const triggerSprint = (targetScrollY: number) => {
@@ -667,6 +719,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
         },
         0
       );
+      inFlightWaypointRef.current = 0;
       triggerSprint(targetScrollY);
     };
 
@@ -747,13 +800,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
       window.history.pushState(null, "", hash);
     }
 
-    const clickedCardWithPointer =
-      event !== undefined &&
-      event.detail > 0 &&
-      event.currentTarget === cardRefs.current[index];
-    if (!clickedCardWithPointer) {
-      cardRefs.current[index]?.focus({ preventScroll: true });
-    }
+    cardRefs.current[index]?.focus({ preventScroll: true });
 
     const targetScrollY = getCheckpointScrollTarget(
       {
@@ -765,6 +812,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
       },
       index
     );
+    inFlightWaypointRef.current = index;
     if (sprintTriggerRef.current) {
       sprintTriggerRef.current(targetScrollY);
       return;
@@ -778,12 +826,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
     window.scrollTo({ top: targetScrollY, behavior });
   }
 
-  function scrollToIntro(event: MouseEvent<HTMLElement>) {
-    if (!isPlainLeftClick(event)) {
-      return;
-    }
-    event.preventDefault();
-
+  function scrollToIntro() {
     const proposalElement = document.getElementById("proposal");
     if (!proposalElement) return;
 
@@ -795,6 +838,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
       0,
       proposalElement.getBoundingClientRect().top + window.scrollY
     );
+    inFlightWaypointRef.current = null;
     if (sprintTriggerRef.current) {
       sprintTriggerRef.current(targetScrollY);
       return;
@@ -808,12 +852,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
     proposalElement.scrollIntoView({ behavior, block: "start" });
   }
 
-  function scrollToFinish(event: MouseEvent<HTMLElement>) {
-    if (!isPlainLeftClick(event)) {
-      return;
-    }
-    event.preventDefault();
-
+  function scrollToFinish() {
     const finishElement = document.getElementById(PROPOSAL_FINISH_ID);
     if (!finishElement) return;
 
@@ -829,6 +868,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
       maxScrollY,
       Math.max(0, finishElement.getBoundingClientRect().top + window.scrollY)
     );
+    inFlightWaypointRef.current = null;
     if (sprintTriggerRef.current) {
       sprintTriggerRef.current(targetScrollY);
       return;
@@ -842,8 +882,159 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
     finishElement.scrollIntoView({ behavior, block: "start" });
   }
 
+  function handleTrailPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (event.isPrimary && event.button === 0) {
+      pointerDownPosRef.current = { x: event.clientX, y: event.clientY };
+    }
+  }
+
+  function handleTrailPointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (event.pointerType !== "mouse" && event.pointerType !== "pen") {
+      return;
+    }
+    finePointerPosRef.current = { x: event.clientX, y: event.clientY };
+
+    const follower = followerRef.current;
+    const trail = trailRef.current;
+    const viewportHeight = window.innerHeight;
+    if (!follower || !trail || viewportHeight <= 0) {
+      return;
+    }
+
+    const overMarker =
+      event.target instanceof Element &&
+      event.target.closest(".run-marker") !== null;
+    if (overMarker || event.clientY <= HEADER_GUARD_PX) {
+      follower.dataset.zone = "hidden";
+      trail.dataset.hoverZone = "neutral";
+      return;
+    }
+
+    const zone = resolveRunScreenZone(event.clientY, viewportHeight);
+    const badgeX = Math.min(event.clientX + 18, Math.max(16, window.innerWidth - 40));
+    follower.style.transform = `translate3d(${badgeX}px, ${event.clientY}px, 0) translate(0, -50%)`;
+    follower.dataset.zone = zone === "neutral" ? "hidden" : zone;
+    trail.dataset.hoverZone = zone;
+  }
+
+  function hideFollower() {
+    finePointerPosRef.current = null;
+    if (followerRef.current) {
+      followerRef.current.dataset.zone = "hidden";
+    }
+    if (trailRef.current) {
+      trailRef.current.dataset.hoverZone = "neutral";
+    }
+  }
+
+  function handleTrailClick(event: MouseEvent<HTMLDivElement>) {
+    if (event.detail === 0 || !isPlainLeftClick(event)) {
+      return;
+    }
+    if (
+      event.target instanceof Element &&
+      event.target.closest(".run-marker") !== null
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    if (event.clientY <= HEADER_GUARD_PX) {
+      return;
+    }
+
+    const downPos = pointerDownPosRef.current;
+    pointerDownPosRef.current = null;
+    if (
+      downPos &&
+      Math.hypot(event.clientX - downPos.x, event.clientY - downPos.y) >
+        DRAG_CANCEL_THRESHOLD_PX
+    ) {
+      return;
+    }
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim().length > 0) {
+      return;
+    }
+
+    const viewportHeight = window.innerHeight;
+    if (viewportHeight <= 0 || content.waypoints.length < 1) {
+      return;
+    }
+
+    const zone = resolveRunScreenZone(event.clientY, viewportHeight);
+    const currentIndex = Math.min(
+      content.waypoints.length - 1,
+      Math.max(0, inFlightWaypointRef.current ?? activeIndexRef.current)
+    );
+    const outcome = resolveRunZoneStep({
+      zone,
+      currentIndex,
+      waypointCount: content.waypoints.length,
+    });
+    if (outcome.kind === "ignored") {
+      return;
+    }
+
+    if (
+      (zone === "up" || zone === "down") &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      const id = ++rippleIdRef.current;
+      const nextRipple: RunTapRipple = {
+        id,
+        x: event.clientX,
+        y: event.clientY,
+        zone,
+      };
+      setRipples((prev) => [...prev.slice(-3), nextRipple]);
+    }
+
+    switch (outcome.kind) {
+      case "waypoint":
+        focusWaypoint(outcome.targetIndex);
+        return;
+      case "intro":
+        scrollToIntro();
+        return;
+      case "finish":
+        scrollToFinish();
+        return;
+    }
+  }
+
   return (
-    <div className="run-trail" ref={trailRef}>
+    <div
+      className="run-trail"
+      ref={trailRef}
+      data-hover-zone="neutral"
+      onPointerDown={handleTrailPointerDown}
+      onPointerMove={handleTrailPointerMove}
+      onPointerLeave={hideFollower}
+      onPointerCancel={hideFollower}
+      onClick={handleTrailClick}
+    >
+      <div
+        ref={followerRef}
+        className="run-zone-follower"
+        data-zone="hidden"
+        aria-hidden="true"
+      >
+        <ChevronUp className="run-zone-icon-up" />
+        <ChevronDown className="run-zone-icon-down" />
+      </div>
+      {ripples.map((ripple) => (
+        <span
+          key={ripple.id}
+          className="run-tap-ripple"
+          data-zone={ripple.zone}
+          aria-hidden="true"
+          style={{ left: `${ripple.x}px`, top: `${ripple.y}px` }}
+          onAnimationEnd={() =>
+            setRipples((prev) => prev.filter((item) => item.id !== ripple.id))
+          }
+        />
+      ))}
       <div className="run-slope-stage" aria-hidden="true">
         <canvas ref={slopeCanvasRef} className="run-slope-canvas" />
       </div>
@@ -935,81 +1126,38 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
       </div>
 
       <ol className="run-stops" aria-label={content.trail.stopsAriaLabel}>
-        {content.waypoints.map((waypoint, index) => {
-          const prevWaypoint = content.waypoints[index - 1];
-          const prevHref = prevWaypoint
-            ? `#${prevWaypoint.id}`
-            : HEADER_SECTION_HREF.proposal;
-          const prevAriaLabel = prevWaypoint
-            ? formatContentTemplate(content.trail.prevTopicAriaTemplate, {
-                title: prevWaypoint.title,
-              })
-            : content.trail.introAriaLabel;
-
-          const nextWaypoint = content.waypoints[index + 1];
-          const nextHref = nextWaypoint
-            ? `#${nextWaypoint.id}`
-            : PROPOSAL_FINISH_HASH;
-          const nextAriaLabel = nextWaypoint
-            ? formatContentTemplate(content.trail.nextTopicAriaTemplate, {
-                title: nextWaypoint.title,
-              })
-            : content.trail.finishAriaLabel;
-
-          return (
-            <li className="run-stop" key={waypoint.id} aria-current={index === activeIndex ? "step" : undefined}>
-              <article className="run-copy" id={waypoint.id}>
-                <a
-                  href={`#${waypoint.id}`}
-                  ref={(node) => {
-                    cardRefs.current[index] = node;
-                  }}
-                  className="run-mountain-card"
-                  onClick={(event) => focusWaypoint(index, event)}
-                >
-                  <MountainCardBackdrop index={index} />
-                  <div className="run-mountain-body">
-                    <p className="run-waypoint-kicker">
-                      <span>{String(index + 1).padStart(2, "0")}</span>
-                      {waypoint.label}
-                    </p>
-                    <h2>{waypoint.title}</h2>
-                    <p>{waypoint.description}</p>
-                  </div>
-                </a>
-              </article>
-              <div className="run-step-controls">
-                <a
-                  href={prevHref}
-                  className="run-step-button"
-                  data-direction="up"
-                  aria-label={prevAriaLabel}
-                  onClick={(event) =>
-                    prevWaypoint
-                      ? focusWaypoint(index - 1, event)
-                      : scrollToIntro(event)
+        {content.waypoints.map((waypoint, index) => (
+          <li
+            className="run-stop"
+            key={waypoint.id}
+            aria-current={index === activeIndex ? "step" : undefined}
+          >
+            <article className="run-copy" id={waypoint.id}>
+              <a
+                href={`#${waypoint.id}`}
+                ref={(node) => {
+                  cardRefs.current[index] = node;
+                }}
+                className="run-mountain-card"
+                onClick={(event) => {
+                  if (event.detail === 0) {
+                    focusWaypoint(index, event);
                   }
-                >
-                  <ChevronUp aria-hidden="true" />
-                </a>
-                <span className="run-step-divider" aria-hidden="true" />
-                <a
-                  href={nextHref}
-                  className="run-step-button"
-                  data-direction="down"
-                  aria-label={nextAriaLabel}
-                  onClick={(event) =>
-                    nextWaypoint
-                      ? focusWaypoint(index + 1, event)
-                      : scrollToFinish(event)
-                  }
-                >
-                  <ChevronDown aria-hidden="true" />
-                </a>
-              </div>
-            </li>
-          );
-        })}
+                }}
+              >
+                <MountainCardBackdrop index={index} />
+                <div className="run-mountain-body">
+                  <p className="run-waypoint-kicker">
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    {waypoint.label}
+                  </p>
+                  <h2>{waypoint.title}</h2>
+                  <p>{waypoint.description}</p>
+                </div>
+              </a>
+            </article>
+          </li>
+        ))}
       </ol>
     </div>
   );
