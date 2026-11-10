@@ -1,0 +1,68 @@
+{
+  "intro": {
+    "eyebrow": "04 / PROPOSAL · Jstyle北海道株式会社",
+    "title": "面試與成長提案",
+    "subtitle": "將 Jstyle「安心、順暢、有效率」的品牌承諾，透過 AI 營運自動化與百萬級自然流量引擎，轉化為可跨區複製的數位成長飛輪。",
+    "startCtaLabel": "向下探索"
+  },
+  "trail": {
+    "stopsAriaLabel": "面試提案的八個轉彎",
+    "markerAriaTemplate": "前往第 {step} 站：{title}"
+  },
+  "waypoints": [
+    {
+      "id": "intro",
+      "label": "INTRO",
+      "title": "為北海道旅程設計更順暢的體驗",
+      "description": "以產品管理、AI 營運自動化與自然成長經驗，協助 Jstyle 串起旅遊、租車和滑雪服務。"
+    },
+    {
+      "id": "experience",
+      "label": "EXPERIENCE",
+      "title": "從策略到實作",
+      "description": "從 0 到 1 做產品、前端與自動化。Beacon 在 54 天零廣告投放下累積破萬次不重複下載與 140 萬次瀏覽。"
+    },
+    {
+      "id": "jstyle",
+      "label": "JSTYLE HOKKAIDO",
+      "title": "從北海道走向岡山與四國",
+      "description": "旅遊規劃、租車與滑雪已有在地服務基礎。下一步是讓顧客跨區諮詢時，依然容易找到對的服務。"
+    },
+    {
+      "id": "line-workflow",
+      "label": "LINE WORKFLOW",
+      "title": "讓 LINE 客服少問一步",
+      "description": "由 AI 整理旅客的日期、人數和需求，再透過 n8n 將租車、包車與滑雪諮詢分流給對應團隊。"
+    },
+    {
+      "id": "organic-growth",
+      "label": "ORGANIC GROWTH",
+      "title": "讓短影音帶來自然詢問",
+      "description": "將「北海道女婿」的 YouTube 素材拆成 Threads 與短影音企劃，測試哪些主題能為北海道、岡山與四國帶來詢問。"
+    },
+    {
+      "id": "search",
+      "label": "ANALYTICS & SEARCH",
+      "title": "看見從搜尋到預約的路徑",
+      "description": "以 GA4 和 GTM 追蹤各站到 LINE 的轉換，再整理常見旅遊問答，讓搜尋引擎與 AI 更容易理解服務內容。"
+    },
+    {
+      "id": "coach-ops",
+      "label": "COACH OPERATIONS",
+      "title": "把教練排課和行前通知串起來",
+      "description": "統整教練時段、學員程度與課前提醒，並用 Notion 文件協助台日團隊與合作夥伴交接。"
+    },
+    {
+      "id": "roadmap",
+      "label": "30 / 60 / 90",
+      "title": "把提案拆成三個階段",
+      "description": "先盤點數據與客服需求，再驗證分流與內容實驗，最後推進教練排課和跨事業加購。"
+    }
+  ],
+  "finish": {
+    "eyebrow": "FINISH",
+    "title": "感謝閱讀",
+    "backToTopLabel": "回到頂部",
+    "contactLabel": "聯絡我"
+  }
+}

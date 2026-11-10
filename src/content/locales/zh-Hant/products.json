@@ -1,0 +1,94 @@
+{
+  "eyebrowPrefix": "03 / PRODUCT CASES",
+  "openSiteLabel": "開啟產品網站",
+  "readCaseLabel": "閱讀案例",
+  "previewAltTemplate": "{name} 網站預覽",
+  "liveSiteTitleTemplate": "{name} 即時網站",
+  "dockAriaLabel": "選擇產品案例",
+  "items": [
+    {
+      "id": "beacon",
+      "name": "Beacon",
+      "category": "社區安全 App",
+      "title": "讓附近的安全訊息更容易取得",
+      "summary": "整合安全地圖、事件回報與 SOS，協助使用者掌握周遭狀況並通知信任的人。",
+      "display": "10,000+",
+      "caption": "54 天內的零廣告不重複下載",
+      "details": [
+        {
+          "title": "產品",
+          "text": "使用者可查看附近的安全事件、回報現場狀況，並透過 SOS 或一鍵報平安與緊急聯絡人互動。"
+        },
+        {
+          "title": "角色",
+          "text": "共同創辦人暨產品工程師，參與競品研究、產品設計、官網實作、測試與社群經營。"
+        },
+        {
+          "title": "成果",
+          "text": "Threads 內容累積逾 140 萬次瀏覽。推廣啟動後 54 天累積逾 10,000 次不重複下載。"
+        }
+      ]
+    },
+    {
+      "id": "pocket-wish",
+      "name": "Pocket Wish",
+      "category": "願望清單 App",
+      "title": "把心願留在口袋裡",
+      "summary": "收藏想要的物品、整理自己的許願池，讓朋友更容易找到合適的禮物。",
+      "display": "Wish",
+      "caption": "WISHLISTS & GIFT INSPIRATION",
+      "details": [
+        {
+          "title": "產品",
+          "text": "用願望清單保存和整理平常發現的物品，讓分享願望變得容易。"
+        },
+        {
+          "title": "送禮流程",
+          "text": "朋友可以參考分享的清單，挑選並保留想送的禮物，方便協調送禮。"
+        }
+      ]
+    },
+    {
+      "id": "n1ghtmare",
+      "name": "n1ghtmare",
+      "category": "日語學習 RPG",
+      "title": "讓日語練習成為一段冒險",
+      "summary": "把漢字、單字、文法與閱讀練習放進瀏覽器 RPG，以冒險的方式複習日語。",
+      "display": "N5–N1",
+      "caption": "JAPANESE LEARNING RPG",
+      "details": [
+        {
+          "title": "產品",
+          "text": "在瀏覽器探索 RPG 世界，練習涵蓋預估 JLPT N5 至 N1 程度的原創題目。"
+        },
+        {
+          "title": "學習體驗",
+          "text": "支援訪客遊玩，將題目與解析放進遊戲流程，並提供回顧練習的空間。"
+        }
+      ]
+    },
+    {
+      "id": "crispygrooves",
+      "name": "CrispyGrooves",
+      "category": "預約平台",
+      "title": "把教室的工作流程帶進手機",
+      "summary": "以一線教師的排課與聯繫需求為起點，規劃舞蹈與皮拉提斯預約平台。",
+      "display": "01",
+      "caption": "BOOKING STUDIO",
+      "details": [
+        {
+          "title": "情境",
+          "text": "教學者需要同時管理不同課程時段、老師的排課及學生聯繫。"
+        },
+        {
+          "title": "做法",
+          "text": "訪談一線教師，以行動優先的預約流程呈現課程與時段，並用 AI 輔助規劃和開發。"
+        },
+        {
+          "title": "角色",
+          "text": "舞蹈預約平台產品經理，2026/08 – 2026/10。"
+        }
+      ]
+    }
+  ]
+}

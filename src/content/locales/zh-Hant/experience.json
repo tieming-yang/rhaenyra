@@ -1,0 +1,84 @@
+{
+  "eyebrow": "02 / WORK & INTERNSHIPS",
+  "title": "工作與實習名牌",
+  "watermark": "Work History",
+  "nextSectionLabel": "產品案例",
+  "showFrontLabel": "顯示正面",
+  "showAllDetailsLabel": "顯示全部詳情",
+  "frontCardLabel": "EXPERIENCE",
+  "backCardLabel": "WORK HISTORY",
+  "cardFlipToFrontAriaTemplate": "顯示 {company} 的名牌正面",
+  "cardFlipToBackAriaTemplate": "翻看 {company} 的經歷",
+  "items": [
+    {
+      "id": "beacon",
+      "company": "Beacon 守護臺灣",
+      "role": "共同創辦人暨產品工程師",
+      "period": "2026/03 – 至今（主要產品開發與推廣：2026/03–2026/10）",
+      "note": "從產品設計、官網與測試到 Threads 社群經營，推廣後 54 天內突破一萬次不重複下載。"
+    },
+    {
+      "id": "thinker-data",
+      "company": "Thinker Data",
+      "role": "產品管理與 AI 營運",
+      "period": "2024/11 – 2026/06",
+      "note": "歷任產品經理、產品長與 AI 營運工程師，建立 AI 客服監控、數據實驗與跨部門協作流程。"
+    },
+    {
+      "id": "houston-teaching",
+      "company": "美國休士頓",
+      "role": "舞蹈教學",
+      "period": "2025",
+      "note": "於舞蹈機構以全英文授課，帶領不同背景的學員。"
+    },
+    {
+      "id": "eternal-story",
+      "company": "Eternal Story",
+      "role": "網站開發與 UI/UX（兼職）",
+      "period": "2024/01 – 2024/06",
+      "note": "維護官方網站、開發新功能，並導入一致的品牌介面與設計系統。"
+    },
+    {
+      "id": "youtube-creator",
+      "company": "YouTube 自媒體頻道",
+      "role": "數位內容創作者",
+      "period": "2023/12 – 2024/01",
+      "note": "透過 8 支影片與標題、縮圖測試，一個月內從零累積至 2,100 位訂閱者。"
+    },
+    {
+      "id": "tvbs",
+      "company": "TVBS 聯利媒體",
+      "role": "前端工程實習生",
+      "period": "2023/08 – 2023/12",
+      "note": "參與三項大型網站開發與維護，支援技術 SEO、使用者流程與設計系統。"
+    },
+    {
+      "id": "dentall",
+      "company": "dentall 台灣牙e通",
+      "role": "軟體工程實習生",
+      "period": "2023/02 – 2023/08",
+      "note": "研究並實作 Web App 新功能，展示互動原型後獲團隊採納。"
+    },
+    {
+      "id": "bole",
+      "company": "博樂工作室",
+      "role": "策展行銷實習生",
+      "period": "2022/08 – 2022/09",
+      "note": "協助精品品牌活動策展、簡報製作及品牌與製作廠商之間的聯繫。"
+    },
+    {
+      "id": "nuturefit",
+      "company": "NutureFit",
+      "role": "社群行銷實習生",
+      "period": "2022/05 – 2022/07",
+      "note": "撰寫互惠推廣企劃，洽談 KOL 合作，並規劃 Instagram 內容與粉絲活動。"
+    },
+    {
+      "id": "taiwan-teaching",
+      "company": "臺灣",
+      "role": "舞蹈教學",
+      "period": "2018 – 2023",
+      "note": "於舞蹈機構、學校與健身房授課，對象涵蓋專業訓練學生及成人。"
+    }
+  ]
+}

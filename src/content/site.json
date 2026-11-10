@@ -1,0 +1,71 @@
+{
+  "defaultLocale": "zh-Hant",
+  "profile": {
+    "email": "rhaenyraliang1999@gmail.com",
+    "resumePdfHref": "/rhaenyra-liang-jstyle-resume.pdf",
+    "targetCompanyUrl": "https://www.jstylehokkaido.com/",
+    "badgePortraitSrc": "/resume/badge-portrait-sakura.webp",
+    "badgeClipSrc": "/resume/badge-clip.svg"
+  },
+  "experiences": {
+    "beacon": {
+      "logoSrc": "/resume/jobs/beacon.webp",
+      "fallbackMark": "B"
+    },
+    "thinker-data": {
+      "logoSrc": "/resume/jobs/thinker-data.png",
+      "fallbackMark": "TD"
+    },
+    "houston-teaching": {
+      "fallbackMark": "HT"
+    },
+    "eternal-story": {
+      "logoSrc": "/resume/jobs/eternal-story.png",
+      "fallbackMark": "ES"
+    },
+    "youtube-creator": {
+      "logoSrc": "/resume/jobs/youtube-creator.svg",
+      "fallbackMark": "YT"
+    },
+    "tvbs": {
+      "logoSrc": "/resume/jobs/tvbs.svg",
+      "fallbackMark": "TV"
+    },
+    "dentall": {
+      "logoSrc": "/resume/jobs/dentall.svg",
+      "fallbackMark": "dt"
+    },
+    "bole": {
+      "logoSrc": "/resume/jobs/bole.png",
+      "fallbackMark": "博樂"
+    },
+    "nuturefit": {
+      "logoSrc": "/resume/jobs/nuturefit.png",
+      "fallbackMark": "NF"
+    },
+    "taiwan-teaching": {
+      "fallbackMark": "臺灣"
+    }
+  },
+  "products": {
+    "beacon": {
+      "siteUrl": "https://beaconapp.club/",
+      "artSrc": "/resume/beacon.svg"
+    },
+    "pocket-wish": {
+      "siteUrl": "https://pocketwish.win/",
+      "artSrc": "/resume/pocket-wish.svg",
+      "previewSrc": "/resume/screen-pocket-wish.webp"
+    },
+    "n1ghtmare": {
+      "siteUrl": "https://n1ghtmare.org/",
+      "artSrc": "/resume/n1ghtmare.svg",
+      "previewSrc": "/resume/screen-n1ghtmare.webp"
+    },
+    "crispygrooves": {
+      "siteUrl": "https://crispygrooves.norman-tmy.workers.dev/",
+      "artSrc": "/resume/crispygrooves.svg",
+      "previewSrc": "/resume/screen-crispygrooves.webp"
+    }
+  }
+}
