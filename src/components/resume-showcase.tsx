@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowDown, ArrowUpRight, Maximize2, X } from "lucide-react";
+import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CANDIDATE_PROFILE } from "@/domain/portfolio-data";
 import { RESUME_PRODUCTS } from "@/domain/resume-showcase-data";
@@ -18,11 +18,8 @@ export function ResumeShowcase() {
   const coverRef = useRef<HTMLElement>(null);
   const deskRef = useRef<HTMLElement>(null);
   const studioRef = useRef<HTMLElement>(null);
-  const screenRef = useRef<HTMLDivElement>(null);
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [selected, setSelected] = useState(0);
   const [nearStudio, setNearStudio] = useState(false);
-  const [interacting, setInteracting] = useState(false);
   const product = RESUME_PRODUCTS[selected];
 
   useEffect(() => {
@@ -87,48 +84,6 @@ export function ResumeShowcase() {
     };
   }, []);
 
-  function openLiveScreen() {
-    const dialog = dialogRef.current;
-    if (!dialog || dialog.open) return;
-
-    const from = dialog.getBoundingClientRect();
-    dialog.showModal();
-    setInteracting(true);
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    const to = dialog.getBoundingClientRect();
-    dialog.animate([
-      { transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width}, ${from.height / to.height})` },
-      { transform: "none" },
-    ], { duration: 600, easing: "cubic-bezier(.65,0,.35,1)" });
-  }
-
-  function closeLiveScreen() {
-    const dialog = dialogRef.current;
-    const screen = screenRef.current;
-    if (!dialog?.open || !screen || dialog.hasAttribute("data-closing")) return;
-
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      dialog.close();
-      return;
-    }
-
-    dialog.setAttribute("data-closing", "");
-    dialog.getAnimations().forEach((animation) => animation.cancel());
-    const from = dialog.getBoundingClientRect();
-    const to = screen.getBoundingClientRect();
-    const motion = dialog.animate([
-      { transform: "none" },
-      { transform: `translate(${to.left - from.left}px, ${to.top - from.top}px) scale(${to.width / from.width}, ${to.height / from.height})` },
-    ], { duration: 450, easing: "cubic-bezier(.65,0,.35,1)", fill: "forwards" });
-    const finish = () => {
-      dialog.close();
-      dialog.removeAttribute("data-closing");
-      motion.cancel();
-    };
-    void motion.finished.then(finish, finish);
-  }
-
   return (
     <div className="resume-showcase">
       <section className="resume-cover-rail" ref={coverRef} aria-labelledby="profile-title">
@@ -188,7 +143,7 @@ export function ResumeShowcase() {
             <div className="resume-device">
               <div className="resume-device-lid">
                 <div className="resume-device-camera" aria-hidden="true" />
-                <div className="resume-device-screen" ref={screenRef}>
+                <div className="resume-device-screen">
                   <div
                     className="resume-screen-strip"
                     style={{ transform: `translateX(-${selected * 100}%)` }}
@@ -202,34 +157,10 @@ export function ResumeShowcase() {
                       </div>
                     ))}
                   </div>
-                  <dialog
-                    className="resume-live-screen"
-                    key={product.id}
-                    ref={dialogRef}
-                    aria-label={`${product.name} 產品網站`}
-                    onClose={() => setInteracting(false)}
-                    onCancel={(event) => {
-                      event.preventDefault();
-                      closeLiveScreen();
-                    }}
-                    onClick={(event) => {
-                      if (event.target === event.currentTarget) closeLiveScreen();
-                    }}
-                  >
-                    <div className="resume-live-toolbar">
-                      <span>{product.name}{product.preview ? " 網站預覽" : ""}</span>
-                      <div className="resume-live-actions">
-                        <a href={product.site} target="_blank" rel="noopener noreferrer" aria-label="在新分頁開啟產品網站">
-                          <ArrowUpRight aria-hidden="true" />
-                        </a>
-                        <button type="button" onClick={closeLiveScreen} aria-label="關閉產品視窗">
-                          <X aria-hidden="true" />
-                        </button>
-                      </div>
-                    </div>
+                  <div className="resume-live-screen" key={product.id}>
                     {product.preview ? (
                       <div className="resume-live-preview">
-                        <Image src={product.preview} alt={`${product.name} 網站預覽`} fill sizes={interacting ? "95vw" : "(max-width: 767px) 94vw, 740px"} />
+                        <Image src={product.preview} alt={`${product.name} 網站預覽`} fill sizes="(max-width: 767px) 94vw, 740px" />
                       </div>
                     ) : nearStudio && (
                       <iframe
@@ -237,17 +168,11 @@ export function ResumeShowcase() {
                         src={product.site}
                         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
                         referrerPolicy="strict-origin-when-cross-origin"
-                        inert={!interacting}
-                        tabIndex={interacting ? 0 : -1}
+                        inert
+                        tabIndex={-1}
                       />
                     )}
-                  </dialog>
-                  <button type="button" className="resume-open-case" onClick={openLiveScreen}>
-                    <span>
-                      <Maximize2 aria-hidden="true" />
-                      {product.preview ? "放大網站預覽" : "點擊使用網站"}
-                    </span>
-                  </button>
+                  </div>
                 </div>
                 <span className="resume-device-wordmark" aria-hidden="true">MacBook Pro</span>
               </div>
