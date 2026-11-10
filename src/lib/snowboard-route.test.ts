@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   createSnowboardRoute,
+  deriveAirborneRigPose,
+  deriveTrailRigPose,
   getMacJumpPose,
   getMacJumpProgress,
   getSnowboardPose,
+  stepSettleEnergy,
 } from "./snowboard-route";
 
 describe("the snowboard route", () => {
@@ -120,5 +123,149 @@ describe("Mac-to-trail jump kinematics", () => {
         reducedMotion: false,
       })
     ).toThrow("Mac jump pose requires finite coordinates and a non-negative arc lift");
+  });
+});
+
+describe("Option B 3D rig kinematics and settle policy", () => {
+  const route = createSnowboardRoute(8);
+
+  it("transitions smoothly through neutral, heelside, and toeside carves", () => {
+    const startGate = deriveTrailRigPose(route, {
+      progress: 0,
+      motionEnergy: 0.8,
+      elapsedSec: 1.2,
+      reducedMotion: false,
+    });
+    const heelside = deriveTrailRigPose(route, {
+      progress: 0.5,
+      motionEnergy: 0.8,
+      elapsedSec: 1.2,
+      reducedMotion: false,
+    });
+    const toeside = deriveTrailRigPose(route, {
+      progress: 1.5,
+      motionEnergy: 0.8,
+      elapsedSec: 1.2,
+      reducedMotion: false,
+    });
+
+    expect(startGate.kind).toBe("carving");
+    expect(startGate.carveSide).toBe("neutral");
+    expect(startGate.sprayIntensity).toBe(0);
+    expect(startGate.spraySide).toBe(0);
+    expect(startGate.boardYaw).toBeGreaterThan(0);
+
+    expect(heelside.carveSide).toBe("heelside");
+    expect(heelside.boardYaw).toBeGreaterThan(0.8);
+    expect(heelside.edgeRoll).toBeLessThan(-0.5);
+    expect(heelside.rightArmDrop).toBeGreaterThan(0.5);
+    expect(heelside.spraySide).toBe(-1);
+    expect(heelside.sprayIntensity).toBeGreaterThan(0.7);
+
+    expect(toeside.carveSide).toBe("toeside");
+    expect(toeside.boardYaw).toBeLessThan(-0.8);
+    expect(toeside.edgeRoll).toBeGreaterThan(0.5);
+    expect(toeside.leftArmDrop).toBeGreaterThan(0.5);
+    expect(toeside.spraySide).toBe(1);
+    expect(toeside.sprayIntensity).toBeGreaterThan(0.7);
+
+    const beforeGate = deriveTrailRigPose(route, {
+      progress: 0.9999,
+      motionEnergy: 0.5,
+      elapsedSec: 0,
+      reducedMotion: false,
+    });
+    const afterGate = deriveTrailRigPose(route, {
+      progress: 1.0001,
+      motionEnergy: 0.5,
+      elapsedSec: 0,
+      reducedMotion: false,
+    });
+    expect(afterGate.boardYaw).toBeCloseTo(beforeGate.boardYaw, 2);
+    expect(afterGate.edgeRoll).toBeCloseTo(beforeGate.edgeRoll, 2);
+  });
+
+  it("aligns airborne landing joint angles seamlessly with Checkpoint 01 stance", () => {
+    const midAir = deriveAirborneRigPose({
+      jumpProgress: 0.5,
+      leanDeg: -12,
+      elapsedSec: 0.4,
+    });
+    expect(midAir.kind).toBe("airborne");
+    expect(midAir.crouch).toBeGreaterThan(2);
+    expect(midAir.shadowScale).toBe(0);
+    expect(midAir.sprayIntensity).toBe(0);
+
+    const touchdown = deriveAirborneRigPose({
+      jumpProgress: 1,
+      leanDeg: 0,
+      elapsedSec: 1.0,
+    });
+    const checkpointZero = deriveTrailRigPose(route, {
+      progress: 0,
+      motionEnergy: 0,
+      elapsedSec: 1.0,
+      reducedMotion: false,
+    });
+
+    expect(touchdown.boardYaw).toBeCloseTo(checkpointZero.boardYaw, 6);
+    expect(touchdown.edgeRoll).toBeCloseTo(checkpointZero.edgeRoll, 6);
+    expect(touchdown.boardPitch).toBeCloseTo(checkpointZero.boardPitch, 6);
+    expect(touchdown.crouch).toBeCloseTo(checkpointZero.crouch, 6);
+    expect(touchdown.pelvisYaw).toBeCloseTo(checkpointZero.pelvisYaw, 6);
+    expect(touchdown.torsoYaw).toBeCloseTo(checkpointZero.torsoYaw, 6);
+    expect(touchdown.headYaw).toBeCloseTo(checkpointZero.headYaw, 6);
+    expect(touchdown.leftArmDrop).toBeCloseTo(checkpointZero.leftArmDrop, 6);
+    expect(touchdown.rightArmDrop).toBeCloseTo(checkpointZero.rightArmDrop, 6);
+    expect(touchdown.hairSway).toBeCloseTo(checkpointZero.hairSway, 6);
+  });
+
+  it("snaps to nearest checkpoint with zero spray or flutter when reducedMotion is enabled", () => {
+    const reduced = deriveTrailRigPose(route, {
+      progress: 1.65,
+      motionEnergy: 1,
+      elapsedSec: 2.5,
+      reducedMotion: true,
+    });
+    const exactTwo = deriveTrailRigPose(route, {
+      progress: 2,
+      motionEnergy: 0,
+      elapsedSec: 0,
+      reducedMotion: false,
+    });
+    expect(reduced).toEqual(exactTwo);
+  });
+
+  it("boosts settle energy on scroll and decays cleanly to zero at 600ms", () => {
+    expect(stepSettleEnergy(0, 0, 16, false)).toBe(0);
+    const boosted = stepSettleEnergy(0, 40, 16, false);
+    expect(boosted).toBe(1);
+
+    const halfDecayed = stepSettleEnergy(boosted, 0, 300, false);
+    expect(halfDecayed).toBeCloseTo(0.5, 5);
+
+    const settled = stepSettleEnergy(halfDecayed, 0, 300, false);
+    expect(settled).toBe(0);
+    expect(stepSettleEnergy(1, 50, 16, true)).toBe(0);
+  });
+
+  it("throws on malformed rig or settle inputs", () => {
+    expect(() => stepSettleEnergy(-0.1, 0, 16, false)).toThrow();
+    expect(() => stepSettleEnergy(0.5, 0, -1, false)).toThrow();
+    expect(() =>
+      deriveTrailRigPose(route, {
+        progress: 0.5,
+        motionEnergy: 1.2,
+        elapsedSec: 0,
+        reducedMotion: false,
+      })
+    ).toThrow();
+    expect(() =>
+      deriveAirborneRigPose({
+        jumpProgress: Number.NaN,
+        leanDeg: 0,
+        elapsedSec: 0,
+      })
+    ).toThrow();
   });
 });
