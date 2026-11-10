@@ -3,6 +3,8 @@ import {
   BLOSSOM_PALETTE,
   clearSakuraPointer,
   createSakuraSimulationState,
+  DEFAULT_WATERMARK_BASE_RGB,
+  deriveSakuraScaleConfig,
   resolveGlyphSakuraRgb,
   sampleGlyphParticlesFromRgba,
   stepSakuraSimulation,
@@ -30,6 +32,30 @@ function createSyntheticMask(width = 40, height = 20) {
   ];
   return { rgba, width, height, charBoxes };
 }
+
+describe("deriveSakuraScaleConfig", () => {
+  it("scales brush radius, particle density, and blossom sizes for giant 14rem hero watermarks", () => {
+    const mobile = deriveSakuraScaleConfig(44);
+    const desktopGiant = deriveSakuraScaleConfig(196);
+
+    expect(desktopGiant.scale).toBeGreaterThan(mobile.scale);
+    expect(desktopGiant.brushRadiusPx).toBeGreaterThan(110);
+    expect(desktopGiant.maxParticles).toBeGreaterThan(mobile.maxParticles);
+    expect(desktopGiant.blossomMaxSize).toBeGreaterThan(mobile.blossomMaxSize);
+    expect(desktopGiant.updraftBiasPxPerSec).toBeGreaterThan(
+      mobile.updraftBiasPxPerSec
+    );
+  });
+
+  it("throws when fontSizePx is non-positive or non-finite", () => {
+    expect(() => deriveSakuraScaleConfig(0)).toThrow(
+      "fontSizePx must be a positive number"
+    );
+    expect(() => deriveSakuraScaleConfig(Number.NaN)).toThrow(
+      "fontSizePx must be a finite number"
+    );
+  });
+});
 
 describe("sampleGlyphParticlesFromRgba", () => {
   it("samples opaque pixels into logical coordinates and assigns owning character indices", () => {
@@ -94,7 +120,7 @@ describe("sampleGlyphParticlesFromRgba", () => {
     expect(noBoxes).toEqual({ status: "empty", glyphs: [], charCount: 0 });
   });
 
-  it("throws on malformed dimensions, buffer mismatch, or inverted character bounds", () => {
+  it("throws on malformed dimensions, buffer mismatch, invalid particle sizes, or inverted bounds", () => {
     const valid = new Uint8ClampedArray(10 * 10 * 4);
     expect(() =>
       sampleGlyphParticlesFromRgba({
@@ -121,16 +147,31 @@ describe("sampleGlyphParticlesFromRgba", () => {
         rgba: valid,
         width: 10,
         height: 10,
+        dpr: 1,
+        particleMinSize: 4,
+        particleMaxSize: 2,
+        charBoxes: [],
+      })
+    ).toThrow("Particle size bounds must be positive with min <= max");
+
+    expect(() =>
+      sampleGlyphParticlesFromRgba({
+        rgba: valid,
+        width: 10,
+        height: 10,
         dpr: 2,
         charBoxes: [{ charIndex: 0, left: 8, top: 0, right: 4, bottom: 10 }],
       })
-    ).toThrow("CharacterBounds edges must satisfy left <= right and top <= bottom");
+    ).toThrow(
+      "CharacterBounds edges must satisfy left <= right and top <= bottom"
+    );
   });
 });
 
 describe("sakura simulation lifecycle and physics", () => {
   function setupIdleState(): SakuraSimulationState {
     const { rgba, width, height, charBoxes } = createSyntheticMask();
+    const scaleConfig = deriveSakuraScaleConfig(160);
     const sampled = sampleGlyphParticlesFromRgba({
       rgba,
       width,
@@ -139,7 +180,12 @@ describe("sakura simulation lifecycle and physics", () => {
       sampleStepPx: 2,
       charBoxes,
     });
-    return createSakuraSimulationState(sampled.glyphs, sampled.charCount, 42);
+    return createSakuraSimulationState(
+      sampled.glyphs,
+      sampled.charCount,
+      42,
+      scaleConfig
+    );
   }
 
   it("validates state invariants on creation", () => {
@@ -153,18 +199,19 @@ describe("sakura simulation lifecycle and physics", () => {
     );
   });
 
-  it("runs intro hint petals from trailing letters and converges back to idle", () => {
+  it("runs intro hint petals upward from trailing letters and converges back to idle", () => {
     const idle = setupIdleState();
     const intro = triggerSakuraIntroHint(idle, false);
     expect(intro.status).toBe("started");
     expect(intro.state.phase).toBe("intro");
     if (intro.state.phase === "idle") return;
 
-    expect(intro.state.blossoms.length).toBe(3);
+    expect(intro.state.blossoms.length).toBe(4);
+    expect(intro.state.blossoms.every((petal) => petal.vy < 0)).toBe(true);
     expect(intro.state.charEnergies).toEqual([0, 0]);
 
     let current: SakuraSimulationState = intro.state;
-    for (let step = 0; step < 180 && current.phase !== "idle"; step += 1) {
+    for (let step = 0; step < 220 && current.phase !== "idle"; step += 1) {
       current = stepSakuraSimulation(current, 24, false);
     }
     expect(current.phase).toBe("idle");
@@ -195,16 +242,14 @@ describe("sakura simulation lifecycle and physics", () => {
     expect(activeState.phase).toBe("active");
     if (activeState.phase === "idle") return;
 
-    // Character 0 is directly under cursor (x=11, y=10), while distant glyphs remain cooler
     expect(activeState.charEnergies[0]).toBeGreaterThan(0.5);
     expect(activeState.blossoms.length).toBeGreaterThan(0);
-    expect(activeState.blossoms.length).toBeLessThanOrEqual(40);
+    expect(activeState.blossoms.length).toBeLessThanOrEqual(48);
 
-    // Leaving transitions to settling and elastically returns every glyph to exact home
     let settling = clearSakuraPointer(activeState);
     expect(settling.phase).toBe("settling");
 
-    for (let i = 0; i < 200 && settling.phase !== "idle"; i += 1) {
+    for (let i = 0; i < 240 && settling.phase !== "idle"; i += 1) {
       settling = stepSakuraSimulation(settling, 20, false);
     }
 
@@ -229,18 +274,21 @@ describe("sakura simulation lifecycle and physics", () => {
     expect(tapped.state.blossoms.length).toBe(6);
     expect(tapped.state.charEnergies[1]).toBeGreaterThan(0.5);
 
-    // Huge 5000ms background-tab delta should clamp cleanly without NaN or runaway coords
     const afterResume = stepSakuraSimulation(tapped.state, 5000, false);
     for (const glyph of afterResume.glyphs) {
       expect(Number.isFinite(glyph.x)).toBe(true);
       expect(Number.isFinite(glyph.y)).toBe(true);
-      expect(Math.hypot(glyph.x - glyph.homeX, glyph.y - glyph.homeY)).toBeLessThan(80);
+      expect(Math.hypot(glyph.x - glyph.homeX, glyph.y - glyph.homeY)).toBeLessThan(
+        140
+      );
     }
   });
 
   it("ignores triggers under reducedMotion or empty glyphs and resets active states immediately", () => {
     const idle = setupIdleState();
-    expect(triggerSakuraIntroHint(idle, true).status).toBe("ignored_reduced_motion");
+    expect(triggerSakuraIntroHint(idle, true).status).toBe(
+      "ignored_reduced_motion"
+    );
     expect(
       updateSakuraPointer(idle, { x: 10, y: 10, vx: 50, vy: 0 }, true).status
     ).toBe("ignored_reduced_motion");
@@ -281,12 +329,15 @@ describe("sakura simulation lifecycle and physics", () => {
 });
 
 describe("sakura color and palette policies", () => {
-  it("maps heat monotonically from foreground ink to sakura petal highlights", () => {
-    expect(resolveGlyphSakuraRgb(0, 0.5)).toEqual({ r: 49, g: 27, b: 37 });
-    const mid = resolveGlyphSakuraRgb(0.6, 0.5);
-    const hot = resolveGlyphSakuraRgb(1, 1);
-    expect(mid.r).toBeGreaterThan(145);
-    expect(hot).toEqual({ r: 255, g: 214, b: 229 });
+  it("preserves exact resting watermark blush (#efbdd0) at heat=0 and blooms into rich sakura crimson/highlights", () => {
+    expect(resolveGlyphSakuraRgb(0, 0.4)).toEqual(DEFAULT_WATERMARK_BASE_RGB);
+
+    const crimsonBloom = resolveGlyphSakuraRgb(1, 0.5);
+    expect(crimsonBloom).toEqual({ r: 177, g: 47, b: 96 });
+
+    const highlightBloom = resolveGlyphSakuraRgb(1, 0.9);
+    expect(highlightBloom.r).toBeGreaterThan(DEFAULT_WATERMARK_BASE_RGB.r);
+    expect(highlightBloom.g).toBeGreaterThan(DEFAULT_WATERMARK_BASE_RGB.g);
 
     const tones: readonly BlossomTone[] = [0, 1, 2, 3];
     for (const tone of tones) {

@@ -6,6 +6,20 @@ export interface CharacterBounds {
   readonly bottom: number;
 }
 
+export interface SakuraScaleConfig {
+  readonly fontSizePx: number;
+  readonly scale: number;
+  readonly sampleStepPx: number;
+  readonly maxParticles: number;
+  readonly particleMinSize: number;
+  readonly particleMaxSize: number;
+  readonly brushRadiusPx: number;
+  readonly tapBloomRadiusPx: number;
+  readonly blossomMinSize: number;
+  readonly blossomMaxSize: number;
+  readonly updraftBiasPxPerSec: number;
+}
+
 export interface GlyphParticle {
   readonly homeX: number;
   readonly homeY: number;
@@ -53,6 +67,7 @@ export type SakuraSimulationState =
   | {
       readonly phase: "idle";
       readonly glyphs: readonly GlyphParticle[];
+      readonly scaleConfig: SakuraScaleConfig;
       readonly charCount: number;
       readonly charEnergies: readonly number[];
       readonly rngSeed: number;
@@ -61,6 +76,7 @@ export type SakuraSimulationState =
       readonly phase: "intro" | "active" | "settling";
       readonly glyphs: readonly GlyphParticle[];
       readonly blossoms: readonly BlossomPetal[];
+      readonly scaleConfig: SakuraScaleConfig;
       readonly charCount: number;
       readonly charEnergies: readonly number[];
       readonly pointer: PointerField | null;
@@ -98,6 +114,8 @@ export interface RgbaMaskInput {
   readonly dpr: number;
   readonly sampleStepPx?: number;
   readonly maxParticles?: number;
+  readonly particleMinSize?: number;
+  readonly particleMaxSize?: number;
   readonly charBoxes: readonly CharacterBounds[];
 }
 
@@ -107,24 +125,30 @@ export interface RgbTuple {
   readonly b: number;
 }
 
-const DEFAULT_SAMPLE_STEP_PX = 2;
-const DEFAULT_MAX_GLYPH_PARTICLES = 1600;
 const MIN_ALPHA_THRESHOLD = 72;
-const MAX_BLOSSOM_PETALS = 40;
+const MAX_BLOSSOM_PETALS = 48;
 const MAX_FRAME_DT_MS = 48;
-const BASE_BRUSH_RADIUS_PX = 54;
-const TAP_BLOOM_RADIUS_PX = 76;
-const SPRING_STIFFNESS = 38;
-const SPRING_DAMPING_RATE = 8.4;
-const HEAT_COOL_RATE = 1.75;
+const SPRING_STIFFNESS = 36;
+const SPRING_DAMPING_RATE = 8.2;
+const HEAT_COOL_RATE = 1.65;
 
-const COLOR_STOPS: readonly RgbTuple[] = [
-  { r: 49, g: 27, b: 37 }, // --foreground (#311b25)
-  { r: 145, g: 34, b: 76 }, // --sakura-deep (#91224c)
-  { r: 177, g: 47, b: 96 }, // --sakura (#b12f60)
+export const DEFAULT_WATERMARK_BASE_RGB: RgbTuple = {
+  r: 239,
+  g: 189,
+  b: 208,
+}; // #efbdd0 (.resume-cover-mark)
+
+const ACTIVE_SAKURA_STOPS: readonly RgbTuple[] = [
   { r: 229, g: 150, b: 176 }, // --sakura-petal (#e596b0)
-  { r: 255, g: 214, b: 229 }, // sakura highlight (#ffd6e5)
+  { r: 209, g: 82, b: 130 }, // vibrant sakura rose (#d15282)
+  { r: 177, g: 47, b: 96 }, // --sakura (#b12f60)
 ];
+
+const HIGHLIGHT_SAKURA_STOP: RgbTuple = {
+  r: 255,
+  g: 222,
+  b: 235,
+};
 
 export const BLOSSOM_PALETTE: Readonly<
   Record<BlossomTone, { readonly fill: string; readonly accent: string }>
@@ -132,7 +156,7 @@ export const BLOSSOM_PALETTE: Readonly<
   0: { fill: "#f6b8ce", accent: "#cf5684" },
   1: { fill: "#e596b0", accent: "#b12f60" },
   2: { fill: "#ffd7e6", accent: "#d96f98" },
-  3: { fill: "#f2a6c1", accent: "#91224c" },
+  3: { fill: "#f09cbc", accent: "#91224c" },
 };
 
 function nextRandom(seed: number): readonly [number, number] {
@@ -151,9 +175,51 @@ function assertFiniteNumber(value: number, label: string): void {
 
 function assertCharacterIndex(charIndex: number, charCount: number): void {
   if (!Number.isInteger(charIndex) || charIndex < 0 || charIndex >= charCount) {
-    throw new Error(`Character index ${charIndex} is outside valid bounds 0..${charCount - 1}`);
+    throw new Error(
+      `Character index ${charIndex} is outside valid bounds 0..${charCount - 1}`
+    );
   }
 }
+
+/**
+ * Derives scale-appropriate sampling density, brush radius, petal size, and
+ * updraft buoyancy from the rendered typography font-size (supporting both
+ * mobile watermarks and 14rem desktop display watermarks).
+ */
+export function deriveSakuraScaleConfig(fontSizePx: number): SakuraScaleConfig {
+  assertFiniteNumber(fontSizePx, "fontSizePx");
+  if (fontSizePx <= 0) {
+    throw new Error("fontSizePx must be a positive number");
+  }
+
+  const scale = Math.max(0.85, Math.min(3.6, fontSizePx / 52));
+  const sampleStepPx = Number((1.9 * Math.pow(scale, 0.52)).toFixed(2));
+  const maxParticles = Math.round(1800 + Math.min(2600, (scale - 0.85) * 950));
+  const particleMinSize = Number((1.45 * Math.pow(scale, 0.52)).toFixed(2));
+  const particleMaxSize = Number((2.45 * Math.pow(scale, 0.54)).toFixed(2));
+  const brushRadiusPx = Math.round(56 * Math.pow(scale, 0.68));
+  const tapBloomRadiusPx = Math.round(78 * Math.pow(scale, 0.68));
+  const blossomMinSize = Number((7.2 * Math.pow(scale, 0.48)).toFixed(2));
+  const blossomMaxSize = Number((13.2 * Math.pow(scale, 0.5)).toFixed(2));
+  const updraftBiasPxPerSec = Math.round(28 * Math.pow(scale, 0.55));
+
+  return {
+    fontSizePx,
+    scale,
+    sampleStepPx,
+    maxParticles,
+    particleMinSize,
+    particleMaxSize,
+    brushRadiusPx,
+    tapBloomRadiusPx,
+    blossomMinSize,
+    blossomMaxSize,
+    updraftBiasPxPerSec,
+  };
+}
+
+export const DEFAULT_SAKURA_SCALE_CONFIG: SakuraScaleConfig =
+  deriveSakuraScaleConfig(52);
 
 function resolveOwningCharIndex(
   x: number,
@@ -195,7 +261,9 @@ function validateCharacterBoxes(charBoxes: readonly CharacterBounds[]): number {
     assertFiniteNumber(box.right, "CharacterBounds.right");
     assertFiniteNumber(box.bottom, "CharacterBounds.bottom");
     if (box.right < box.left || box.bottom < box.top) {
-      throw new Error("CharacterBounds edges must satisfy left <= right and top <= bottom");
+      throw new Error(
+        "CharacterBounds edges must satisfy left <= right and top <= bottom"
+      );
     }
     if (box.charIndex > maxCharIndex) {
       maxCharIndex = box.charIndex;
@@ -208,18 +276,27 @@ function validateCharacterBoxes(charBoxes: readonly CharacterBounds[]): number {
  * Samples logical glyph particles from an offscreen RGBA text mask and maps each
  * particle to its owning character index for crisp-to-particle transitions.
  */
-export function sampleGlyphParticlesFromRgba(input: RgbaMaskInput): GlyphSamplingOutcome {
+export function sampleGlyphParticlesFromRgba(
+  input: RgbaMaskInput
+): GlyphSamplingOutcome {
   const {
     rgba,
     width,
     height,
     dpr,
-    sampleStepPx = DEFAULT_SAMPLE_STEP_PX,
-    maxParticles = DEFAULT_MAX_GLYPH_PARTICLES,
+    sampleStepPx = DEFAULT_SAKURA_SCALE_CONFIG.sampleStepPx,
+    maxParticles = DEFAULT_SAKURA_SCALE_CONFIG.maxParticles,
+    particleMinSize = DEFAULT_SAKURA_SCALE_CONFIG.particleMinSize,
+    particleMaxSize = DEFAULT_SAKURA_SCALE_CONFIG.particleMaxSize,
     charBoxes,
   } = input;
 
-  if (!Number.isInteger(width) || width <= 0 || !Number.isInteger(height) || height <= 0) {
+  if (
+    !Number.isInteger(width) ||
+    width <= 0 ||
+    !Number.isInteger(height) ||
+    height <= 0
+  ) {
     throw new Error("Mask width and height must be positive integers");
   }
   if (!Number.isFinite(dpr) || dpr <= 0) {
@@ -230,6 +307,14 @@ export function sampleGlyphParticlesFromRgba(input: RgbaMaskInput): GlyphSamplin
   }
   if (!Number.isInteger(maxParticles) || maxParticles < 1) {
     throw new Error("maxParticles must be a positive integer");
+  }
+  if (
+    !Number.isFinite(particleMinSize) ||
+    particleMinSize <= 0 ||
+    !Number.isFinite(particleMaxSize) ||
+    particleMaxSize < particleMinSize
+  ) {
+    throw new Error("Particle size bounds must be positive with min <= max");
   }
   if (rgba.length !== width * height * 4) {
     throw new Error("RGBA buffer length must equal width * height * 4");
@@ -276,7 +361,10 @@ export function sampleGlyphParticlesFromRgba(input: RgbaMaskInput): GlyphSamplin
   const glyphs: GlyphParticle[] = [];
 
   for (let index = 0; index < selectedCount; index += 1) {
-    const candidate = rawCandidates[Math.min(rawCandidates.length - 1, Math.floor(index * stride))];
+    const candidate =
+      rawCandidates[
+        Math.min(rawCandidates.length - 1, Math.floor(index * stride))
+      ];
     let uPhase = 0;
     let uSign = 0;
     let uVariant = 0;
@@ -295,7 +383,7 @@ export function sampleGlyphParticlesFromRgba(input: RgbaMaskInput): GlyphSamplin
       vy: 0,
       heat: 0,
       alpha: candidate.alpha,
-      size: 1.45 + uSize * 0.95,
+      size: particleMinSize + uSize * (particleMaxSize - particleMinSize),
       charIndex: candidate.charIndex,
       phase: uPhase * Math.PI * 2,
       swirlSign: uSign < 0.5 ? -1 : 1,
@@ -312,13 +400,18 @@ export function sampleGlyphParticlesFromRgba(input: RgbaMaskInput): GlyphSamplin
 
 function computeCharEnergies(
   glyphs: readonly GlyphParticle[],
-  charCount: number
+  charCount: number,
+  scale: number
 ): readonly number[] {
+  const dispDivisor = 3 * Math.max(1, scale * 0.7);
   const energies = new Array<number>(charCount).fill(0);
   for (const glyph of glyphs) {
     assertCharacterIndex(glyph.charIndex, charCount);
-    const displacement = Math.hypot(glyph.x - glyph.homeX, glyph.y - glyph.homeY);
-    const energy = Math.min(1, Math.max(glyph.heat, displacement / 3));
+    const displacement = Math.hypot(
+      glyph.x - glyph.homeX,
+      glyph.y - glyph.homeY
+    );
+    const energy = Math.min(1, Math.max(glyph.heat, displacement / dispDivisor));
     if (energy > energies[glyph.charIndex]) {
       energies[glyph.charIndex] = energy;
     }
@@ -332,7 +425,8 @@ function computeCharEnergies(
 export function createSakuraSimulationState(
   glyphs: readonly GlyphParticle[],
   charCount: number,
-  initialSeed = 0x20261111
+  initialSeed = 0x20261111,
+  scaleConfig: SakuraScaleConfig = DEFAULT_SAKURA_SCALE_CONFIG
 ): SakuraSimulationState {
   if (!Number.isInteger(charCount) || charCount < 0) {
     throw new Error("charCount must be a non-negative integer");
@@ -352,6 +446,7 @@ export function createSakuraSimulationState(
   return {
     phase: "idle",
     glyphs,
+    scaleConfig,
     charCount,
     charEnergies: new Array<number>(charCount).fill(0),
     rngSeed: initialSeed | 0,
@@ -364,8 +459,7 @@ function createBlossomPetal(
   baseVx: number,
   baseVy: number,
   seedInput: number,
-  sizeMin = 6.8,
-  sizeMax = 12.6
+  scaleConfig: SakuraScaleConfig
 ): readonly [BlossomPetal, number] {
   let seed = seedInput;
   let u1 = 0;
@@ -388,23 +482,28 @@ function createBlossomPetal(
   [u9, seed] = nextRandom(seed);
 
   const spreadAngle = u1 * Math.PI * 2;
-  const spreadSpeed = 14 + u2 * 34;
+  const spreadSpeed = (16 + u2 * 38) * Math.pow(scaleConfig.scale, 0.35);
   const tone = (Math.floor(u9 * 4) % 4) as BlossomTone;
+  const sizeMin = scaleConfig.blossomMinSize;
+  const sizeMax = scaleConfig.blossomMaxSize;
 
   const petal: BlossomPetal = {
-    x: originX + (u3 - 0.5) * 6,
-    y: originY + (u4 - 0.5) * 6,
+    x: originX + (u3 - 0.5) * 8 * scaleConfig.scale,
+    y: originY + (u4 - 0.5) * 8 * scaleConfig.scale,
     vx: baseVx + Math.cos(spreadAngle) * spreadSpeed,
-    vy: baseVy + Math.sin(spreadAngle) * spreadSpeed - (10 + u5 * 22),
+    vy:
+      baseVy +
+      Math.sin(spreadAngle) * spreadSpeed * 0.65 -
+      (scaleConfig.updraftBiasPxPerSec + u5 * 28),
     size: sizeMin + u6 * (sizeMax - sizeMin),
     rotation: u7 * Math.PI * 2,
     spin: (u8 - 0.5) * 3.4,
     tumble: u2 * Math.PI * 2,
-    tumbleSpeed: 2.2 + u3 * 3.2,
+    tumbleSpeed: 2.2 + u3 * 3.1,
     swayPhase: u4 * Math.PI * 2,
-    swayFreq: 2.4 + u5 * 2.1,
+    swayFreq: 2.3 + u5 * 2.0,
     ageMs: 0,
-    maxLifeMs: 1450 + u7 * 850,
+    maxLifeMs: 1650 + u7 * 950,
     opacity: 0.08,
     tone,
   };
@@ -413,8 +512,8 @@ function createBlossomPetal(
 }
 
 /**
- * Triggers the subtle one-time load hint by shedding 3 drifting sakura petals
- * from the trailing half of the headline while keeping letterforms crisp.
+ * Triggers the subtle one-time load hint by shedding 4 drifting sakura petals
+ * upward from the trailing half of the hero watermark while keeping letterforms crisp.
  */
 export function triggerSakuraIntroHint(
   state: SakuraSimulationState,
@@ -433,15 +532,17 @@ export function triggerSakuraIntroHint(
     if (glyph.homeX < minX) minX = glyph.homeX;
     if (glyph.homeX > maxX) maxX = glyph.homeX;
   }
-  const trailingThreshold = minX + (maxX - minX) * 0.58;
-  const trailingGlyphs = state.glyphs.filter((glyph) => glyph.homeX >= trailingThreshold);
+  const trailingThreshold = minX + (maxX - minX) * 0.52;
+  const trailingGlyphs = state.glyphs.filter(
+    (glyph) => glyph.homeX >= trailingThreshold
+  );
   const pool = trailingGlyphs.length > 0 ? trailingGlyphs : state.glyphs;
 
   let seed = state.rngSeed;
   const blossoms: BlossomPetal[] =
     state.phase === "idle" ? [] : [...state.blossoms];
 
-  for (let i = 0; i < 3 && blossoms.length < MAX_BLOSSOM_PETALS; i += 1) {
+  for (let i = 0; i < 4 && blossoms.length < MAX_BLOSSOM_PETALS; i += 1) {
     let pickUnit = 0;
     [pickUnit, seed] = nextRandom(seed);
     const anchor = pool[Math.floor(pickUnit * pool.length)];
@@ -449,11 +550,10 @@ export function triggerSakuraIntroHint(
     [petal, seed] = createBlossomPetal(
       anchor.homeX,
       anchor.homeY,
-      26 + i * 7,
-      -8 + i * 5,
+      (i % 2 === 0 ? 1 : -1) * (18 + i * 6),
+      -18 - i * 6,
       seed,
-      7.5,
-      11.8
+      state.scaleConfig
     );
     blossoms.push(petal);
   }
@@ -464,6 +564,7 @@ export function triggerSakuraIntroHint(
       phase: state.phase === "active" ? "active" : "intro",
       glyphs: state.glyphs,
       blossoms,
+      scaleConfig: state.scaleConfig,
       charCount: state.charCount,
       charEnergies: state.charEnergies,
       pointer: state.phase === "idle" ? null : state.pointer,
@@ -500,6 +601,7 @@ export function updateSakuraPointer(
       phase: "active",
       glyphs: state.glyphs,
       blossoms: state.phase === "idle" ? [] : state.blossoms,
+      scaleConfig: state.scaleConfig,
       charCount: state.charCount,
       charEnergies: state.charEnergies,
       pointer,
@@ -513,7 +615,9 @@ export function updateSakuraPointer(
 /**
  * Releases the active pointer field so displaced particles elastically reform.
  */
-export function clearSakuraPointer(state: SakuraSimulationState): SakuraSimulationState {
+export function clearSakuraPointer(
+  state: SakuraSimulationState
+): SakuraSimulationState {
   if (state.phase === "idle") {
     return state;
   }
@@ -523,6 +627,7 @@ export function clearSakuraPointer(state: SakuraSimulationState): SakuraSimulati
     return {
       phase: "idle",
       glyphs: state.glyphs,
+      scaleConfig: state.scaleConfig,
       charCount: state.charCount,
       charEnergies: state.charEnergies,
       rngSeed: state.rngSeed,
@@ -556,6 +661,8 @@ export function triggerSakuraTapBloom(
     return { status: "ignored_empty_glyphs", state };
   }
 
+  const radius = state.scaleConfig.tapBloomRadiusPx;
+  const forceScale = Math.pow(state.scaleConfig.scale, 0.45);
   let seed = state.rngSeed;
   const nearAnchors: GlyphParticle[] = [];
 
@@ -563,23 +670,23 @@ export function triggerSakuraTapBloom(
     const dx = glyph.x - tapX;
     const dy = glyph.y - tapY;
     const dist = Math.hypot(dx, dy);
-    if (dist >= TAP_BLOOM_RADIUS_PX) {
+    if (dist >= radius) {
       return glyph;
     }
 
-    const t = 1 - dist / TAP_BLOOM_RADIUS_PX;
+    const t = 1 - dist / radius;
     const weight = t * t * (3 - 2 * t);
     const nx = dist > 0.001 ? dx / dist : Math.cos(glyph.phase);
     const ny = dist > 0.001 ? dy / dist : Math.sin(glyph.phase);
     const tx = -ny * glyph.swirlSign;
     const ty = nx * glyph.swirlSign;
-    const impulse = (115 + glyph.variant * 95) * weight;
+    const impulse = (120 + glyph.variant * 100) * forceScale * weight;
 
     const updated: GlyphParticle = {
       ...glyph,
       vx: glyph.vx + nx * impulse + tx * impulse * 0.48,
-      vy: glyph.vy + ny * impulse + ty * impulse * 0.48 - 38 * weight,
-      heat: Math.min(1, Math.max(glyph.heat, 0.55 + weight * 0.45)),
+      vy: glyph.vy + ny * impulse + ty * impulse * 0.48 - 44 * forceScale * weight,
+      heat: Math.min(1, Math.max(glyph.heat, 0.58 + weight * 0.42)),
     };
     if (weight > 0.25) {
       nearAnchors.push(updated);
@@ -600,16 +707,19 @@ export function triggerSakuraTapBloom(
     [petal, seed] = createBlossomPetal(
       anchor.x,
       anchor.y,
-      Math.cos(angle) * 44,
-      Math.sin(angle) * 32 - 20,
+      Math.cos(angle) * 46,
+      Math.sin(angle) * 28 - 26,
       seed,
-      7.2,
-      12.4
+      state.scaleConfig
     );
     blossoms.push(petal);
   }
 
-  const charEnergies = computeCharEnergies(nextGlyphs, state.charCount);
+  const charEnergies = computeCharEnergies(
+    nextGlyphs,
+    state.charCount,
+    state.scaleConfig.scale
+  );
 
   return {
     status: "started",
@@ -617,6 +727,7 @@ export function triggerSakuraTapBloom(
       phase: "settling",
       glyphs: nextGlyphs,
       blossoms,
+      scaleConfig: state.scaleConfig,
       charCount: state.charCount,
       charEnergies,
       pointer: null,
@@ -664,6 +775,7 @@ export function stepSakuraSimulation(
     return {
       phase: "idle",
       glyphs: resetGlyphs,
+      scaleConfig: state.scaleConfig,
       charCount: state.charCount,
       charEnergies: new Array<number>(state.charCount).fill(0),
       rngSeed: state.rngSeed,
@@ -674,6 +786,9 @@ export function stepSakuraSimulation(
     return state;
   }
 
+  const { scaleConfig } = state;
+  const forceScale = Math.pow(scaleConfig.scale, 0.45);
+  const dispDivisor = 3 * Math.max(1, scaleConfig.scale * 0.7);
   const clampedDtMs = Math.min(dtMs, MAX_FRAME_DT_MS);
   const dt = clampedDtMs / 1000;
   const nextElapsedMs = state.elapsedMs + clampedDtMs;
@@ -681,7 +796,7 @@ export function stepSakuraSimulation(
   const pointer = state.pointer;
   const pointerSpeed = pointer ? Math.hypot(pointer.vx, pointer.vy) : 0;
   const effectiveRadius =
-    BASE_BRUSH_RADIUS_PX + Math.min(28, pointerSpeed * 0.032);
+    scaleConfig.brushRadiusPx + Math.min(42, pointerSpeed * 0.036);
   const damping = Math.exp(-SPRING_DAMPING_RATE * dt);
 
   const agitatedSpawnAnchors: GlyphParticle[] = [];
@@ -739,32 +854,37 @@ export function stepSakuraSimulation(
       const ny = dist > 0.001 ? dy / dist : Math.sin(glyph.phase);
       const tx = -ny * glyph.swirlSign;
       const ty = nx * glyph.swirlSign;
-      const radialMag = (245 + Math.min(240, pointerSpeed * 0.24)) * weight;
+      const radialMag =
+        (250 * forceScale + Math.min(280, pointerSpeed * 0.25)) * weight;
       const swirlMag =
-        (135 + 35 * Math.sin(elapsedSec * 7.2 + glyph.phase)) * weight;
+        (140 + 38 * Math.sin(elapsedSec * 7.2 + glyph.phase)) *
+        forceScale *
+        weight;
 
       ax += nx * radialMag + tx * swirlMag + pointer.vx * 0.88 * weight;
       ay +=
         ny * radialMag +
         ty * swirlMag +
         pointer.vy * 0.88 * weight -
-        Math.min(95, pointerSpeed * 0.11) * weight;
+        (24 * forceScale + Math.min(110, pointerSpeed * 0.12)) * weight;
 
-      nextHeat = Math.min(1, Math.max(nextHeat, 0.52 + weight * 0.58));
+      nextHeat = Math.min(1, Math.max(nextHeat, 0.54 + weight * 0.56));
     } else {
-      const homeDistNow = Math.hypot(glyph.x - glyph.homeX, glyph.y - glyph.homeY);
-      const coolFactor = homeDistNow < 1.5 ? 2.35 : 1;
+      const homeDistNow = Math.hypot(
+        glyph.x - glyph.homeX,
+        glyph.y - glyph.homeY
+      );
+      const coolFactor = homeDistNow < 1.8 * scaleConfig.scale ? 2.35 : 1;
       nextHeat = Math.max(0, nextHeat - HEAT_COOL_RATE * coolFactor * dt);
     }
 
-    const springScale = 1 - 0.74 * weight;
+    const springScale = 1 - 0.75 * weight;
     const toHomeX = glyph.homeX - glyph.x;
     const toHomeY = glyph.homeY - glyph.y;
     ax += toHomeX * SPRING_STIFFNESS * springScale;
     ay += toHomeY * SPRING_STIFFNESS * springScale;
 
     if (weight === 0) {
-      // Gentle tangential curve while returning so petals arc organically home
       ax += -toHomeY * glyph.swirlSign * 4.2;
       ay += toHomeX * glyph.swirlSign * 4.2;
     }
@@ -777,7 +897,7 @@ export function stepSakuraSimulation(
     const nextDisp = Math.hypot(nextX - glyph.homeX, nextY - glyph.homeY);
     const nextSpeed = Math.hypot(nextVx, nextVy);
 
-    if (weight === 0 && nextDisp < 0.22 && nextSpeed < 2.4 && nextHeat < 0.02) {
+    if (weight === 0 && nextDisp < 0.25 && nextSpeed < 2.6 && nextHeat < 0.02) {
       nextX = glyph.homeX;
       nextY = glyph.homeY;
       nextVx = 0;
@@ -796,11 +916,11 @@ export function stepSakuraSimulation(
       heat: nextHeat,
     };
 
-    if (weight > 0.22) {
+    if (weight > 0.2) {
       agitatedSpawnAnchors.push(updated);
     }
 
-    const energy = Math.min(1, Math.max(nextHeat, nextDisp / 3));
+    const energy = Math.min(1, Math.max(nextHeat, nextDisp / dispDivisor));
     if (energy > charEnergies[glyph.charIndex]) {
       charEnergies[glyph.charIndex] = energy;
     }
@@ -818,11 +938,14 @@ export function stepSakuraSimulation(
       continue;
     }
     const ageSec = nextAgeMs / 1000;
-    const dragX = Math.exp(-1.55 * dt);
-    const dragY = Math.exp(-1.35 * dt);
+    const dragX = Math.exp(-1.45 * dt);
+    const dragY = Math.exp(-1.28 * dt);
     const nextVx = petal.vx * dragX;
-    const nextVy = (petal.vy + 36 * dt) * dragY;
-    const swayVx = Math.sin(ageSec * petal.swayFreq + petal.swayPhase) * 24;
+    const nextVy = (petal.vy + 28 * dt) * dragY;
+    const swayVx =
+      Math.sin(ageSec * petal.swayFreq + petal.swayPhase) *
+      26 *
+      Math.pow(scaleConfig.scale, 0.25);
     const nextX = petal.x + (nextVx + swayVx) * dt;
     const nextY = petal.y + nextVy * dt;
     const nextRotation =
@@ -837,7 +960,7 @@ export function stepSakuraSimulation(
       remainingRatio < 0.38
         ? (remainingRatio / 0.38) * (remainingRatio / 0.38)
         : 1;
-    const opacity = Math.max(0, Math.min(0.94, fadeIn * fadeOut * 0.94));
+    const opacity = Math.max(0, Math.min(0.95, fadeIn * fadeOut * 0.95));
 
     nextBlossoms.push({
       ...petal,
@@ -856,9 +979,9 @@ export function stepSakuraSimulation(
     state.phase === "active" &&
     pointer &&
     agitatedSpawnAnchors.length > 0 &&
-    pointerSpeed > 24
+    pointerSpeed > 20
   ) {
-    const spawnRate = 2.4 + Math.min(18, pointerSpeed * 0.03);
+    const spawnRate = 3.2 + Math.min(20, pointerSpeed * 0.032);
     nextSpawnCarry += dt * spawnRate;
 
     while (nextSpawnCarry >= 1 && nextBlossoms.length < MAX_BLOSSOM_PETALS) {
@@ -866,14 +989,17 @@ export function stepSakuraSimulation(
       let pickUnit = 0;
       [pickUnit, seed] = nextRandom(seed);
       const anchor =
-        agitatedSpawnAnchors[Math.floor(pickUnit * agitatedSpawnAnchors.length)];
+        agitatedSpawnAnchors[
+          Math.floor(pickUnit * agitatedSpawnAnchors.length)
+        ];
       let blossom: BlossomPetal;
       [blossom, seed] = createBlossomPetal(
         anchor.x,
         anchor.y,
         pointer.vx * 0.34,
-        pointer.vy * 0.3 - 12,
-        seed
+        pointer.vy * 0.28 - 18,
+        seed,
+        scaleConfig
       );
       nextBlossoms.push(blossom);
     }
@@ -888,6 +1014,7 @@ export function stepSakuraSimulation(
     return {
       phase: "idle",
       glyphs: nextGlyphs,
+      scaleConfig,
       charCount: state.charCount,
       charEnergies,
       rngSeed: seed,
@@ -898,6 +1025,7 @@ export function stepSakuraSimulation(
     phase: state.phase,
     glyphs: nextGlyphs,
     blossoms: nextBlossoms,
+    scaleConfig,
     charCount: state.charCount,
     charEnergies,
     pointer: state.phase === "active" ? pointer : null,
@@ -908,22 +1036,41 @@ export function stepSakuraSimulation(
 }
 
 /**
- * Interpolates a glyph particle's RGB color along the sakura brand ramp
- * (#311b25 ink -> #91224c deep -> #b12f60 sakura -> #e596b0 petal -> #ffd6e5 highlight).
+ * Interpolates a glyph particle's RGB color from its exact resting base color
+ * (defaulting to `#efbdd0`) into rich sakura blossom rose/crimson and sunlit highlights.
  */
-export function resolveGlyphSakuraRgb(heat: number, variant: number): RgbTuple {
+export function resolveGlyphSakuraRgb(
+  heat: number,
+  variant: number,
+  baseRgb: RgbTuple = DEFAULT_WATERMARK_BASE_RGB
+): RgbTuple {
   assertFiniteNumber(heat, "heat");
   assertFiniteNumber(variant, "variant");
+  assertFiniteNumber(baseRgb.r, "baseRgb.r");
+  assertFiniteNumber(baseRgb.g, "baseRgb.g");
+  assertFiniteNumber(baseRgb.b, "baseRgb.b");
 
   if (heat <= 0) {
-    return COLOR_STOPS[0];
+    return baseRgb;
   }
-  const boosted = Math.min(1, Math.max(0, heat * (0.86 + variant * 0.24)));
-  const scaled = boosted * (COLOR_STOPS.length - 1);
-  const index = Math.min(COLOR_STOPS.length - 2, Math.floor(scaled));
+
+  const clampedHeat = Math.min(1, Math.max(0, heat));
+  if (variant >= 0.76) {
+    const t = clampedHeat * 0.85;
+    return {
+      r: Math.round(baseRgb.r + (HIGHLIGHT_SAKURA_STOP.r - baseRgb.r) * t),
+      g: Math.round(baseRgb.g + (HIGHLIGHT_SAKURA_STOP.g - baseRgb.g) * t),
+      b: Math.round(baseRgb.b + (HIGHLIGHT_SAKURA_STOP.b - baseRgb.b) * t),
+    };
+  }
+
+  const stops: readonly RgbTuple[] = [baseRgb, ...ACTIVE_SAKURA_STOPS];
+  const boosted = Math.min(1, clampedHeat * (0.85 + variant * 0.3));
+  const scaled = boosted * (stops.length - 1);
+  const index = Math.min(stops.length - 2, Math.floor(scaled));
   const frac = scaled - index;
-  const from = COLOR_STOPS[index];
-  const to = COLOR_STOPS[index + 1];
+  const from = stops[index];
+  const to = stops[index + 1];
 
   return {
     r: Math.round(from.r + (to.r - from.r) * frac),
