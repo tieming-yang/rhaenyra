@@ -1,8 +1,20 @@
 "use client";
 
+import Image from "next/image";
 import { Layers, LayoutGrid, Shuffle } from "lucide-react";
 import { type CSSProperties, useLayoutEffect, useRef, useState } from "react";
 import { RESUME_BADGES } from "@/domain/resume-showcase-data";
+
+const logos: Readonly<Record<string, string>> = {
+  beacon: "/resume/jobs/beacon.webp",
+  "thinker-data": "/resume/jobs/thinker-data.png",
+  "eternal-story": "/resume/jobs/eternal-story.png",
+  "youtube-creator": "/resume/jobs/youtube-creator.svg",
+  tvbs: "/resume/jobs/tvbs.svg",
+  dentall: "/resume/jobs/dentall.svg",
+  bole: "/resume/jobs/bole.png",
+  nuturefit: "/resume/jobs/nuturefit.png",
+};
 
 const marks: Readonly<Record<string, string>> = {
   beacon: "B",
@@ -189,7 +201,20 @@ export function ResumeJobDeck() {
                       aria-hidden={isFlipped}
                     >
                       <span className="resume-job-num">EXPERIENCE <span>{String(number).padStart(2, "0")}</span></span>
-                      <span className="resume-job-mark" aria-hidden="true">{marks[job.id]}</span>
+                      <span className="resume-job-mark" aria-hidden="true">
+                        {logos[job.id] ? (
+                          <Image
+                            className="resume-job-logo"
+                            src={logos[job.id]}
+                            alt=""
+                            width={128}
+                            height={128}
+                            draggable={false}
+                          />
+                        ) : (
+                          marks[job.id]
+                        )}
+                      </span>
                       <span className="resume-job-name">{job.company}</span>
                       <span className="resume-job-role">{job.role}</span>
                     </span>
