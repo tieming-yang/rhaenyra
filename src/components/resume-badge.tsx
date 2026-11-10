@@ -201,7 +201,6 @@ export function ResumeBadge() {
           </div>
         </div>
       </div>
-      <p className="resume-drag-hint">拖曳名牌 · 點一下翻面</p>
     </div>
   );
 }
