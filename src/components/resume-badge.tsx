@@ -293,7 +293,7 @@ export function ResumeBadge() {
         <svg className="resume-strap" ref={svgRef} viewBox={DEFAULT_RESTING_VIEWBOX} aria-hidden="true">
           <path id={strapId} ref={strapRef} d={DEFAULT_RESTING_STRAP_PATH} />
           <use href={`#${strapId}`} className="resume-strap-weave" />
-          <text><textPath href={`#${strapId}`} startOffset="29%">RHAENYRA LIANG</textPath></text>
+          <text><textPath href={`#${strapId}`} startOffset="48%">RHAENYRA LIANG</textPath></text>
         </svg>
 
         <div className="resume-badge-anchor" ref={anchorRef}>

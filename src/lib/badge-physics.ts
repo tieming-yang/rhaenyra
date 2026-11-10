@@ -122,11 +122,11 @@ export interface BadgeRenderPose {
 }
 
 export const DEFAULT_RESTING_VIEWBOX = "0 0 480 590";
-export const DEFAULT_RESTING_STRAP_PATH = "M 263 -28 C 260 24 247 82 240 127";
+export const DEFAULT_RESTING_STRAP_PATH = "M 263 -96 C 260 -20 247 78 240 127";
 
 const CANONICAL_SVG_HEIGHT = 590;
 const MOUNT_OFFSET_X_SVG = 23;
-const MOUNT_Y_SVG = -28;
+const MOUNT_Y_SVG = -96;
 const CLIP_PIVOT_OFFSET_PX = 40;
 const STRAP_TUCK_PX = 4;
 
@@ -877,7 +877,7 @@ export function deriveBadgeRenderPose(
   const sagY = Math.min(115, slack * 0.65);
 
   const relaxedC1X = startX + spanX * 0.12;
-  const relaxedC1Y = startY + 52 + sagY * 0.72;
+  const relaxedC1Y = startY + Math.max(52, spanY * 0.34) + sagY * 0.72;
   const relaxedC2X = startX + spanX * 0.68 - Math.sin(state.angleRad) * 16;
   const relaxedC2Y =
     Math.max(startY + 34, endY - Math.max(28, spanY * 0.34) - Math.cos(state.angleRad) * 8) +

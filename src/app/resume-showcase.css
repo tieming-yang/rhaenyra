@@ -16,7 +16,7 @@
 }
 
 .resume-cover-rail {
-  background: var(--background);
+  background: #f3dce5;
 }
 
 .resume-cover {
@@ -26,7 +26,8 @@
   gap: 0;
   isolation: isolate;
   overflow: clip;
-  min-height: min(50rem, calc(100svh - var(--interview-header-height)));
+  min-height: min(54rem, 100svh);
+  padding-top: var(--interview-header-height);
   padding-inline: var(--resume-gutter);
   perspective: 1150px;
   background:
@@ -1125,8 +1126,8 @@
 
   .resume-cover {
     position: sticky;
-    top: var(--interview-header-height);
-    min-height: calc(100svh - var(--interview-header-height));
+    top: 0;
+    min-height: 100svh;
   }
 
   .resume-cover::before {
