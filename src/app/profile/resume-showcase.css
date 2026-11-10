@@ -2,8 +2,6 @@
   --resume-gutter: clamp(1rem, 4vw, 3.75rem);
   --studio-surface: #361527;
   --studio-ink: #fff1f6;
-  --studio-muted: #e4b8cc;
-  --studio-border: #82516a;
   --device-neon: #ff359d;
   --device-highlight: #ffc4e3;
   --device-anodized: #be145f;
@@ -638,10 +636,10 @@
 .resume-studio {
   overflow: clip;
   background:
-    radial-gradient(ellipse at 68% 79%, #d2357638, transparent 44%),
-    linear-gradient(180deg, transparent 65%, #1a071330 65.2%, #150913 100%),
-    radial-gradient(ellipse at 69% 39%, #5b2241 0, #2d1324 53%, #1d0d18 100%);
-  color: var(--studio-ink);
+    radial-gradient(ellipse at 68% 79%, #e596b038, transparent 44%),
+    linear-gradient(180deg, transparent 65%, #d293a838 65.2%, #ebcdd980 100%),
+    radial-gradient(ellipse at 69% 39%, #fffcfd 0, #f9e8ef 53%, #f3dce5 100%);
+  color: var(--foreground);
 }
 
 .resume-studio-inner {
@@ -658,7 +656,7 @@
 }
 
 .resume-case-copy .resume-eyebrow {
-  color: #ef9fbd;
+  color: var(--sakura-deep, var(--primary));
 }
 
 .resume-case-copy h2 {
@@ -678,14 +676,14 @@
 
 .resume-case-summary {
   margin-top: 0.6rem;
-  color: var(--studio-muted);
+  color: var(--muted-foreground);
   font-size: 0.9rem;
   line-height: 1.75;
 }
 
 .resume-product-site {
   margin-top: 0.7rem;
-  color: var(--studio-ink);
+  color: var(--sakura-deep, var(--primary));
 }
 
 .resume-device {
@@ -703,7 +701,7 @@
   background:
     linear-gradient(#22131c, #0f0a0e) padding-box,
     linear-gradient(125deg, var(--device-highlight), var(--device-neon) 37%, var(--device-anodized) 74%, var(--device-neon)) border-box;
-  box-shadow: 0 10px 36px #10030eaa, 0 0 28px #ff359d3d;
+  box-shadow: 0 18px 38px -14px #57223c42, 0 0 24px #ff359d29;
   transform: rotateX(calc(-76deg * (1 - var(--scene-progress, 1))));
   transform-origin: center bottom;
 }
@@ -802,7 +800,7 @@
   background:
     linear-gradient(106deg, #fff0f54d, transparent 33%, #6d00431c 80%, #fff0f544),
     linear-gradient(#c9176b, var(--device-neon) 52%, #ff68b1 94%, #e62383);
-  box-shadow: 0 5px 0 var(--device-anodized), 0 10px 0 #680e3e, 0 24px 30px #120610ab;
+  box-shadow: 0 5px 0 var(--device-anodized), 0 10px 0 #680e3e, 0 24px 34px -6px #57223c45;
   transform: rotateX(57deg);
   transform-origin: center top;
 }
@@ -877,9 +875,10 @@
   width: min(100%, 38rem);
   margin-inline: auto;
   padding: 0.45rem;
-  border: 1px solid var(--studio-border);
+  border: 1px solid var(--border);
   border-radius: 0.85rem;
-  background: #2b1421;
+  background: var(--card);
+  box-shadow: 0 12px 28px -16px #65334845;
 }
 
 .resume-project-dock button {
@@ -891,7 +890,7 @@
   padding: 0.32rem;
   border: 1px solid transparent;
   border-radius: 0.5rem;
-  color: var(--studio-ink);
+  color: var(--foreground);
   font-size: clamp(0.6rem, 1.12vw, 0.82rem);
   font-weight: 650;
   overflow-wrap: anywhere;
@@ -899,8 +898,9 @@
 
 .resume-project-dock button:hover,
 .resume-project-dock button[aria-pressed="true"] {
-  border-color: #e9a8c3;
-  background: #552239;
+  border-color: var(--sakura-line, var(--border));
+  background: var(--accent);
+  color: var(--accent-foreground);
 }
 
 .resume-project-dock button span {
@@ -913,16 +913,16 @@
 
 .resume-case-details {
   margin-top: 0.65rem;
-  border-top: 1px solid var(--studio-border);
+  border-top: 1px solid var(--border);
   padding-top: 0.75rem;
-  color: var(--studio-muted);
+  color: var(--muted-foreground);
   font-size: 0.78rem;
   line-height: 1.55;
 }
 
 .resume-case-details summary {
   width: max-content;
-  color: #fff;
+  color: var(--foreground);
   font-weight: 650;
   cursor: pointer;
 }
@@ -932,7 +932,7 @@
 }
 
 .resume-case-details strong {
-  color: #fff;
+  color: var(--foreground);
 }
 
 .resume-live-preview {
