@@ -1,10 +1,11 @@
-import { ArrowDown, ArrowUp, Mail } from "lucide-react";
+import { ArrowDown } from "lucide-react";
 import { InterviewHeader } from "@/components/interview-header";
+import { ProposalDeskFinale } from "@/components/proposal-desk-finale";
 import { ResumeShowcase } from "@/components/resume-showcase";
 import { SnowboardRun } from "@/components/snowboard-run";
 import { getSiteContent } from "@/content";
-import { HEADER_SECTION_HREF, PROPOSAL_FINISH_ID } from "@/lib/header-navigation";
 import "./resume-showcase.css";
+import "./proposal-desk-finale.css";
 
 export default function HomePage() {
   const content = getSiteContent();
@@ -22,6 +23,7 @@ export default function HomePage() {
           hero={content.hero}
           experience={content.experience}
           products={content.products}
+          proposalIntro={content.proposal.intro}
         />
 
         <section
@@ -43,29 +45,12 @@ export default function HomePage() {
 
           <SnowboardRun content={content.proposal} />
 
-          <footer id={PROPOSAL_FINISH_ID} className="run-finish">
-            <p className="interview-kicker">
-              {content.proposal.finish.eyebrow}
-            </p>
-            <h2>{content.proposal.finish.title}</h2>
-            <div className="flex flex-wrap justify-center gap-3">
-              <a
-                href={HEADER_SECTION_HREF.hero}
-                data-scroll-section="hero"
-                className="interview-button interview-button-primary"
-              >
-                {content.proposal.finish.backToTopLabel}
-                <ArrowUp className="size-4" aria-hidden="true" />
-              </a>
-              <a
-                href={`mailto:${content.site.profile.email}`}
-                className="interview-button"
-              >
-                <Mail className="size-4" aria-hidden="true" />
-                {content.proposal.finish.contactLabel}
-              </a>
-            </div>
-          </footer>
+          <ProposalDeskFinale
+            finish={content.proposal.finish}
+            proposalIntro={content.proposal.intro}
+            badge={content.hero.badge}
+            profile={content.site.profile}
+          />
         </section>
       </main>
     </>

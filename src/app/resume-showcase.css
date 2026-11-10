@@ -701,6 +701,10 @@
   }
 }
 
+.resume-studio-rail {
+  position: relative;
+}
+
 .resume-studio {
   overflow: clip;
   background:
@@ -711,12 +715,13 @@
 }
 
 .resume-studio-inner {
+  width: 100%;
   display: grid;
   grid-template-columns: minmax(13.5rem, 0.65fr) minmax(0, 1.62fr);
   align-items: center;
   gap: clamp(0.85rem, 2.5vw, 2.4rem);
-  min-height: calc(100svh - var(--interview-header-height));
-  padding-block: clamp(2.7rem, 6vw, 4.6rem) 2.5rem;
+  min-height: 100svh;
+  padding-block: calc(var(--interview-header-height) + clamp(1rem, 3vw, 2.2rem)) 2.2rem;
 }
 
 .resume-case-copy {
@@ -754,10 +759,21 @@
   color: var(--sakura-deep, var(--primary));
 }
 
+.resume-device-slot {
+  position: relative;
+  width: 100%;
+}
+
+[data-portal-diving] .resume-device-slot {
+  z-index: 6;
+}
+
 .resume-device {
+  position: relative;
   width: min(100%, 46rem);
   margin-inline: auto;
   perspective: 1850px;
+  will-change: transform;
 }
 
 .resume-device-lid {
@@ -1110,6 +1126,85 @@
 @keyframes resume-screen-slide {
   from { opacity: 0; transform: translateX(4%); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+.resume-portal-screen {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 22%, #fbe3ee 0%, #fff8fa 56%, #fff8fa 100%);
+}
+
+.resume-portal-horizon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8% 10%;
+  text-align: center;
+  will-change: transform, opacity;
+}
+
+.resume-portal-mountains {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 62%;
+  pointer-events: none;
+}
+
+.resume-portal-range-back {
+  fill: #ecd0dd;
+  opacity: 0.7;
+}
+
+.resume-portal-range-front {
+  fill: #fff8fa;
+  filter: drop-shadow(0 -6px 14px rgb(177 47 96 / 0.12));
+}
+
+.resume-portal-cue {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.25rem;
+  transform: translateY(-12%);
+}
+
+.resume-portal-cue > span {
+  color: var(--sakura);
+  font-size: clamp(0.45rem, 0.72vw, 0.64rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.resume-portal-cue > strong {
+  color: var(--primary);
+  font-size: clamp(0.95rem, 1.85vw, 1.65rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .resume-studio-rail {
+    padding-bottom: 135svh;
+  }
+
+  .resume-studio {
+    position: sticky;
+    top: var(--studio-sticky-top, 0px);
+    min-height: 100svh;
+  }
 }
 
 @media (width >= 64rem) and (min-height: 620px) and (prefers-reduced-motion: no-preference) {

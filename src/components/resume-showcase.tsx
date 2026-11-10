@@ -8,8 +8,13 @@ import {
   type ExperienceSectionContent,
   type HeroContent,
   type ProductsSectionContent,
+  type ProposalSectionContent,
   type SiteProfileAssets,
 } from "@/content";
+import {
+  deriveMacPortalDivePose,
+  resolveStickyRailProgress,
+} from "@/lib/mac-portal-transition";
 import { ResumeBadge } from "./resume-badge";
 import { ResumeJobDeck } from "./resume-job-deck";
 import { SakuraHeadlineName } from "./sakura-headline-name";
@@ -118,6 +123,7 @@ interface ResumeShowcaseProps {
   readonly hero: HeroContent;
   readonly experience: ExperienceSectionContent;
   readonly products: ProductsSectionContent;
+  readonly proposalIntro: ProposalSectionContent["intro"];
 }
 
 function productArtStyle(artSrc: string) {
@@ -129,10 +135,21 @@ export function ResumeShowcase({
   hero,
   experience,
   products,
+  proposalIntro,
 }: ResumeShowcaseProps) {
   const coverRef = useRef<HTMLElement>(null);
   const deskRef = useRef<HTMLElement>(null);
   const studioRef = useRef<HTMLElement>(null);
+  const studioContentRef = useRef<HTMLDivElement>(null);
+  const caseCopyRef = useRef<HTMLDivElement>(null);
+  const deviceSlotRef = useRef<HTMLDivElement>(null);
+  const deviceRef = useRef<HTMLDivElement>(null);
+  const lidRef = useRef<HTMLDivElement>(null);
+  const macScreenRef = useRef<HTMLDivElement>(null);
+  const deviceBaseRef = useRef<HTMLDivElement>(null);
+  const projectDockRef = useRef<HTMLDivElement>(null);
+  const portalScreenRef = useRef<HTMLDivElement>(null);
+  const portalHorizonRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState(0);
   const [nearStudio, setNearStudio] = useState(false);
   const safeSelected = selected < products.items.length ? selected : 0;
@@ -155,6 +172,7 @@ export function ResumeShowcase({
     const update = () => {
       frame = 0;
       const viewport = window.innerHeight;
+      const viewportWidth = window.innerWidth;
       for (const { element, entry, distance } of tracks) {
         if (reduce.matches) {
           element.style.removeProperty("--scene-progress");
@@ -165,6 +183,140 @@ export function ResumeShowcase({
         const position = (viewport * entry - top) / (viewport * distance);
         const progress = Math.min(1, Math.max(0, position));
         element.style.setProperty("--scene-progress", String(progress * progress * (3 - 2 * progress)));
+      }
+
+      const studioContent = studioContentRef.current;
+      const deviceSlot = deviceSlotRef.current;
+      const device = deviceRef.current;
+      const lid = lidRef.current;
+      const macScreen = macScreenRef.current;
+      const caseCopy = caseCopyRef.current;
+      const deviceBase = deviceBaseRef.current;
+      const projectDock = projectDockRef.current;
+      const portalScreen = portalScreenRef.current;
+      const portalHorizon = portalHorizonRef.current;
+      if (
+        !studioContent ||
+        !deviceSlot ||
+        !device ||
+        !lid ||
+        !macScreen ||
+        viewport <= 0 ||
+        viewportWidth <= 0
+      ) {
+        return;
+      }
+
+      const studioRect = studio.getBoundingClientRect();
+      const studioContentHeight = studioContent.offsetHeight;
+      const screenWidth = macScreen.offsetWidth;
+      const screenHeight = macScreen.offsetHeight;
+      if (
+        studioRect.height <= 0 ||
+        studioContentHeight <= 0 ||
+        screenWidth <= 0 ||
+        screenHeight <= 0
+      ) {
+        return;
+      }
+
+      const stickyTop = Math.min(0, viewport - studioContentHeight);
+      if (reduce.matches) {
+        studioContent.style.removeProperty("--studio-sticky-top");
+      } else {
+        studioContent.style.setProperty("--studio-sticky-top", `${stickyTop}px`);
+      }
+
+      const stickyTravel = Math.max(1, studioRect.height - studioContentHeight);
+      const rawDiveProgress = reduce.matches
+        ? 0
+        : resolveStickyRailProgress({
+            railTopPx: studioRect.top - stickyTop,
+            railHeightPx: viewport + stickyTravel,
+            viewportHeightPx: viewport,
+            startDwellRatio: 0.14,
+          });
+
+      const screenOffsetInDeviceX = lid.offsetLeft + macScreen.offsetLeft + screenWidth * 0.5;
+      const screenOffsetInDeviceY = lid.offsetTop + macScreen.offsetTop + screenHeight * 0.5;
+      const slotRect = deviceSlot.getBoundingClientRect();
+      const screenCenterX = slotRect.left + device.offsetLeft + screenOffsetInDeviceX;
+      const screenCenterY = slotRect.top + device.offsetTop + screenOffsetInDeviceY;
+
+      const divePose = deriveMacPortalDivePose({
+        viewport: { width: viewportWidth, height: viewport },
+        screen: {
+          centerX: screenCenterX,
+          centerY: screenCenterY,
+          width: screenWidth,
+          height: screenHeight,
+        },
+        rawProgress: rawDiveProgress,
+        reducedMotion: reduce.matches,
+      });
+
+      if (divePose.phase === "browsing") {
+        studio.removeAttribute("data-portal-diving");
+        device.style.removeProperty("transform-origin");
+        device.style.removeProperty("transform");
+        macScreen.style.removeProperty("box-shadow");
+        if (caseCopy) {
+          caseCopy.style.removeProperty("opacity");
+          caseCopy.style.removeProperty("transform");
+          caseCopy.style.removeProperty("pointer-events");
+        }
+        if (projectDock) {
+          projectDock.style.removeProperty("opacity");
+          projectDock.style.removeProperty("transform");
+          projectDock.style.removeProperty("pointer-events");
+        }
+        if (deviceBase) {
+          deviceBase.style.removeProperty("opacity");
+        }
+        if (portalScreen) {
+          portalScreen.style.opacity = "0";
+          portalScreen.style.visibility = "hidden";
+        }
+        if (portalHorizon) {
+          portalHorizon.style.removeProperty("opacity");
+          portalHorizon.style.removeProperty("transform");
+        }
+        return;
+      }
+
+      studio.setAttribute("data-portal-diving", "");
+      studio.style.setProperty("--scene-progress", "1");
+      device.style.transformOrigin = `${screenOffsetInDeviceX}px ${screenOffsetInDeviceY}px`;
+      device.style.transform = `translate3d(${divePose.translateX}px, ${divePose.translateY}px, 0) scale(${divePose.scale})`;
+      macScreen.style.boxShadow =
+        divePose.progress > 0.84 ? "none" : "0 0 0 1px #090407";
+
+      if (caseCopy) {
+        caseCopy.style.opacity = String(divePose.copyOpacity);
+        caseCopy.style.transform = `translate3d(0, ${divePose.copyShiftY}px, 0)`;
+        caseCopy.style.pointerEvents = divePose.uiInteractive ? "" : "none";
+      }
+      if (projectDock) {
+        projectDock.style.opacity = String(divePose.dockOpacity);
+        projectDock.style.transform = `translate3d(0, ${(1 - divePose.dockOpacity) * 22}px, 0)`;
+        projectDock.style.pointerEvents = divePose.uiInteractive ? "" : "none";
+      }
+      if (deviceBase) {
+        deviceBase.style.opacity = String(divePose.baseOpacity);
+      }
+      if (portalScreen) {
+        portalScreen.style.visibility =
+          divePose.portalScreenOpacity > 0.005 ? "visible" : "hidden";
+        portalScreen.style.opacity = String(divePose.portalScreenOpacity);
+      }
+      if (portalHorizon) {
+        const settleFade =
+          divePose.progress > 0.72
+            ? Math.max(0, 1 - (divePose.progress - 0.72) / 0.26)
+            : 1;
+        const driftUpPct = -18 * divePose.progress;
+        portalHorizon.style.opacity = String(settleFade);
+        portalHorizon.style.transform = `translate3d(0, ${driftUpPct}%, 0) scale(${1 / Math.max(1, Math.pow(divePose.scale, 0.35))})`;
       }
     };
 
@@ -179,6 +331,12 @@ export function ResumeShowcase({
     }, { rootMargin: "240px" });
     observer.observe(studio);
 
+    const resizeObserver = new ResizeObserver(schedule);
+    resizeObserver.observe(studio);
+    if (studioContentRef.current) {
+      resizeObserver.observe(studioContentRef.current);
+    }
+
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
     reduce.addEventListener("change", schedule);
@@ -186,6 +344,7 @@ export function ResumeShowcase({
 
     return () => {
       observer.disconnect();
+      resizeObserver.disconnect();
       cancelAnimationFrame(frame);
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
@@ -230,9 +389,9 @@ export function ResumeShowcase({
       </section>
 
       <section className="resume-studio-rail" id="product-cases" ref={studioRef} aria-labelledby="product-cases-title">
-        <div className="resume-studio">
+        <div className="resume-studio" ref={studioContentRef}>
           <div className="resume-studio-inner">
-            <div className="resume-case-copy">
+            <div className="resume-case-copy" ref={caseCopyRef}>
               <p className="resume-eyebrow">
                 {products.eyebrowPrefix} / {String(safeSelected + 1).padStart(2, "0")}
               </p>
@@ -253,74 +412,98 @@ export function ResumeShowcase({
               </details>
             </div>
 
-            <div className="resume-device">
-              <div className="resume-device-lid">
-                <div className="resume-device-camera" aria-hidden="true" />
-                <div className="resume-device-screen" id="resume-mac-screen">
-                  <div
-                    className="resume-screen-strip"
-                    style={{ transform: `translateX(-${safeSelected * 100}%)` }}
-                    aria-hidden="true"
-                  >
-                    {products.items.map((entry) => (
-                      <div className="resume-screen-frame" style={productArtStyle(entry.artSrc)} key={entry.id}>
-                        <span>{entry.name}</span>
-                        <strong>{entry.display}</strong>
-                        <small>{entry.caption}</small>
+            <div className="resume-device-slot" ref={deviceSlotRef}>
+              <div className="resume-device" ref={deviceRef}>
+                <div className="resume-device-lid" ref={lidRef}>
+                  <div className="resume-device-camera" aria-hidden="true" />
+                  <div className="resume-device-screen" id="resume-mac-screen" ref={macScreenRef}>
+                    <div
+                      className="resume-screen-strip"
+                      style={{ transform: `translateX(-${safeSelected * 100}%)` }}
+                      aria-hidden="true"
+                    >
+                      {products.items.map((entry) => (
+                        <div className="resume-screen-frame" style={productArtStyle(entry.artSrc)} key={entry.id}>
+                          <span>{entry.name}</span>
+                          <strong>{entry.display}</strong>
+                          <small>{entry.caption}</small>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="resume-live-screen" key={product.id}>
+                      {product.previewSrc ? (
+                        <div className="resume-live-preview">
+                          <Image
+                            src={product.previewSrc}
+                            alt={formatContentTemplate(products.previewAltTemplate, {
+                              name: product.name,
+                            })}
+                            fill
+                            sizes="(max-width: 767px) 94vw, 740px"
+                          />
+                        </div>
+                      ) : nearStudio && (
+                        <iframe
+                          title={formatContentTemplate(products.liveSiteTitleTemplate, {
+                            name: product.name,
+                          })}
+                          src={product.siteUrl}
+                          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+                          referrerPolicy="strict-origin-when-cross-origin"
+                          inert
+                          tabIndex={-1}
+                        />
+                      )}
+                    </div>
+                    <div className="resume-portal-screen" ref={portalScreenRef} aria-hidden="true">
+                      <div className="resume-portal-horizon" ref={portalHorizonRef}>
+                        <svg
+                          className="resume-portal-mountains"
+                          viewBox="0 0 800 220"
+                          preserveAspectRatio="xMidYMax slice"
+                        >
+                          <path
+                            className="resume-portal-range-back"
+                            d="M 0 220 L 0 148 L 88 104 L 146 68 L 198 96 L 272 44 L 328 78 L 412 32 L 474 72 L 548 38 L 618 82 L 692 52 L 758 96 L 800 132 L 800 220 Z"
+                          />
+                          <path
+                            className="resume-portal-range-front"
+                            d="M 0 220 L 0 166 L 74 126 L 138 86 L 182 54 L 226 84 L 284 112 L 346 62 L 388 38 L 432 68 L 492 104 L 558 58 L 604 34 L 652 72 L 718 114 L 800 158 L 800 220 Z"
+                          />
+                        </svg>
+                        <div className="resume-portal-cue">
+                          <span>{proposalIntro.eyebrow}</span>
+                          <strong>{proposalIntro.title}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="resume-device-hinge" aria-hidden="true" />
+                </div>
+                <div className="resume-device-base" ref={deviceBaseRef} aria-hidden="true">
+                  <div className="resume-device-keys">
+                    {keyboardRows.map((row, rowIndex) => (
+                      <div className="resume-device-key-row" data-row={rowIndex === 0 ? "fn" : undefined} key={row[0].id}>
+                        {row.map((key) => (
+                          <i
+                            className="resume-device-key"
+                            data-size={key.size}
+                            data-homing={key.id === "f" || key.id === "j" ? "" : undefined}
+                            key={key.id}
+                          >
+                            {key.sub ? <small>{key.sub}</small> : null}
+                            {key.label ? <span>{key.label}</span> : null}
+                          </i>
+                        ))}
                       </div>
                     ))}
                   </div>
-                  <div className="resume-live-screen" key={product.id}>
-                    {product.previewSrc ? (
-                      <div className="resume-live-preview">
-                        <Image
-                          src={product.previewSrc}
-                          alt={formatContentTemplate(products.previewAltTemplate, {
-                            name: product.name,
-                          })}
-                          fill
-                          sizes="(max-width: 767px) 94vw, 740px"
-                        />
-                      </div>
-                    ) : nearStudio && (
-                      <iframe
-                        title={formatContentTemplate(products.liveSiteTitleTemplate, {
-                          name: product.name,
-                        })}
-                        src={product.siteUrl}
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-                        referrerPolicy="strict-origin-when-cross-origin"
-                        inert
-                        tabIndex={-1}
-                      />
-                    )}
-                  </div>
+                  <div className="resume-device-trackpad" />
                 </div>
-                <div className="resume-device-hinge" aria-hidden="true" />
-              </div>
-              <div className="resume-device-base" aria-hidden="true">
-                <div className="resume-device-keys">
-                  {keyboardRows.map((row, rowIndex) => (
-                    <div className="resume-device-key-row" data-row={rowIndex === 0 ? "fn" : undefined} key={row[0].id}>
-                      {row.map((key) => (
-                        <i
-                          className="resume-device-key"
-                          data-size={key.size}
-                          data-homing={key.id === "f" || key.id === "j" ? "" : undefined}
-                          key={key.id}
-                        >
-                          {key.sub ? <small>{key.sub}</small> : null}
-                          {key.label ? <span>{key.label}</span> : null}
-                        </i>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-                <div className="resume-device-trackpad" />
               </div>
             </div>
 
-            <div className="resume-project-dock" role="group" aria-label={products.dockAriaLabel}>
+            <div className="resume-project-dock" ref={projectDockRef} role="group" aria-label={products.dockAriaLabel}>
               {products.items.map((entry, index) => (
                 <button
                   key={entry.id}

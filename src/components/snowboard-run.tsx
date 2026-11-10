@@ -23,12 +23,9 @@ import {
 import {
   createSnowboardRoute,
   createWaypointSprint,
-  deriveAirborneRigPose,
   deriveSlopeFlow,
   deriveTrailRigPose,
   getCheckpointScrollTarget,
-  getMacJumpPose,
-  getMacJumpProgress,
   getSnowboardPose,
   getTrailScrollSpan,
   resolveRunScreenZone,
@@ -473,68 +470,6 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
         scrollHeight: Math.max(viewportHeight, document.documentElement.scrollHeight),
       });
 
-      const macScreen = document.getElementById("resume-mac-screen");
-      if (!motion.matches && macScreen && scroll < firstTurn) {
-        const screenBounds = macScreen.getBoundingClientRect();
-        if (screenBounds.height > 0) {
-          riderSpring = { progress: 0, velocity: 0 };
-          lastTrailX = null;
-          lastTrailY = null;
-          carveClipRectRef.current?.setAttribute("height", "0");
-          paintSlopeBackdrop(bounds, dtSec, 0, sprintBoost, elapsedSec);
-
-          const launchX = screenBounds.left + screenBounds.width * 0.5;
-          const launchY = screenBounds.top + screenBounds.height * 0.58;
-          const anchorX = bounds.left + (start.x / route.width) * bounds.width;
-          const anchorY = bounds.top + (start.y / route.height) * bounds.height;
-          const jumpProgress = getMacJumpProgress(
-            scroll,
-            launchY + scroll,
-            firstTurn,
-            viewportHeight
-          );
-          const arcLift = Math.min(180, Math.max(96, viewportHeight * 0.15));
-          const jumpPose = getMacJumpPose({
-            progress: jumpProgress,
-            launchDeltaX: launchX - anchorX,
-            launchDeltaY: launchY - anchorY,
-            arcLift,
-            reducedMotion: false,
-          });
-          rider.style.opacity = String(jumpPose.opacity);
-          rider.style.transform = `translate3d(${jumpPose.x}px, ${jumpPose.y}px, 0) translate(-${RIDER_ANCHOR_X_PCT}%, -${RIDER_ANCHOR_Y_PCT}%) scale(${jumpPose.scale})`;
-
-          if (jumpPose.opacity > 0) {
-            particles = [];
-            const airbornePose = deriveAirborneRigPose({
-              jumpProgress,
-              leanDeg: jumpPose.lean,
-              elapsedSec,
-              reducedMotion: false,
-            });
-            renderNisekoPowderPro(pixelBuffer, airbornePose, particles);
-            paintCanvas();
-          }
-
-          if (activeIndexRef.current !== 0) {
-            activeIndexRef.current = 0;
-            setActiveIndex(0);
-          }
-          if (sprintState.kind === "idle") {
-            inFlightWaypointRef.current = null;
-          }
-          if (
-            !document.hidden &&
-            (sprintState.kind === "sprinting" ||
-              isRunVisible ||
-              (jumpPose.opacity > 0 && motionEnergy > 0))
-          ) {
-            frame = window.requestAnimationFrame(update);
-          }
-          return;
-        }
-      }
-
       const rawTargetProgress =
         lastTurn > firstTurn
           ? ((scroll - firstTurn) / (lastTurn - firstTurn)) * maxProgress
@@ -747,10 +682,6 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
         { rootMargin: "420px 0px 320px 0px" }
       );
       visibilityObserver.observe(trail);
-      const macElement = document.getElementById("resume-mac-screen");
-      if (macElement) {
-        visibilityObserver.observe(macElement);
-      }
     }
 
     startLink?.addEventListener("click", onStartClick);
@@ -864,9 +795,13 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
       0,
       document.documentElement.scrollHeight - window.innerHeight
     );
+    const finishBounds = finishElement.getBoundingClientRect();
     const targetScrollY = Math.min(
       maxScrollY,
-      Math.max(0, finishElement.getBoundingClientRect().top + window.scrollY)
+      Math.max(
+        0,
+        finishBounds.bottom + window.scrollY - window.innerHeight
+      )
     );
     inFlightWaypointRef.current = null;
     if (sprintTriggerRef.current) {
@@ -879,7 +814,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
     ).matches
       ? "auto"
       : "smooth";
-    finishElement.scrollIntoView({ behavior, block: "start" });
+    finishElement.scrollIntoView({ behavior, block: "end" });
   }
 
   function handleTrailPointerDown(event: PointerEvent<HTMLDivElement>) {
