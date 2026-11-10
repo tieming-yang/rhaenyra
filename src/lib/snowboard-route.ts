@@ -481,6 +481,23 @@ export type SlopeFlowMetrics = Readonly<{
   streakIntensity: number;
 }>;
 
+export type RunScreenZone = "up" | "neutral" | "down";
+
+export type RunZoneStepInput = Readonly<{
+  zone: RunScreenZone;
+  currentIndex: number;
+  waypointCount: number;
+}>;
+
+export type RunZoneStepOutcome =
+  | Readonly<{ kind: "ignored" }>
+  | Readonly<{ kind: "intro" }>
+  | Readonly<{ kind: "finish" }>
+  | Readonly<{ kind: "waypoint"; targetIndex: number }>;
+
+const UPPER_ZONE_MAX_RATIO = 0.42;
+const LOWER_ZONE_MIN_RATIO = 0.58;
+
 const SETTLE_DURATION_MS = 600;
 const GATE_LEAD_YAW = 0.36;
 const CARVE_DEADZONE = 0.08;
@@ -631,6 +648,62 @@ export function stepWaypointSprint(
       elapsedMs,
     },
   };
+}
+
+/** Classifies a viewport Y coordinate into upper (0–42%), neutral center (42–58%), or lower (58–100%) zones. */
+export function resolveRunScreenZone(
+  clientY: number,
+  viewportHeight: number
+): RunScreenZone {
+  if (
+    !Number.isFinite(clientY) ||
+    !Number.isFinite(viewportHeight) ||
+    viewportHeight <= 0
+  ) {
+    throw new Error(
+      "Run screen zone requires a finite clientY and positive viewportHeight"
+    );
+  }
+
+  const ratio = clientY / viewportHeight;
+  if (ratio < UPPER_ZONE_MAX_RATIO) {
+    return "up";
+  }
+  if (ratio > LOWER_ZONE_MIN_RATIO) {
+    return "down";
+  }
+  return "neutral";
+}
+
+/** Resolves the target navigation outcome when tapping an upper, neutral, or lower viewport zone. */
+export function resolveRunZoneStep(
+  input: RunZoneStepInput
+): RunZoneStepOutcome {
+  const { zone, currentIndex, waypointCount } = input;
+  if (
+    !Number.isInteger(waypointCount) ||
+    waypointCount < 1 ||
+    !Number.isInteger(currentIndex) ||
+    currentIndex < 0 ||
+    currentIndex >= waypointCount
+  ) {
+    throw new Error(
+      "Run zone step requires a positive integer waypointCount and currentIndex within [0, waypointCount)"
+    );
+  }
+
+  switch (zone) {
+    case "neutral":
+      return { kind: "ignored" };
+    case "up":
+      return currentIndex === 0
+        ? { kind: "intro" }
+        : { kind: "waypoint", targetIndex: currentIndex - 1 };
+    case "down":
+      return currentIndex === waypointCount - 1
+        ? { kind: "finish" }
+        : { kind: "waypoint", targetIndex: currentIndex + 1 };
+  }
 }
 
 /** Computes upward snow-backdrop velocity and speed-streak intensity from continuous cruise + rider acceleration. */

@@ -11,6 +11,8 @@ import {
   getSnowboardPose,
   getTrailScrollSpan,
   getTrenchReveal,
+  resolveRunScreenZone,
+  resolveRunZoneStep,
   stepRiderSpringState,
   stepSettleEnergy,
   stepWaypointSprint,
@@ -587,7 +589,33 @@ describe("Option B 3D rig kinematics and settle policy", () => {
     expect(stepSettleEnergy(1, 50, 16, true)).toBe(0);
   });
 
-  it("throws on malformed rig, spring, sprint, or slope-flow inputs", () => {
+  it("splits viewport into 42% up, 16% neutral, and 42% down zones and resolves boundary steps", () => {
+    expect(resolveRunScreenZone(0, 1000)).toBe("up");
+    expect(resolveRunScreenZone(419.9, 1000)).toBe("up");
+    expect(resolveRunScreenZone(420, 1000)).toBe("neutral");
+    expect(resolveRunScreenZone(500, 1000)).toBe("neutral");
+    expect(resolveRunScreenZone(580, 1000)).toBe("neutral");
+    expect(resolveRunScreenZone(580.1, 1000)).toBe("down");
+    expect(resolveRunScreenZone(999, 1000)).toBe("down");
+
+    expect(
+      resolveRunZoneStep({ zone: "neutral", currentIndex: 3, waypointCount: 8 })
+    ).toEqual({ kind: "ignored" });
+    expect(
+      resolveRunZoneStep({ zone: "up", currentIndex: 0, waypointCount: 8 })
+    ).toEqual({ kind: "intro" });
+    expect(
+      resolveRunZoneStep({ zone: "up", currentIndex: 4, waypointCount: 8 })
+    ).toEqual({ kind: "waypoint", targetIndex: 3 });
+    expect(
+      resolveRunZoneStep({ zone: "down", currentIndex: 4, waypointCount: 8 })
+    ).toEqual({ kind: "waypoint", targetIndex: 5 });
+    expect(
+      resolveRunZoneStep({ zone: "down", currentIndex: 7, waypointCount: 8 })
+    ).toEqual({ kind: "finish" });
+  });
+
+  it("throws on malformed rig, spring, sprint, zone, or slope-flow inputs", () => {
     expect(() => stepSettleEnergy(-0.1, 0, 16, false)).toThrow();
     expect(() => stepSettleEnergy(0.5, 0, -1, false)).toThrow();
     expect(() =>
@@ -632,6 +660,14 @@ describe("Option B 3D rig kinematics and settle policy", () => {
         leanDeg: 0,
         elapsedSec: 0,
       })
+    ).toThrow();
+    expect(() => resolveRunScreenZone(100, 0)).toThrow();
+    expect(() => resolveRunScreenZone(Number.NaN, 900)).toThrow();
+    expect(() =>
+      resolveRunZoneStep({ zone: "up", currentIndex: -1, waypointCount: 8 })
+    ).toThrow();
+    expect(() =>
+      resolveRunZoneStep({ zone: "down", currentIndex: 8, waypointCount: 8 })
     ).toThrow();
   });
 });
