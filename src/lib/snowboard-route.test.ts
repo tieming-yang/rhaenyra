@@ -450,6 +450,25 @@ describe("Option B 3D rig kinematics and settle policy", () => {
     expect(state.progress).toBe(2);
     expect(state.velocity).toBe(0);
 
+    const normalFirstFrame = stepRiderSpringState({
+      state: { progress: 0, velocity: 0 },
+      targetProgress: 1,
+      maxProgress: 7,
+      dtSec: 1 / 60,
+      reducedMotion: false,
+    });
+    const sprintFirstFrame = stepRiderSpringState({
+      state: { progress: 0, velocity: 0 },
+      targetProgress: 1,
+      maxProgress: 7,
+      dtSec: 1 / 60,
+      sprinting: true,
+      reducedMotion: false,
+    });
+    expect(sprintFirstFrame.progress).toBeGreaterThan(
+      normalFirstFrame.progress * 3
+    );
+
     expect(
       stepRiderSpringState({
         state: { progress: 0.4, velocity: 3 },
@@ -461,7 +480,7 @@ describe("Option B 3D rig kinematics and settle policy", () => {
     ).toEqual({ progress: 2, velocity: 0 });
   });
 
-  it("accelerates smoothly and checks into target scrollY on waypoint sprint", () => {
+  it("launches immediately on frame 1 and checks smoothly into target scrollY for both down and up sprints", () => {
     expect(createWaypointSprint(1000, 1001, 900, false)).toEqual({
       kind: "idle",
     });
@@ -472,8 +491,15 @@ describe("Option B 3D rig kinematics and settle policy", () => {
     let sprint = createWaypointSprint(1000, 2600, 900, false);
     expect(sprint.kind).toBe("sprinting");
     if (sprint.kind !== "sprinting") return;
-    expect(sprint.durationMs).toBeGreaterThan(700);
-    expect(sprint.durationMs).toBeLessThan(1650);
+    expect(sprint.durationMs).toBeGreaterThan(600);
+    expect(sprint.durationMs).toBeLessThan(1500);
+
+    const firstFrame = stepWaypointSprint(sprint, 16);
+    expect(firstFrame.kind).toBe("active");
+    if (firstFrame.kind === "active") {
+      expect(firstFrame.scrollY - 1000).toBeGreaterThan(55);
+      expect(firstFrame.sprintBoost).toBeGreaterThan(0.2);
+    }
 
     let lastScrollY = 1000;
     let maxBoost = 0;
@@ -497,6 +523,24 @@ describe("Option B 3D rig kinematics and settle policy", () => {
     expect(completedScrollY).toBe(2600);
     expect(maxBoost).toBeGreaterThan(0.95);
     expect(stepWaypointSprint(sprint, 16)).toEqual({ kind: "idle" });
+
+    let upSprint = createWaypointSprint(2600, 1000, 900, false);
+    let lastUpScrollY = 2600;
+    let upCompletedScrollY = 0;
+    for (let tick = 0; tick < 200 && upSprint.kind === "sprinting"; tick++) {
+      const outcome = stepWaypointSprint(upSprint, 16);
+      if (outcome.kind === "active") {
+        expect(outcome.scrollY).toBeLessThan(lastUpScrollY);
+        expect(outcome.scrollY).toBeGreaterThan(1000);
+        lastUpScrollY = outcome.scrollY;
+        upSprint = outcome.nextState;
+      } else if (outcome.kind === "completed") {
+        upCompletedScrollY = outcome.scrollY;
+        upSprint = outcome.nextState;
+      }
+    }
+    expect(upSprint).toEqual({ kind: "idle" });
+    expect(upCompletedScrollY).toBe(1000);
   });
 
   it("drives continuous upward snow-slope cruise speed and accelerates up to 3.8x on sprint", () => {

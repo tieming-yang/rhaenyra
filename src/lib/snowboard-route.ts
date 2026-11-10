@@ -440,6 +440,7 @@ export type RiderSpringStepInput = Readonly<{
   targetProgress: number;
   maxProgress: number;
   dtSec: number;
+  sprinting?: boolean;
   reducedMotion: boolean;
 }>;
 
@@ -484,6 +485,7 @@ const SETTLE_DURATION_MS = 600;
 const GATE_LEAD_YAW = 0.36;
 const CARVE_DEADZONE = 0.08;
 const RIDER_SPRING_OMEGA = 9.5;
+const RIDER_SPRINT_SPRING_OMEGA = 24;
 const BASE_SLOPE_SPEED_PX = 108;
 
 function sampleAmbientCruise(elapsedSec: number) {
@@ -498,7 +500,14 @@ function sampleAmbientCruise(elapsedSec: number) {
 export function stepRiderSpringState(
   input: RiderSpringStepInput
 ): RiderSpringState {
-  const { state, targetProgress, maxProgress, dtSec, reducedMotion } = input;
+  const {
+    state,
+    targetProgress,
+    maxProgress,
+    dtSec,
+    sprinting = false,
+    reducedMotion,
+  } = input;
   if (
     !Number.isFinite(state.progress) ||
     !Number.isFinite(state.velocity) ||
@@ -526,11 +535,12 @@ export function stepRiderSpringState(
     };
   }
 
+  const omega = sprinting ? RIDER_SPRINT_SPRING_OMEGA : RIDER_SPRING_OMEGA;
   const delta = state.progress - clampedTarget;
-  const exp = Math.exp(-RIDER_SPRING_OMEGA * dt);
-  const c2 = state.velocity + RIDER_SPRING_OMEGA * delta;
+  const exp = Math.exp(-omega * dt);
+  const c2 = state.velocity + omega * delta;
   const rawProgress = clampedTarget + (delta + c2 * dt) * exp;
-  const rawVelocity = (state.velocity - RIDER_SPRING_OMEGA * c2 * dt) * exp;
+  const rawVelocity = (state.velocity - omega * c2 * dt) * exp;
 
   if (
     Math.abs(rawProgress - clampedTarget) < 1e-4 &&
@@ -549,7 +559,7 @@ export function stepRiderSpringState(
   return { progress: rawProgress, velocity: rawVelocity };
 }
 
-/** Initiates a custom acceleration-and-check downhill scroll sprint toward a clicked topic waypoint. */
+/** Initiates a custom instant-launch scroll sprint toward a clicked topic waypoint (downhill or uphill). */
 export function createWaypointSprint(
   startScrollY: number,
   targetScrollY: number,
@@ -573,7 +583,7 @@ export function createWaypointSprint(
   }
 
   const durationMs = Math.round(
-    520 + Math.min(1130, Math.sqrt(distPx / Math.max(320, viewportHeight)) * 460)
+    440 + Math.min(1040, Math.sqrt(distPx / Math.max(320, viewportHeight)) * 420)
   );
 
   return {
@@ -585,7 +595,7 @@ export function createWaypointSprint(
   };
 }
 
-/** Steps an active downhill topic sprint along an aero-tuck push-off and smooth gate-check braking curve. */
+/** Steps an active topic sprint with immediate frame-1 push-off velocity and smooth gate-check braking. */
 export function stepWaypointSprint(
   state: WaypointSprintState,
   dtMs: number
@@ -608,15 +618,14 @@ export function stepWaypointSprint(
   }
 
   const u = elapsedMs / state.durationMs;
-  const s = Math.pow(u, 0.85);
-  const eased = s * s * (3 - 2 * s);
+  const eased = 1 - Math.pow(1 - u, 2.8);
   const scrollY =
     state.startScrollY + (state.targetScrollY - state.startScrollY) * eased;
 
   return {
     kind: "active",
     scrollY,
-    sprintBoost: Math.sin(Math.PI * u),
+    sprintBoost: Math.sin(Math.PI * Math.pow(u, 0.65)),
     nextState: {
       ...state,
       elapsedMs,
