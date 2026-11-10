@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   computeSlideProgressPercent,
   evaluateJstyleInquiry,
-  resolveThemeTokens,
   transitionSlideDeck,
 } from "./portfolio-domain";
 import {
@@ -207,13 +206,7 @@ describe("evaluateJstyleInquiry", () => {
   });
 });
 
-describe("resolveThemeTokens & filterWorkExperiences", () => {
-  it("resolves all 3 refined Plan B theme palettes", () => {
-    expect(resolveThemeTokens("B1").isDark).toBe(false);
-    expect(resolveThemeTokens("B2").surfaceHero).toBe("#0F172A");
-    expect(resolveThemeTokens("B3").isDark).toBe(true);
-  });
-
+describe("filterWorkExperiences", () => {
   it("filters work experiences purely by category", () => {
     expect(filterWorkExperiences(WORK_EXPERIENCES, "all").length).toBe(
       WORK_EXPERIENCES.length

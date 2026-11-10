@@ -27,26 +27,21 @@ import {
 } from "@/domain/portfolio-data";
 import {
   computeSlideProgressPercent,
-  resolveThemeTokens,
-  type ModernThemeId,
   type SlideNavigationAction,
 } from "@/domain/portfolio-domain";
 import { JstyleAiSimulator } from "./jstyle-ai-simulator";
 
 interface SlideDeckViewProps {
   readonly activeSlideIndex: number;
-  readonly themeId: ModernThemeId;
   readonly onNavigate: (action: SlideNavigationAction) => void;
   readonly onSwitchToProfile: () => void;
 }
 
 export function SlideDeckView({
   activeSlideIndex,
-  themeId,
   onNavigate,
   onSwitchToProfile,
 }: SlideDeckViewProps) {
-  const tokens = resolveThemeTokens(themeId);
   const currentSlide = INTERVIEW_SLIDES[activeSlideIndex];
   const progressPercent = computeSlideProgressPercent(
     activeSlideIndex,
@@ -77,25 +72,15 @@ export function SlideDeckView({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onNavigate]);
 
-  const cardSurfaceClass = tokens.isDark
-    ? "bg-slate-900/90 border-slate-800 text-slate-100"
-    : "bg-white/95 border-slate-200/90 text-slate-900 shadow-xs";
-
-  const heroSurfaceStyle = {
-    background: tokens.surfaceHero,
-    color: tokens.textHero,
-    borderColor: tokens.borderHero,
-  };
-
   return (
     <div className="mx-auto max-w-6xl px-4 pb-12 pt-4 sm:px-6">
       {/* Top Slide Progress & Quick Jump Bar */}
       <div
-        className={`mb-5 rounded-2xl border p-3 backdrop-blur-md ${cardSurfaceClass}`}
+        className="mb-5 rounded-2xl border p-3 backdrop-blur-md interview-panel"
       >
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center rounded-md bg-rose-500/10 px-2 py-0.5 font-mono text-xs font-bold text-rose-600 dark:text-rose-400">
+            <span className="inline-flex items-center rounded-md bg-rose-500/10 px-2 py-0.5 font-mono text-xs font-bold text-rose-600">
               SLIDE {currentSlide.slideNumber} / 0{INTERVIEW_SLIDES.length}
             </span>
             <span className="text-xs font-semibold opacity-75">
@@ -111,7 +96,7 @@ export function SlideDeckView({
               type="button"
               onClick={() => onNavigate({ type: "prev" })}
               disabled={activeSlideIndex === 0}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 py-1 text-xs font-semibold disabled:opacity-35 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold disabled:opacity-35 hover:bg-slate-100 transition-colors"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               上一頁
@@ -120,7 +105,7 @@ export function SlideDeckView({
               type="button"
               onClick={() => onNavigate({ type: "next" })}
               disabled={activeSlideIndex === INTERVIEW_SLIDES.length - 1}
-              className="inline-flex items-center gap-1 rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-3 py-1 text-xs font-semibold disabled:opacity-35 hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-1 rounded-lg bg-slate-900 text-white px-3 py-1 text-xs font-semibold disabled:opacity-35 hover:opacity-90 transition-opacity"
             >
               下一頁
               <ArrowRight className="h-3.5 w-3.5" />
@@ -145,8 +130,8 @@ export function SlideDeckView({
                 onClick={() => onNavigate({ type: "jump", targetIndex: s.index })}
                 className={`group relative overflow-hidden rounded-lg border px-2 py-1.5 text-left transition-all ${
                   isActive
-                    ? "border-slate-900 bg-slate-900 text-white dark:border-sky-400 dark:bg-slate-800"
-                    : "border-slate-200/70 dark:border-slate-800 opacity-70 hover:opacity-100"
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-200/70 opacity-70 hover:opacity-100"
                 }`}
               >
                 <div className={`h-0.5 w-full rounded-full mb-1 ${accentBar}`} />
@@ -159,7 +144,7 @@ export function SlideDeckView({
         </div>
 
         {/* Thin Progress Line */}
-        <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-slate-200/70 dark:bg-slate-800">
+        <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-slate-200/70">
           <div
             className="h-full rounded-full bg-gradient-to-r from-sky-500 via-rose-500 to-rose-400 transition-all duration-300"
             style={{ width: `${progressPercent}%` }}
@@ -171,8 +156,7 @@ export function SlideDeckView({
       <div className="space-y-4">
         {/* Slide Header Banner */}
         <div
-          className="rounded-2xl border p-5 sm:p-6 transition-all shadow-sm"
-          style={heroSurfaceStyle}
+          className="interview-panel rounded-2xl border p-5 sm:p-6"
         >
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className="h-2 w-2 rounded-full bg-sky-500" />
@@ -186,7 +170,6 @@ export function SlideDeckView({
           </h1>
           <p
             className="text-xs sm:text-sm leading-relaxed"
-            style={{ color: tokens.textHeroMuted }}
           >
             {currentSlide.subtitle}
           </p>
@@ -196,10 +179,10 @@ export function SlideDeckView({
         {activeSlideIndex === 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
             <div
-              className={`lg:col-span-5 rounded-2xl border p-5 flex flex-col justify-between ${cardSurfaceClass}`}
+              className="lg:col-span-5 rounded-2xl border p-5 flex flex-col justify-between interview-panel"
             >
               <div className="flex items-center gap-4 mb-4">
-                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-slate-200 shadow-xs">
                   <Image
                     src={CANDIDATE_PROFILE.photoUrl}
                     alt={CANDIDATE_PROFILE.name}
@@ -209,7 +192,7 @@ export function SlideDeckView({
                   />
                 </div>
                 <div>
-                  <div className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-semibold text-rose-600 dark:text-rose-400 mb-1">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-semibold text-rose-600 mb-1">
                     Jstyle北海道 主動應徵
                   </div>
                   <h2 className="text-xl font-extrabold tracking-tight">
@@ -225,7 +208,7 @@ export function SlideDeckView({
                 {CANDIDATE_PROFILE.executiveSummary}
               </p>
 
-              <div className="space-y-2 pt-3 border-t border-slate-200/70 dark:border-slate-800">
+              <div className="space-y-2 pt-3 border-t border-slate-200/70">
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -238,7 +221,7 @@ export function SlideDeckView({
                   <button
                     type="button"
                     onClick={onSwitchToProfile}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 px-3.5 py-2 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 px-3.5 py-2 text-xs font-semibold hover:bg-slate-100 transition-colors"
                   >
                     <Layers className="h-3.5 w-3.5" />
                     切換至完整履歷視圖
@@ -247,7 +230,7 @@ export function SlideDeckView({
                     href={CANDIDATE_PROFILE.resumePdfUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold hover:bg-slate-100 transition-colors"
                   >
                     <FileDown className="h-3.5 w-3.5" />
                     原始履歷 PDF
@@ -260,7 +243,7 @@ export function SlideDeckView({
               {KEY_METRICS.map((m) => (
                 <div
                   key={m.id}
-                  className={`rounded-2xl border p-4 flex flex-col justify-between ${cardSurfaceClass}`}
+                  className="rounded-2xl border p-4 flex flex-col justify-between interview-panel"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -276,8 +259,8 @@ export function SlideDeckView({
                     <div
                       className={`text-2xl sm:text-3xl font-black tracking-tight mb-1 ${
                         m.accentAxis === "snow"
-                          ? "text-sky-600 dark:text-sky-400"
-                          : "text-rose-600 dark:text-rose-400"
+                          ? "text-sky-600"
+                          : "text-rose-600"
                       }`}
                     >
                       {m.value}
@@ -300,7 +283,7 @@ export function SlideDeckView({
               {SKILL_GROUPS.map((sg) => (
                 <div
                   key={sg.id}
-                  className={`rounded-2xl border p-4.5 flex flex-col justify-between ${cardSurfaceClass}`}
+                  className="rounded-2xl border p-4.5 flex flex-col justify-between interview-panel"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -324,14 +307,14 @@ export function SlideDeckView({
                       {sg.description}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800">
+                  <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/60">
                     {sg.tools.map((t) => (
                       <span
                         key={t}
                         className={`rounded-md px-2 py-0.5 text-xs font-medium ${
                           sg.accentAxis === "snow"
-                            ? "bg-sky-500/10 text-sky-700 dark:text-sky-300"
-                            : "bg-rose-500/10 text-rose-700 dark:text-rose-300"
+                            ? "bg-sky-500/10 text-sky-700"
+                            : "bg-rose-500/10 text-rose-700"
                         }`}
                       >
                         {t}
@@ -343,10 +326,10 @@ export function SlideDeckView({
             </div>
 
             <div
-              className={`rounded-2xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${cardSurfaceClass}`}
+              className="rounded-2xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 interview-panel"
             >
               <div>
-                <div className="text-xs font-bold text-sky-600 dark:text-sky-400 mb-0.5">
+                <div className="text-xs font-bold text-sky-600 mb-0.5">
                   獨特加分項：實體教學與跨文化溝通背景（國立臺灣藝術大學舞蹈學系）
                 </div>
                 <p className="text-xs opacity-80">
@@ -354,7 +337,7 @@ export function SlideDeckView({
                   深刻理解「教練排課、學員分級與現場教學服務」的產業本質。
                 </p>
               </div>
-              <span className="shrink-0 rounded-lg bg-slate-900 text-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold">
+              <span className="shrink-0 rounded-lg bg-slate-900 text-white px-3 py-1.5 text-xs font-semibold">
                 英語流利 · 日語持續精進中
               </span>
             </div>
@@ -368,7 +351,7 @@ export function SlideDeckView({
               {JSTYLE_ECOSYSTEM_OVERVIEW.map((pillar, idx) => (
                 <div
                   key={pillar.name}
-                  className={`rounded-2xl border p-4 flex flex-col justify-between ${cardSurfaceClass}`}
+                  className="rounded-2xl border p-4 flex flex-col justify-between interview-panel"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -401,8 +384,8 @@ export function SlideDeckView({
                     <div
                       className={`text-xs font-bold mb-0.5 ${
                         pillar.axis === "snow"
-                          ? "text-sky-600 dark:text-sky-400"
-                          : "text-rose-600 dark:text-rose-400"
+                          ? "text-sky-600"
+                          : "text-rose-600"
                       }`}
                     >
                       數位與 AI 放大機會點
@@ -416,8 +399,8 @@ export function SlideDeckView({
             </div>
 
             {/* 4 Pillars Summary Matrix */}
-            <div className={`rounded-2xl border p-4 ${cardSurfaceClass}`}>
-              <div className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-2">
+            <div className="rounded-2xl border p-4 interview-panel">
+              <div className="text-xs font-bold uppercase tracking-wider text-rose-600 mb-2">
                 Rhaenyra 為 Jstyle 規劃的四大成長槓桿（點擊可跳轉至對應提案頁）
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
@@ -428,14 +411,14 @@ export function SlideDeckView({
                     onClick={() =>
                       onNavigate({ type: "jump", targetIndex: 3 + i })
                     }
-                    className="text-left rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 hover:border-rose-500/50 transition-all"
+                    className="text-left rounded-xl border border-slate-200/80 p-3 hover:border-rose-500/50 transition-all"
                   >
                     <div className="flex items-center justify-between text-xs font-bold mb-1">
                       <span
                         className={
                           prop.axis === "snow"
-                            ? "text-sky-600 dark:text-sky-400"
-                            : "text-rose-600 dark:text-rose-400"
+                            ? "text-sky-600"
+                            : "text-rose-600"
                         }
                       >
                         提案 {prop.numberLabel}
@@ -457,9 +440,9 @@ export function SlideDeckView({
           <div className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
               <div
-                className={`lg:col-span-5 rounded-2xl border p-4 ${cardSurfaceClass}`}
+                className="lg:col-span-5 rounded-2xl border p-4 interview-panel"
               >
-                <div className="flex items-center gap-2 text-xs font-bold text-sky-600 dark:text-sky-400 mb-1.5">
+                <div className="flex items-center gap-2 text-xs font-bold text-sky-600 mb-1.5">
                   <Bot className="h-4 w-4" />
                   痛點診斷：三大 LINE 客服的旺季人力瓶頸
                 </div>
@@ -467,7 +450,7 @@ export function SlideDeckView({
                   {JSTYLE_VALUE_PROPOSALS[0].currentPainPoint}
                 </p>
                 <div className="rounded-xl bg-sky-500/10 p-2.5 text-xs">
-                  <span className="font-bold text-sky-700 dark:text-sky-300">
+                  <span className="font-bold text-sky-700">
                     過往實績佐證：
                   </span>{" "}
                   {JSTYLE_VALUE_PROPOSALS[0].resumeProof}
@@ -475,9 +458,9 @@ export function SlideDeckView({
               </div>
 
               <div
-                className={`lg:col-span-7 rounded-2xl border p-4 ${cardSurfaceClass}`}
+                className="lg:col-span-7 rounded-2xl border p-4 interview-panel"
               >
-                <div className="text-xs font-bold text-rose-600 dark:text-rose-400 mb-2">
+                <div className="text-xs font-bold text-rose-600 mb-2">
                   具體落地解法（AI 預審小卡 × n8n 自動派工 × 知識庫監控）
                 </div>
                 <ul className="space-y-2 text-xs leading-relaxed">
@@ -492,7 +475,7 @@ export function SlideDeckView({
             </div>
 
             {/* Interactive Prototype */}
-            <JstyleAiSimulator themeId={themeId} />
+            <JstyleAiSimulator />
           </div>
         )}
 
@@ -500,10 +483,10 @@ export function SlideDeckView({
         {activeSlideIndex === 4 && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
             <div
-              className={`lg:col-span-5 rounded-2xl border p-5 flex flex-col justify-between ${cardSurfaceClass}`}
+              className="lg:col-span-5 rounded-2xl border p-5 flex flex-col justify-between interview-panel"
             >
               <div>
-                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 mb-2">
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 mb-2">
                   <TrendingUp className="h-4 w-4" />
                   為什麼 Jstyle 非常適合啟動 Threads 與短影音裂變？
                 </div>
@@ -513,7 +496,7 @@ export function SlideDeckView({
 
                 <div className="space-y-2.5">
                   <div className="rounded-xl border border-rose-500/25 bg-rose-500/5 p-3">
-                    <div className="text-xs font-bold text-rose-600 dark:text-rose-400 mb-1">
+                    <div className="text-xs font-bold text-rose-600 mb-1">
                       實戰驗證 1｜Beacon 守護臺灣
                     </div>
                     <p className="text-xs opacity-85">
@@ -525,7 +508,7 @@ export function SlideDeckView({
                   </div>
 
                   <div className="rounded-xl border border-sky-500/25 bg-sky-500/5 p-3">
-                    <div className="text-xs font-bold text-sky-600 dark:text-sky-400 mb-1">
+                    <div className="text-xs font-bold text-sky-600 mb-1">
                       實戰驗證 2｜YouTube 頻道 0→2,100 訂閱
                     </div>
                     <p className="text-xs opacity-85">
@@ -536,7 +519,7 @@ export function SlideDeckView({
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800 text-xs font-semibold text-rose-600 dark:text-rose-400">
+              <div className="mt-4 pt-3 border-t border-slate-200/60 text-xs font-semibold text-rose-600">
                 預期成果：{JSTYLE_VALUE_PROPOSALS[1].expectedImpact}
               </div>
             </div>
@@ -545,10 +528,10 @@ export function SlideDeckView({
               {JSTYLE_VALUE_PROPOSALS[1].proposedSolutions.map((sol, idx) => (
                 <div
                   key={sol}
-                  className={`rounded-2xl border p-4 ${cardSurfaceClass}`}
+                  className="rounded-2xl border p-4 interview-panel"
                 >
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="rounded-md bg-rose-500/15 px-2 py-0.5 font-mono text-xs font-bold text-rose-600 dark:text-rose-400">
+                    <span className="rounded-md bg-rose-500/15 px-2 py-0.5 font-mono text-xs font-bold text-rose-600">
                       ACTION 0{idx + 1}
                     </span>
                   </div>
@@ -557,13 +540,13 @@ export function SlideDeckView({
               ))}
 
               <div
-                className={`rounded-2xl border p-4 ${cardSurfaceClass} bg-gradient-to-r from-sky-500/5 to-rose-500/5`}
+                className="rounded-2xl border p-4 interview-panel bg-gradient-to-r from-sky-500/5 to-rose-500/5"
               >
                 <div className="text-xs font-bold mb-1">
                   立即可執行的內容企劃範例（北海道 × 岡山四國）
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                  <div className="rounded-lg border border-slate-200/70 dark:border-slate-800 p-2.5">
+                  <div className="rounded-lg border border-slate-200/70 p-2.5">
                     <div className="font-bold text-sky-600 mb-0.5">
                       冬季雪駕避坑系列
                     </div>
@@ -571,7 +554,7 @@ export function SlideDeckView({
                       「北海道租車最常犯的 5 個行李與保險錯誤」Threads 懶人包
                     </div>
                   </div>
-                  <div className="rounded-lg border border-slate-200/70 dark:border-slate-800 p-2.5">
+                  <div className="rounded-lg border border-slate-200/70 p-2.5">
                     <div className="font-bold text-rose-600 mb-0.5">
                       春櫻與夏秋包車企劃
                     </div>
@@ -579,7 +562,7 @@ export function SlideDeckView({
                       針對家庭孝親與攝影客群，推出「免自駕疲勞」客製包車動線對比
                     </div>
                   </div>
-                  <div className="rounded-lg border border-slate-200/70 dark:border-slate-800 p-2.5">
+                  <div className="rounded-lg border border-slate-200/70 p-2.5">
                     <div className="font-bold text-sky-600 mb-0.5">
                       岡山・四國跨區開箱
                     </div>
@@ -597,10 +580,10 @@ export function SlideDeckView({
         {activeSlideIndex === 5 && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
             <div
-              className={`lg:col-span-6 rounded-2xl border p-5 flex flex-col justify-between ${cardSurfaceClass}`}
+              className="lg:col-span-6 rounded-2xl border p-5 flex flex-col justify-between interview-panel"
             >
               <div>
-                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-600 dark:text-sky-400 mb-2">
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-600 mb-2">
                   <BarChart3 className="h-4 w-4" />
                   多站點 GA4 + GTM 跨網域轉換漏斗建置
                 </div>
@@ -610,7 +593,7 @@ export function SlideDeckView({
                 </p>
 
                 <div className="space-y-2 text-xs">
-                  <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 p-3">
+                  <div className="rounded-xl border border-slate-200/80 p-3">
                     <div className="font-bold mb-0.5">
                       Step 1｜跨網域歸因 (Cross-Domain Attribution)
                     </div>
@@ -619,7 +602,7 @@ export function SlideDeckView({
                       攻略進入網站，最終點擊哪一個 LINE 客服按鈕。
                     </div>
                   </div>
-                  <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 p-3">
+                  <div className="rounded-xl border border-slate-200/80 p-3">
                     <div className="font-bold mb-0.5">
                       Step 2｜A/B 測試與轉換率優化 (CRO)
                     </div>
@@ -631,16 +614,16 @@ export function SlideDeckView({
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800 text-xs opacity-75">
+              <div className="mt-4 pt-3 border-t border-slate-200/60 text-xs opacity-75">
                 對應技能：GA4 / GTM / Firebase A/B Testing / Next.js 前端實作
               </div>
             </div>
 
             <div
-              className={`lg:col-span-6 rounded-2xl border p-5 flex flex-col justify-between ${cardSurfaceClass}`}
+              className="lg:col-span-6 rounded-2xl border p-5 flex flex-col justify-between interview-panel"
             >
               <div>
-                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 mb-2">
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 mb-2">
                   SEO × AI 可讀性（AIO / GEO）結構化工程
                 </div>
                 <p className="text-xs leading-relaxed opacity-85 mb-4">
@@ -661,7 +644,7 @@ export function SlideDeckView({
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800 text-xs font-semibold text-rose-600 dark:text-rose-400">
+              <div className="mt-4 pt-3 border-t border-slate-200/60 text-xs font-semibold text-rose-600">
                 實績佐證：{JSTYLE_VALUE_PROPOSALS[2].resumeProof}
               </div>
             </div>
@@ -672,10 +655,10 @@ export function SlideDeckView({
         {activeSlideIndex === 6 && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
             <div
-              className={`lg:col-span-5 rounded-2xl border p-5 flex flex-col justify-between ${cardSurfaceClass}`}
+              className="lg:col-span-5 rounded-2xl border p-5 flex flex-col justify-between interview-panel"
             >
               <div>
-                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-600 dark:text-sky-400 mb-2">
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-600 mb-2">
                   <Users className="h-4 w-4" />
                   為什麼我能快速融入「教練排課 × 跨國營運」？
                 </div>
@@ -684,7 +667,7 @@ export function SlideDeckView({
                 </p>
 
                 <div className="rounded-xl border border-sky-500/25 bg-sky-500/5 p-3.5 space-y-2 text-xs">
-                  <div className="font-bold text-sky-700 dark:text-sky-300">
+                  <div className="font-bold text-sky-700">
                     Crispygrooves 預約平台 PM × 台美實體授課經驗
                   </div>
                   <p className="opacity-85 leading-relaxed">
@@ -695,7 +678,7 @@ export function SlideDeckView({
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800 text-xs opacity-75">
+              <div className="mt-4 pt-3 border-t border-slate-200/60 text-xs opacity-75">
                 同時具備 Thinker Data 產品長（CPO）帶領非科技背景成員之 Mentor
                 經驗
               </div>
@@ -705,9 +688,9 @@ export function SlideDeckView({
               {JSTYLE_VALUE_PROPOSALS[3].proposedSolutions.map((sol, idx) => (
                 <div
                   key={sol}
-                  className={`rounded-2xl border p-4 flex items-start gap-3 ${cardSurfaceClass}`}
+                  className="rounded-2xl border p-4 flex items-start gap-3 interview-panel"
                 >
-                  <span className="rounded-lg bg-sky-500/15 px-2.5 py-1 font-mono text-xs font-bold text-sky-600 dark:text-sky-400">
+                  <span className="rounded-lg bg-sky-500/15 px-2.5 py-1 font-mono text-xs font-bold text-sky-600">
                     0{idx + 1}
                   </span>
                   <p className="text-xs sm:text-sm leading-relaxed">{sol}</p>
@@ -724,15 +707,15 @@ export function SlideDeckView({
               {ROADMAP_30_60_90.map((phase) => (
                 <div
                   key={phase.phase}
-                  className={`rounded-2xl border p-4.5 flex flex-col justify-between ${cardSurfaceClass}`}
+                  className="rounded-2xl border p-4.5 flex flex-col justify-between interview-panel"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span
                         className={`rounded-md px-2 py-0.5 font-mono text-xs font-bold ${
                           phase.axis === "snow"
-                            ? "bg-sky-500/15 text-sky-600 dark:text-sky-400"
-                            : "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                            ? "bg-sky-500/15 text-sky-600"
+                            : "bg-rose-500/15 text-rose-600"
                         }`}
                       >
                         {phase.phase}
@@ -765,10 +748,10 @@ export function SlideDeckView({
 
             {/* Closing Contact Card */}
             <div
-              className={`rounded-2xl border p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 ${cardSurfaceClass}`}
+              className="rounded-2xl border p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 interview-panel"
             >
               <div>
-                <div className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-1">
+                <div className="text-xs font-bold uppercase tracking-wider text-rose-600 mb-1">
                   Thank You · 感謝您的審閱與面談機會
                 </div>
                 <h3 className="text-base sm:text-lg font-extrabold mb-1">
@@ -790,7 +773,7 @@ export function SlideDeckView({
                 <button
                   type="button"
                   onClick={onSwitchToProfile}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 px-3.5 py-2.5 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 px-3.5 py-2.5 text-xs font-semibold hover:bg-slate-100 transition-colors"
                 >
                   <Layers className="h-3.5 w-3.5" />
                   查看完整履歷明細
@@ -799,7 +782,7 @@ export function SlideDeckView({
                   href={CANDIDATE_PROFILE.targetCompanyUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2.5 text-xs font-medium opacity-80 hover:opacity-100 transition-opacity"
+                  className="inline-flex items-center gap-1 rounded-xl border border-slate-300 px-3 py-2.5 text-xs font-medium opacity-80 hover:opacity-100 transition-opacity"
                 >
                   Jstyle 官網
                   <ExternalLink className="h-3 w-3" />
@@ -811,10 +794,10 @@ export function SlideDeckView({
 
         {/* Bottom Takeaway Bar */}
         <div
-          className={`rounded-xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs ${cardSurfaceClass}`}
+          className="rounded-xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs interview-panel"
         >
           <div className="flex items-center gap-2">
-            <span className="font-bold text-sky-600 dark:text-sky-400 shrink-0">
+            <span className="font-bold text-sky-600 shrink-0">
               本頁核心結論：
             </span>
             <span className="opacity-85">{currentSlide.keyTakeaway}</span>

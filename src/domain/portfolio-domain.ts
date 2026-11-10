@@ -3,10 +3,6 @@
  * for the Rhaenyra Liang × Jstyle Hokkaido portfolio and interview slide deck.
  */
 
-export type ModernThemeId = "B1" | "B2" | "B3";
-
-export type ParticleAmbienceMode = "both" | "sakura" | "snow" | "off";
-
 export type ExperienceCategory =
   | "product_management"
   | "ai_ops_engineering"
@@ -89,25 +85,6 @@ export type JstylePreQualificationOutcome =
       readonly lineRoutingTag: string;
       readonly automationActions: readonly string[];
     };
-
-export interface ThemeVisualTokens {
-  readonly id: ModernThemeId;
-  readonly label: string;
-  readonly subtitle: string;
-  readonly isDark: boolean;
-  readonly pageBackground: string;
-  readonly surfacePrimary: string;
-  readonly surfaceHero: string;
-  readonly textPrimary: string;
-  readonly textHero: string;
-  readonly textMuted: string;
-  readonly textHeroMuted: string;
-  readonly borderSubtle: string;
-  readonly borderHero: string;
-  readonly snowColor: string;
-  readonly sakuraTopColor: string;
-  readonly sakuraBottomColor: string;
-}
 
 /**
  * Validates slide state invariants and computes 1-based percentage progress.
@@ -377,73 +354,5 @@ export function evaluateJstyleInquiry(
         ],
       };
     }
-  }
-}
-
-/**
- * Resolves immutable visual tokens for the 3 refined Plan B color variations.
- */
-export function resolveThemeTokens(themeId: ModernThemeId): ThemeVisualTokens {
-  switch (themeId) {
-    case "B1":
-      return {
-        id: "B1",
-        label: "B1 極光琉璃",
-        subtitle: "純淨瓷白 × 冰川青與現代櫻紅",
-        isDark: false,
-        pageBackground:
-          "radial-gradient(circle at 10% 12%, rgba(14, 165, 233, 0.08), transparent 36%), radial-gradient(circle at 90% 86%, rgba(244, 63, 94, 0.08), transparent 38%), #F8FAFC",
-        surfacePrimary: "rgba(255, 255, 255, 0.95)",
-        surfaceHero: "rgba(255, 255, 255, 0.96)",
-        textPrimary: "#0F172A",
-        textHero: "#0F172A",
-        textMuted: "#475569",
-        textHeroMuted: "#475569",
-        borderSubtle: "rgba(226, 232, 240, 0.95)",
-        borderHero: "rgba(203, 213, 225, 0.9)",
-        snowColor: "rgba(14, 165, 233, 0.40)",
-        sakuraTopColor: "rgba(244, 63, 94, 0.36)",
-        sakuraBottomColor: "rgba(253, 164, 175, 0.25)",
-      };
-    case "B2":
-      return {
-        id: "B2",
-        label: "B2 晨曦冰珀",
-        subtitle: "曜石深墨主卡 × 純白高對比 Bento",
-        isDark: false,
-        pageBackground:
-          "radial-gradient(circle at 12% 14%, rgba(6, 182, 212, 0.09), transparent 36%), radial-gradient(circle at 88% 84%, rgba(244, 63, 94, 0.09), transparent 38%), #F1F5F9",
-        surfacePrimary: "rgba(255, 255, 255, 0.96)",
-        surfaceHero: "#0F172A",
-        textPrimary: "#0F172A",
-        textHero: "#F8FAFC",
-        textMuted: "#475569",
-        textHeroMuted: "#CBD5E1",
-        borderSubtle: "rgba(203, 213, 225, 0.9)",
-        borderHero: "#1E293B",
-        snowColor: "rgba(8, 145, 178, 0.42)",
-        sakuraTopColor: "rgba(225, 29, 72, 0.36)",
-        sakuraBottomColor: "rgba(251, 113, 133, 0.25)",
-      };
-    case "B3":
-      return {
-        id: "B3",
-        label: "B3 暮雪映櫻",
-        subtitle: "北國深邃星夜 × 冰晶夜櫻毛玻璃",
-        isDark: true,
-        pageBackground:
-          "radial-gradient(circle at 12% 14%, rgba(56, 189, 248, 0.11), transparent 38%), radial-gradient(circle at 88% 84%, rgba(251, 113, 133, 0.11), transparent 40%), #0B1120",
-        surfacePrimary: "rgba(30, 41, 59, 0.90)",
-        surfaceHero: "rgba(15, 23, 42, 0.94)",
-        textPrimary: "#F8FAFC",
-        textHero: "#F8FAFC",
-        textMuted: "#94A3B8",
-        textHeroMuted: "#94A3B8",
-        borderSubtle: "rgba(51, 65, 85, 0.85)",
-        borderHero: "rgba(56, 189, 248, 0.32)",
-        snowColor: "rgba(125, 211, 252, 0.44)",
-        sakuraTopColor: "rgba(251, 113, 133, 0.42)",
-        sakuraBottomColor: "rgba(253, 164, 175, 0.26)",
-      };
   }
 }

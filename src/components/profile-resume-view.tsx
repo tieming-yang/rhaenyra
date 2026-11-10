@@ -23,15 +23,12 @@ import {
   WORK_EXPERIENCES,
 } from "@/domain/portfolio-data";
 import {
-  resolveThemeTokens,
   type ExperienceCategoryFilter,
-  type ModernThemeId,
 } from "@/domain/portfolio-domain";
 import { JstyleAiSimulator } from "./jstyle-ai-simulator";
 
 interface ProfileResumeViewProps {
   readonly categoryFilter: ExperienceCategoryFilter;
-  readonly themeId: ModernThemeId;
   readonly onChangeCategory: (category: ExperienceCategoryFilter) => void;
   readonly onSwitchToSlides: (slideIndex?: number) => void;
 }
@@ -46,32 +43,19 @@ const FILTER_OPTIONS: readonly ExperienceCategoryFilter[] = [
 
 export function ProfileResumeView({
   categoryFilter,
-  themeId,
   onChangeCategory,
   onSwitchToSlides,
 }: ProfileResumeViewProps) {
-  const tokens = resolveThemeTokens(themeId);
   const filteredExperiences = filterWorkExperiences(
     WORK_EXPERIENCES,
     categoryFilter
   );
 
-  const cardSurfaceClass = tokens.isDark
-    ? "bg-slate-900/90 border-slate-800 text-slate-100"
-    : "bg-white/95 border-slate-200/90 text-slate-900 shadow-xs";
-
-  const heroSurfaceStyle = {
-    background: tokens.surfaceHero,
-    color: tokens.textHero,
-    borderColor: tokens.borderHero,
-  };
-
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 pb-16 pt-4 sm:px-6">
       {/* Hero Profile Banner */}
       <section
-        className="rounded-3xl border p-6 sm:p-8 shadow-sm transition-all"
-        style={heroSurfaceStyle}
+        className="interview-panel rounded-3xl border p-6 sm:p-8"
       >
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           <div className="lg:col-span-8 space-y-3">
@@ -81,14 +65,13 @@ export function ProfileResumeView({
               </span>
               <span
                 className="text-xs font-medium"
-                style={{ color: tokens.textHeroMuted }}
               >
                 產品管理｜軟體開發｜AI 營運自動化｜數據協作｜市場行銷
               </span>
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-300/60 dark:border-slate-700 shadow-sm">
+              <div className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-300/60 shadow-sm">
                 <Image
                   src={CANDIDATE_PROFILE.photoUrl}
                   alt={CANDIDATE_PROFILE.name}
@@ -103,7 +86,6 @@ export function ProfileResumeView({
                 </h1>
                 <p
                   className="text-xs sm:text-sm font-medium mt-0.5"
-                  style={{ color: tokens.textHeroMuted }}
                 >
                   {CANDIDATE_PROFILE.chinesePositioning}
                 </p>
@@ -121,7 +103,6 @@ export function ProfileResumeView({
 
             <p
               className="text-xs sm:text-sm leading-relaxed pt-1"
-              style={{ color: tokens.textHeroMuted }}
             >
               {CANDIDATE_PROFILE.executiveSummary}
             </p>
@@ -152,12 +133,7 @@ export function ProfileResumeView({
             {KEY_METRICS.map((m) => (
               <div
                 key={m.id}
-                className="rounded-2xl border p-3.5 backdrop-blur-md"
-                style={{
-                  background: tokens.surfacePrimary,
-                  color: tokens.textPrimary,
-                  borderColor: tokens.borderSubtle,
-                }}
+                className="interview-panel rounded-2xl border p-3.5"
               >
                 <div
                   className={`h-1 w-6 rounded-full mb-2 ${
@@ -167,8 +143,8 @@ export function ProfileResumeView({
                 <div
                   className={`text-xl font-black tracking-tight ${
                     m.accentAxis === "snow"
-                      ? "text-sky-600 dark:text-sky-400"
-                      : "text-rose-600 dark:text-rose-400"
+                      ? "text-sky-600"
+                      : "text-rose-600"
                   }`}
                 >
                   {m.value}
@@ -184,7 +160,7 @@ export function ProfileResumeView({
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+            <div className="text-xs font-bold uppercase tracking-wider text-rose-600">
               Value Proposition for Jstyle Hokkaido
             </div>
             <h2 className="text-lg sm:text-xl font-extrabold tracking-tight">
@@ -194,7 +170,7 @@ export function ProfileResumeView({
           <button
             type="button"
             onClick={() => onSwitchToSlides(3)}
-            className="text-xs font-semibold text-sky-600 dark:text-sky-400 underline"
+            className="text-xs font-semibold text-sky-600 underline"
           >
             於簡報模式全螢幕檢視 →
           </button>
@@ -204,7 +180,7 @@ export function ProfileResumeView({
           {JSTYLE_VALUE_PROPOSALS.map((prop) => (
             <div
               key={prop.id}
-              className={`rounded-2xl border p-5 flex flex-col justify-between ${cardSurfaceClass}`}
+              className="rounded-2xl border p-5 flex flex-col justify-between interview-panel"
             >
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -217,8 +193,8 @@ export function ProfileResumeView({
                     <span
                       className={`font-mono text-xs font-bold ${
                         prop.axis === "snow"
-                          ? "text-sky-600 dark:text-sky-400"
-                          : "text-rose-600 dark:text-rose-400"
+                          ? "text-sky-600"
+                          : "text-rose-600"
                       }`}
                     >
                       PROPOSAL {prop.numberLabel} · {prop.axisLabel}
@@ -254,9 +230,9 @@ export function ProfileResumeView({
                 </ul>
               </div>
 
-              <div className="pt-3 border-t border-slate-200/70 dark:border-slate-800 space-y-2">
+              <div className="pt-3 border-t border-slate-200/70 space-y-2">
                 <div className="text-xs">
-                  <span className="font-bold text-rose-600 dark:text-rose-400">
+                  <span className="font-bold text-rose-600">
                     過往實績佐證：
                   </span>
                   <span className="opacity-80">{prop.resumeProof}</span>
@@ -277,14 +253,14 @@ export function ProfileResumeView({
         </div>
 
         {/* Live AI Pre-Qualification Demo */}
-        <JstyleAiSimulator themeId={themeId} />
+        <JstyleAiSimulator />
       </section>
 
       {/* Section 2: Filterable Work & Project Experience Timeline */}
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+            <Briefcase className="h-5 w-5 text-sky-600" />
             <div>
               <h2 className="text-lg sm:text-xl font-extrabold tracking-tight">
                 工作經歷與產品專案（Work & Project Experience）
@@ -306,8 +282,8 @@ export function ProfileResumeView({
                   onClick={() => onChangeCategory(cat)}
                   className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
                     active
-                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
-                      : "border border-slate-200 dark:border-slate-800 opacity-75 hover:opacity-100"
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "border border-slate-200 opacity-75 hover:opacity-100"
                   }`}
                 >
                   {CATEGORY_LABELS[cat]}
@@ -321,7 +297,7 @@ export function ProfileResumeView({
           {filteredExperiences.map((exp) => (
             <div
               key={exp.id}
-              className={`rounded-2xl border p-5 transition-all ${cardSurfaceClass}`}
+              className="rounded-2xl border p-5 transition-all interview-panel"
             >
               <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
                 <div>
@@ -332,7 +308,7 @@ export function ProfileResumeView({
                       }`}
                     />
                     <h3 className="text-base font-extrabold">{exp.company}</h3>
-                    <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                    <span className="text-xs font-bold text-rose-600">
                       ｜{exp.role}
                     </span>
                   </div>
@@ -341,7 +317,7 @@ export function ProfileResumeView({
                       {exp.subRoles.map((sr) => (
                         <span
                           key={sr}
-                          className="rounded-md bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-700 dark:text-sky-300"
+                          className="rounded-md bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-700"
                         >
                           {sr}
                         </span>
@@ -372,8 +348,8 @@ export function ProfileResumeView({
                 <Sparkles
                   className={`h-4 w-4 shrink-0 mt-0.5 ${
                     exp.accentAxis === "snow"
-                      ? "text-sky-600 dark:text-sky-400"
-                      : "text-rose-600 dark:text-rose-400"
+                      ? "text-sky-600"
+                      : "text-rose-600"
                   }`}
                 />
                 <div>
@@ -392,7 +368,7 @@ export function ProfileResumeView({
           {SKILL_GROUPS.map((sg) => (
             <div
               key={sg.id}
-              className={`rounded-2xl border p-4.5 flex flex-col justify-between ${cardSurfaceClass}`}
+              className="rounded-2xl border p-4.5 flex flex-col justify-between interview-panel"
             >
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
@@ -411,7 +387,7 @@ export function ProfileResumeView({
                 {sg.tools.map((tool) => (
                   <span
                     key={tool}
-                    className="rounded-md border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-xs font-medium"
+                    className="rounded-md border border-slate-200 px-2 py-0.5 text-xs font-medium"
                   >
                     {tool}
                   </span>
@@ -422,10 +398,10 @@ export function ProfileResumeView({
         </div>
 
         <div
-          className={`lg:col-span-4 rounded-2xl border p-5 flex flex-col justify-between ${cardSurfaceClass}`}
+          className="lg:col-span-4 rounded-2xl border p-5 flex flex-col justify-between interview-panel"
         >
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sky-600 dark:text-sky-400">
+            <div className="flex items-center gap-2 text-sky-600">
               <GraduationCap className="h-5 w-5" />
               <h3 className="text-sm font-extrabold">
                 教育背景與台美教學經驗
@@ -444,7 +420,7 @@ export function ProfileResumeView({
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-200/70 dark:border-slate-800 space-y-1 text-xs">
+          <div className="mt-4 pt-3 border-t border-slate-200/70 space-y-1 text-xs">
             <div className="font-bold">語言能力</div>
             <div className="opacity-80">
               • 英文：全英文看美劇、電影及文獻，並在美國休士頓教授過舞蹈
@@ -464,14 +440,14 @@ export function ProfileResumeView({
           {ROADMAP_30_60_90.map((r) => (
             <div
               key={r.phase}
-              className={`rounded-2xl border p-4.5 ${cardSurfaceClass}`}
+              className="rounded-2xl border p-4.5 interview-panel"
             >
               <div className="flex items-center justify-between text-xs font-bold mb-1.5">
                 <span
                   className={
                     r.axis === "snow"
-                      ? "text-sky-600 dark:text-sky-400"
-                      : "text-rose-600 dark:text-rose-400"
+                      ? "text-sky-600"
+                      : "text-rose-600"
                   }
                 >
                   {r.phase}
@@ -491,7 +467,7 @@ export function ProfileResumeView({
 
       {/* Footer */}
       <footer
-        className={`rounded-2xl border p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs ${cardSurfaceClass}`}
+        className="rounded-2xl border p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs interview-panel"
       >
         <div>
           <span className="font-bold">
@@ -504,7 +480,7 @@ export function ProfileResumeView({
         <div className="flex flex-wrap items-center gap-3">
           <a
             href={`mailto:${CANDIDATE_PROFILE.email}`}
-            className="font-semibold text-rose-600 dark:text-rose-400 underline"
+            className="font-semibold text-rose-600 underline"
           >
             {CANDIDATE_PROFILE.email}
           </a>

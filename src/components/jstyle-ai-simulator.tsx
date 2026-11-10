@@ -9,16 +9,9 @@ import {
   Workflow,
   AlertTriangle,
 } from "lucide-react";
-import {
-  evaluateJstyleInquiry,
-  type ModernThemeId,
-} from "@/domain/portfolio-domain";
+import { evaluateJstyleInquiry } from "@/domain/portfolio-domain";
 
-interface JstyleAiSimulatorProps {
-  readonly themeId: ModernThemeId;
-}
-
-export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
+export function JstyleAiSimulator() {
   const [serviceTab, setServiceTab] = useState<"car_rental" | "ski_school">(
     "car_rental"
   );
@@ -45,8 +38,6 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
     "sapporo_teine" | "niseko_rusutsu" | "furano"
   >("sapporo_teine");
 
-  const isDark = themeId === "B3";
-
   const evaluation =
     serviceTab === "car_rental"
       ? evaluateJstyleInquiry({
@@ -66,14 +57,10 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
 
   return (
     <div
-      className={`rounded-2xl border p-4 md:p-5 transition-colors ${
-        isDark
-          ? "border-slate-700/80 bg-slate-900/90 text-slate-100"
-          : "border-slate-200/90 bg-white/95 text-slate-900 shadow-sm"
-      }`}
+      className="rounded-2xl border p-4 md:p-5 transition-colors border-slate-200/90 bg-white/95 text-slate-900 shadow-sm"
     >
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-200/60 dark:border-slate-700/60">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-200/60">
         <div className="flex items-center gap-2">
           <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600">
             <Sparkles className="h-3.5 w-3.5" />
@@ -90,11 +77,7 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
 
         {/* Service Switcher */}
         <div
-          className={`inline-flex rounded-lg p-0.5 border text-xs ${
-            isDark
-              ? "border-slate-700 bg-slate-800/90"
-              : "border-slate-200 bg-slate-100/80"
-          }`}
+          className="inline-flex rounded-lg p-0.5 border text-xs border-slate-200 bg-slate-100/80"
         >
           <button
             type="button"
@@ -127,11 +110,7 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
         {/* Left Controls */}
         <div
-          className={`lg:col-span-5 rounded-xl border p-3.5 flex flex-col justify-between space-y-3 ${
-            isDark
-              ? "border-slate-800 bg-slate-950/60"
-              : "border-slate-200/80 bg-slate-50/70"
-          }`}
+          className="lg:col-span-5 rounded-xl border p-3.5 flex flex-col justify-between space-y-3 border-slate-200/80 bg-slate-50/70"
         >
           {serviceTab === "car_rental" ? (
             <div className="space-y-3">
@@ -181,11 +160,7 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
                           | "spring_sakura_summer"
                       )
                     }
-                    className={`w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
-                      isDark
-                        ? "border-slate-700 bg-slate-900 text-slate-100"
-                        : "border-slate-200 bg-white text-slate-900"
-                    }`}
+                    className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium border-slate-200 bg-white text-slate-900"
                   >
                     <option value="winter_snow">冬季雪地（需 4WD 雪胎）</option>
                     <option value="spring_sakura_summer">
@@ -205,11 +180,7 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
                         e.target.value as "hokkaido" | "okayama_shikoku"
                       )
                     }
-                    className={`w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
-                      isDark
-                        ? "border-slate-700 bg-slate-900 text-slate-100"
-                        : "border-slate-200 bg-white text-slate-900"
-                    }`}
+                    className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium border-slate-200 bg-white text-slate-900"
                   >
                     <option value="hokkaido">北海道（札幌／新千歲）</option>
                     <option value="okayama_shikoku">
@@ -248,11 +219,7 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
                     onChange={(e) =>
                       setDiscipline(e.target.value as "ski" | "snowboard")
                     }
-                    className={`w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
-                      isDark
-                        ? "border-slate-700 bg-slate-900 text-slate-100"
-                        : "border-slate-200 bg-white text-slate-900"
-                    }`}
+                    className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium border-slate-200 bg-white text-slate-900"
                   >
                     <option value="snowboard">單板 (Snowboard)</option>
                     <option value="ski">雙板 (Ski)</option>
@@ -273,11 +240,7 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
                           | "furano"
                       )
                     }
-                    className={`w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
-                      isDark
-                        ? "border-slate-700 bg-slate-900 text-slate-100"
-                        : "border-slate-200 bg-white text-slate-900"
-                    }`}
+                    className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium border-slate-200 bg-white text-slate-900"
                   >
                     <option value="sapporo_teine">札幌手稻 / 國際</option>
                     <option value="niseko_rusutsu">二世古 / 留壽都</option>
@@ -300,11 +263,7 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
                         | "intermediate_carving"
                     )
                   }
-                  className={`w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
-                    isDark
-                      ? "border-slate-700 bg-slate-900 text-slate-100"
-                      : "border-slate-200 bg-white text-slate-900"
-                  }`}
+                  className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium border-slate-200 bg-white text-slate-900"
                 >
                   <option value="first_timer">
                     完全零基礎（第一次接觸雪具）
@@ -320,7 +279,7 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
             </div>
           )}
 
-          <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-xs opacity-75">
+          <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs opacity-75">
             <span>預期減省客服人工詢問時間</span>
             <span className="font-bold text-emerald-600">≈ 60% – 70%</span>
           </div>
@@ -330,22 +289,18 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
         <div
           className={`lg:col-span-7 rounded-xl border p-3.5 flex flex-col justify-between ${
             evaluation.status === "recommended"
-              ? isDark
-                ? "border-sky-500/30 bg-sky-950/20"
-                : "border-sky-200/90 bg-sky-50/40"
-              : isDark
-                ? "border-rose-500/30 bg-rose-950/20"
-                : "border-rose-200/90 bg-rose-50/40"
+              ? "border-sky-200/90 bg-sky-50/40"
+              : "border-rose-200/90 bg-rose-50/40"
           }`}
         >
           {evaluation.status === "recommended" ? (
             <div className="space-y-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-600 dark:text-sky-400">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-600">
                   <CheckCircle2 className="h-4 w-4" />
                   {evaluation.headline}
                 </span>
-                <span className="rounded-md bg-sky-500/15 px-2 py-0.5 font-mono text-xs font-semibold text-sky-700 dark:text-sky-300">
+                <span className="rounded-md bg-sky-500/15 px-2 py-0.5 font-mono text-xs font-semibold text-sky-700">
                   {evaluation.vehicleOrCourseCode}
                 </span>
               </div>
@@ -366,7 +321,7 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
           ) : (
             <div className="space-y-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600">
                   <AlertTriangle className="h-4 w-4" />
                   超出標準自駕／單一教練安全上限・自動啟動跨事業轉介
                 </span>
@@ -376,7 +331,7 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
                 原因：{evaluation.reason}
               </div>
 
-              <div className="text-sm font-extrabold text-rose-600 dark:text-rose-400">
+              <div className="text-sm font-extrabold text-rose-600">
                 AI 轉介方案：{evaluation.suggestedAlternative}
               </div>
             </div>
@@ -384,14 +339,14 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
 
           {/* n8n & LINE Routing Footer */}
           <div
-            className={`mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-800 space-y-1.5`}
+            className="mt-3 pt-2.5 border-t border-slate-200/60 space-y-1.5"
           >
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span className="inline-flex items-center gap-1 font-semibold text-rose-600 dark:text-rose-400">
+              <span className="inline-flex items-center gap-1 font-semibold text-rose-600">
                 <Workflow className="h-3.5 w-3.5" />
                 n8n 自動化分流與後續動作：
               </span>
-              <span className="rounded bg-slate-900 px-2 py-0.5 text-xs font-mono text-white dark:bg-slate-800">
+              <span className="rounded bg-slate-900 px-2 py-0.5 text-xs font-mono text-white">
                 {evaluation.lineRoutingTag}
               </span>
             </div>
@@ -399,11 +354,7 @@ export function JstyleAiSimulator({ themeId }: JstyleAiSimulatorProps) {
               {evaluation.automationActions.map((act) => (
                 <div
                   key={act}
-                  className={`rounded-lg px-2.5 py-1 text-xs border ${
-                    isDark
-                      ? "border-slate-800 bg-slate-900/80"
-                      : "border-slate-200/80 bg-white/90"
-                  }`}
+                  className="rounded-lg px-2.5 py-1 text-xs border border-slate-200/80 bg-white/90"
                 >
                   • {act}
                 </div>
