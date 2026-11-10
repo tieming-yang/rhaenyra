@@ -35,6 +35,8 @@ describe("getSiteContent", () => {
     expect(DEFAULT_LOCALE).toBe("zh-Hant");
     expect(content.locale).toBe("zh-Hant");
     expect(content.site.profile.email).toBe("rhaenyraliang1999@gmail.com");
+    expect(content.hero.cover.headline).toBe("梁紓寧");
+    expect(content.hero.cover.watermark).toBe("Rhaenyra Liang");
     expect(content.common.header.nav).toEqual({
       hero: "簡介",
       "job-desk": "經歷",
