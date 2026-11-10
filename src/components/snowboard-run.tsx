@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { type MouseEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { MountainCardBackdrop } from "@/components/mountain-card-backdrop";
 import {
@@ -8,6 +8,8 @@ import {
   type ProposalSectionContent,
 } from "@/content";
 import {
+  HEADER_SECTION_HASH,
+  HEADER_SECTION_HREF,
   PROPOSAL_FINISH_HASH,
   PROPOSAL_FINISH_ID,
 } from "@/lib/header-navigation";
@@ -293,7 +295,6 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
   const sprintTriggerRef = useRef<((targetScrollY: number) => void) | null>(
     null
   );
-  const sprintCancelRef = useRef<(() => void) | null>(null);
   const activeIndexRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -397,10 +398,10 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
         if (sprintStep.kind === "active") {
           sprintState = sprintStep.nextState;
           sprintBoost = sprintStep.sprintBoost;
-          window.scrollTo(0, sprintStep.scrollY);
+          window.scrollTo({ top: sprintStep.scrollY, behavior: "instant" });
         } else if (sprintStep.kind === "completed") {
           sprintState = sprintStep.nextState;
-          window.scrollTo(0, sprintStep.scrollY);
+          window.scrollTo({ top: sprintStep.scrollY, behavior: "instant" });
         }
       }
 
@@ -508,6 +509,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
               targetProgress: clampedTargetProgress,
               maxProgress,
               dtSec,
+              sprinting: sprintState.kind === "sprinting" || sprintBoost > 0,
               reducedMotion: motion.matches,
             });
 
@@ -598,15 +600,30 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
         viewportHeight,
         motion.matches
       );
-      sprintState = nextSprint;
       if (nextSprint.kind === "idle") {
-        window.scrollTo({ top: targetScrollY, behavior: "auto" });
+        sprintState = nextSprint;
+        window.scrollTo({ top: targetScrollY, behavior: "instant" });
+        schedule();
+        return;
       }
-      schedule();
+
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+        frame = 0;
+      }
+      const launchStep = stepWaypointSprint(nextSprint, 16);
+      if (launchStep.kind === "active") {
+        sprintState = launchStep.nextState;
+        window.scrollTo({ top: launchStep.scrollY, behavior: "instant" });
+      } else if (launchStep.kind === "completed") {
+        sprintState = launchStep.nextState;
+        window.scrollTo({ top: launchStep.scrollY, behavior: "instant" });
+      }
+      lastFrameMs = performance.now();
+      frame = window.requestAnimationFrame(update);
     };
 
     sprintTriggerRef.current = triggerSprint;
-    sprintCancelRef.current = cancelSprint;
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (SCROLL_CANCEL_KEYS.has(event.key)) {
@@ -695,7 +712,6 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
 
     return () => {
       sprintTriggerRef.current = null;
-      sprintCancelRef.current = null;
       window.cancelAnimationFrame(frame);
       observer.disconnect();
       visibilityObserver?.disconnect();
@@ -762,6 +778,36 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
     window.scrollTo({ top: targetScrollY, behavior });
   }
 
+  function scrollToIntro(event: MouseEvent<HTMLElement>) {
+    if (!isPlainLeftClick(event)) {
+      return;
+    }
+    event.preventDefault();
+
+    const proposalElement = document.getElementById("proposal");
+    if (!proposalElement) return;
+
+    if (window.location.hash !== HEADER_SECTION_HASH.proposal) {
+      window.history.pushState(null, "", HEADER_SECTION_HASH.proposal);
+    }
+
+    const targetScrollY = Math.max(
+      0,
+      proposalElement.getBoundingClientRect().top + window.scrollY
+    );
+    if (sprintTriggerRef.current) {
+      sprintTriggerRef.current(targetScrollY);
+      return;
+    }
+
+    const behavior: ScrollBehavior = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches
+      ? "auto"
+      : "smooth";
+    proposalElement.scrollIntoView({ behavior, block: "start" });
+  }
+
   function scrollToFinish(event: MouseEvent<HTMLElement>) {
     if (!isPlainLeftClick(event)) {
       return;
@@ -771,10 +817,21 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
     const finishElement = document.getElementById(PROPOSAL_FINISH_ID);
     if (!finishElement) return;
 
-    sprintCancelRef.current?.();
-
     if (window.location.hash !== PROPOSAL_FINISH_HASH) {
       window.history.pushState(null, "", PROPOSAL_FINISH_HASH);
+    }
+
+    const maxScrollY = Math.max(
+      0,
+      document.documentElement.scrollHeight - window.innerHeight
+    );
+    const targetScrollY = Math.min(
+      maxScrollY,
+      Math.max(0, finishElement.getBoundingClientRect().top + window.scrollY)
+    );
+    if (sprintTriggerRef.current) {
+      sprintTriggerRef.current(targetScrollY);
+      return;
     }
 
     const behavior: ScrollBehavior = window.matchMedia(
@@ -879,6 +936,16 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
 
       <ol className="run-stops" aria-label={content.trail.stopsAriaLabel}>
         {content.waypoints.map((waypoint, index) => {
+          const prevWaypoint = content.waypoints[index - 1];
+          const prevHref = prevWaypoint
+            ? `#${prevWaypoint.id}`
+            : HEADER_SECTION_HREF.proposal;
+          const prevAriaLabel = prevWaypoint
+            ? formatContentTemplate(content.trail.prevTopicAriaTemplate, {
+                title: prevWaypoint.title,
+              })
+            : content.trail.introAriaLabel;
+
           const nextWaypoint = content.waypoints[index + 1];
           const nextHref = nextWaypoint
             ? `#${nextWaypoint.id}`
@@ -910,9 +977,26 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
                     <p>{waypoint.description}</p>
                   </div>
                 </a>
+              </article>
+              <div className="run-step-controls">
+                <a
+                  href={prevHref}
+                  className="run-step-button"
+                  data-direction="up"
+                  aria-label={prevAriaLabel}
+                  onClick={(event) =>
+                    prevWaypoint
+                      ? focusWaypoint(index - 1, event)
+                      : scrollToIntro(event)
+                  }
+                >
+                  <ChevronUp aria-hidden="true" />
+                </a>
+                <span className="run-step-divider" aria-hidden="true" />
                 <a
                   href={nextHref}
-                  className="run-next-topic"
+                  className="run-step-button"
+                  data-direction="down"
                   aria-label={nextAriaLabel}
                   onClick={(event) =>
                     nextWaypoint
@@ -922,7 +1006,7 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
                 >
                   <ChevronDown aria-hidden="true" />
                 </a>
-              </article>
+              </div>
             </li>
           );
         })}
