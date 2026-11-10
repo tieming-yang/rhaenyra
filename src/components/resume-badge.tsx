@@ -4,145 +4,302 @@ import Image from "next/image";
 import { ArrowDownRight, ArrowUpLeft, ArrowUpRight } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { CANDIDATE_PROFILE } from "@/domain/portfolio-data";
+import {
+  DEFAULT_RESTING_STRAP_PATH,
+  DEFAULT_RESTING_VIEWBOX,
+  createIdleBadgeState,
+  deriveBadgeRenderPose,
+  moveBadgeDrag,
+  releaseBadgeDrag,
+  startBadgeDrag,
+  stepBadgePhysics,
+  triggerBadgeIntroSwing,
+  type BadgeFieldMetrics,
+  type BadgePhysicsState,
+} from "@/lib/badge-physics";
 
-const restingStrap = "M 263 -28 C 264 23 249 78 240 112";
-const clipOffset = 46;
+const CLIP_PIVOT_OFFSET_PX = 40;
+
+function readBadgeFieldMetrics(
+  field: HTMLDivElement,
+  anchor: HTMLDivElement,
+  badge: HTMLDivElement
+): BadgeFieldMetrics | null {
+  const fieldWidth = field.clientWidth;
+  const fieldHeight = field.clientHeight;
+  if (!fieldWidth || !fieldHeight) return null;
+
+  const fieldRect = field.getBoundingClientRect();
+  const cover = field.closest(".resume-cover");
+  const coverRect = cover ? cover.getBoundingClientRect() : fieldRect;
+  const badgeWidth = anchor.clientWidth || 220;
+  const badgeHeight = badge.offsetHeight || badgeWidth / 0.75;
+
+  const restCenterX = fieldRect.left + fieldWidth / 2;
+  const anchorOffsetTop = anchor.offsetTop;
+  const restAnchorTop = fieldRect.top + anchorOffsetTop;
+
+  const heroLeftBound = Math.min(
+    -140,
+    coverRect.left - restCenterX + badgeWidth * 0.22
+  );
+  const heroRightBound = Math.max(
+    140,
+    coverRect.right - restCenterX - badgeWidth * 0.22
+  );
+  const heroTopBound = Math.min(
+    -115,
+    coverRect.top - restAnchorTop + 24
+  );
+  const heroBottomBound = Math.max(
+    180,
+    coverRect.bottom - restAnchorTop - badgeHeight * 0.42
+  );
+
+  return {
+    fieldWidth,
+    fieldHeight,
+    anchorOffsetTop,
+    heroLeftBound,
+    heroRightBound,
+    heroTopBound,
+    heroBottomBound,
+  };
+}
 
 export function ResumeBadge() {
   const [flipped, setFlipped] = useState(false);
   const fieldRef = useRef<HTMLDivElement>(null);
-  const badgeRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const strapRef = useRef<SVGPathElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const clipRef = useRef<HTMLImageElement>(null);
   const strapId = useId();
+
   useEffect(() => {
     const field = fieldRef.current;
-    const badge = badgeRef.current;
+    const svg = svgRef.current;
     const strap = strapRef.current;
-    const anchor = badge?.parentElement;
-    if (!field || !badge || !strap || !anchor) return;
+    const anchor = anchorRef.current;
+    const badge = badgeRef.current;
+    const clip = clipRef.current;
+    if (!field || !svg || !strap || !anchor || !badge || !clip) return;
 
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const firstSwing = !motion.matches && window.matchMedia("(min-width: 48rem)").matches;
-    let x = firstSwing ? 44 : 0;
-    let y = firstSwing ? -12 : 0;
-    let vx = 0;
-    let vy = 0;
+    const desktopMedia = window.matchMedia("(min-width: 48rem)");
+
+    let state: BadgePhysicsState = createIdleBadgeState();
+    let cachedMetrics = readBadgeFieldMetrics(field, anchor, badge);
     let frame = 0;
-    let drag: { id: number; startX: number; startY: number; x: number; y: number; moved: boolean } | null = null;
+    let lastTickMs = 0;
 
     const paint = () => {
-      const width = field.clientWidth;
-      const height = field.clientHeight;
-      if (!width || !height) return;
+      const metrics = cachedMetrics ?? readBadgeFieldMetrics(field, anchor, badge);
+      if (!metrics) return;
+      cachedMetrics = metrics;
 
-      const endX = 240 + x * 480 / width;
-      const endY = (anchor.offsetTop - clipOffset + y) * 590 / height;
-      strap.setAttribute("d", `M 263 -28 C 264 24 ${(263 + endX) / 2} ${endY * 0.65} ${endX} ${endY}`);
-      badge.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${x * 0.15}deg)`;
+      const pose = deriveBadgeRenderPose(state, metrics);
+      svg.setAttribute("viewBox", pose.viewBox);
+      strap.setAttribute("d", pose.strapPath);
+      badge.style.transform = pose.badgeTransform;
+      clip.style.transform = pose.clipTransform;
+
+      if (pose.isDragging) {
+        badge.dataset.dragging = "";
+      } else {
+        delete badge.dataset.dragging;
+      }
     };
 
-    const settle = () => {
+    const stopLoop = () => {
+      if (frame) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+      }
+      lastTickMs = 0;
+    };
+
+    const tick = (nowMs: number) => {
       frame = 0;
-      if (motion.matches || Math.abs(x) + Math.abs(y) + Math.abs(vx) + Math.abs(vy) < 0.5) {
-        x = y = vx = vy = 0;
+      const dtMs = lastTickMs > 0 ? Math.max(0, nowMs - lastTickMs) : 1000 / 60;
+      lastTickMs = nowMs;
+
+      if (state.phase === "dragging") {
+        const idleSinceMoveMs = nowMs - state.lastMoveTimeMs;
+        if (idleSinceMoveMs >= 14) {
+          state = stepBadgePhysics(state, dtMs, motion.matches);
+          paint();
+        }
+      } else if (state.phase === "swinging") {
+        state = stepBadgePhysics(state, dtMs, motion.matches);
         paint();
+      }
+
+      if (state.phase !== "idle") {
+        frame = requestAnimationFrame(tick);
+      } else {
+        lastTickMs = 0;
+      }
+    };
+
+    const ensureLoop = () => {
+      if (!frame && state.phase !== "idle" && !motion.matches) {
+        lastTickMs = performance.now();
+        frame = requestAnimationFrame(tick);
+      }
+    };
+
+    const refreshMetrics = () => {
+      cachedMetrics = readBadgeFieldMetrics(field, anchor, badge);
+      paint();
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        state.phase === "dragging" ||
+        event.button !== 0 ||
+        (event.target instanceof Element && event.target.closest("button, a"))
+      ) {
         return;
       }
 
-      vx = (vx - x * 0.075) * 0.82;
-      vy = (vy - y * 0.075) * 0.82;
-      x += vx;
-      y += vy;
-      paint();
-      frame = requestAnimationFrame(settle);
-    };
+      const metrics = readBadgeFieldMetrics(field, anchor, badge);
+      if (!metrics) return;
+      cachedMetrics = metrics;
 
-    const start = (event: PointerEvent) => {
-      if (drag || event.button !== 0 ||
-        (event.target instanceof Element && event.target.closest("button, a"))) return;
+      const anchorRect = anchor.getBoundingClientRect();
+      const pivotClientX = anchorRect.left + anchorRect.width / 2 + state.x;
+      const pivotClientY = anchorRect.top - CLIP_PIVOT_OFFSET_PX + state.y;
+      const nowMs = performance.now();
 
-      cancelAnimationFrame(frame);
-      drag = { id: event.pointerId, startX: event.clientX, startY: event.clientY, x, y, moved: false };
-      vx = vy = 0;
+      state = startBadgeDrag(
+        state,
+        {
+          pointerId: event.pointerId,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          grabOffsetX: event.clientX - pivotClientX,
+          grabOffsetY: event.clientY - pivotClientY,
+          timestampMs: nowMs,
+        },
+        metrics
+      ).state;
+
       badge.setPointerCapture(event.pointerId);
-    };
-
-    const move = (event: PointerEvent) => {
-      if (!drag || drag.id !== event.pointerId) return;
-
-      const dx = event.clientX - drag.startX;
-      const dy = event.clientY - drag.startY;
-      if (!drag.moved && Math.hypot(dx, dy) < 4) return;
-      drag.moved = true;
-      if (motion.matches) return;
-      badge.dataset.dragging = "";
-
-      const limit = Math.min(112, field.clientWidth * 0.23);
-      const nextX = Math.max(-limit, Math.min(limit, drag.x + dx));
-      const nextY = Math.max(-62, Math.min(86, drag.y + dy));
-      vx = (nextX - x) * 0.36;
-      vy = (nextY - y) * 0.36;
-      x = nextX;
-      y = nextY;
       paint();
+      ensureLoop();
     };
 
-    const release = (event: PointerEvent) => {
-      if (!drag || drag.id !== event.pointerId) return;
-      if (!drag.moved && event.type === "pointerup") setFlipped((value) => !value);
-      drag = null;
-      delete badge.dataset.dragging;
-      frame = requestAnimationFrame(settle);
-    };
-
-    const updateMotion = () => {
-      if (!motion.matches) return;
-      const captured = drag?.id;
-      drag = null;
-      if (captured !== undefined && badge.hasPointerCapture(captured)) {
-        badge.releasePointerCapture(captured);
+    const onPointerMove = (event: PointerEvent) => {
+      if (state.phase !== "dragging" || state.pointerId !== event.pointerId) {
+        return;
       }
-      delete badge.dataset.dragging;
-      cancelAnimationFrame(frame);
-      x = y = vx = vy = 0;
+
+      const metrics = cachedMetrics ?? readBadgeFieldMetrics(field, anchor, badge);
+      if (!metrics) return;
+      cachedMetrics = metrics;
+
+      const outcome = moveBadgeDrag(
+        state,
+        {
+          pointerId: event.pointerId,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          timestampMs: performance.now(),
+        },
+        metrics,
+        motion.matches
+      );
+      state = outcome.state;
+      if (outcome.status === "dragging") {
+        paint();
+        ensureLoop();
+      }
+    };
+
+    const onPointerRelease = (event: PointerEvent) => {
+      if (state.phase !== "dragging" || state.pointerId !== event.pointerId) {
+        return;
+      }
+
+      const outcome = releaseBadgeDrag(
+        state,
+        {
+          pointerId: event.pointerId,
+          timestampMs: performance.now(),
+          committedTap: event.type === "pointerup",
+        },
+        motion.matches
+      );
+      state = outcome.state;
+      if (outcome.shouldToggleFlip) {
+        setFlipped((value) => !value);
+      }
+
+      paint();
+      if (state.phase === "idle") {
+        stopLoop();
+      } else {
+        ensureLoop();
+      }
+    };
+
+    const onReducedMotionChange = () => {
+      if (!motion.matches) return;
+      if (state.phase === "dragging" && badge.hasPointerCapture(state.pointerId)) {
+        badge.releasePointerCapture(state.pointerId);
+      }
+      stopLoop();
+      state = createIdleBadgeState();
       paint();
     };
 
-    const observer = new ResizeObserver(paint);
+    const observer = new ResizeObserver(refreshMetrics);
     observer.observe(field);
-    badge.addEventListener("pointerdown", start);
-    badge.addEventListener("pointermove", move);
-    badge.addEventListener("pointerup", release);
-    badge.addEventListener("pointercancel", release);
-    badge.addEventListener("lostpointercapture", release);
-    motion.addEventListener("change", updateMotion);
+    const cover = field.closest(".resume-cover");
+    if (cover) {
+      observer.observe(cover);
+    }
+
+    badge.addEventListener("pointerdown", onPointerDown);
+    badge.addEventListener("pointermove", onPointerMove);
+    badge.addEventListener("pointerup", onPointerRelease);
+    badge.addEventListener("pointercancel", onPointerRelease);
+    badge.addEventListener("lostpointercapture", onPointerRelease);
+    motion.addEventListener("change", onReducedMotionChange);
+
+    if (desktopMedia.matches && !motion.matches) {
+      state = triggerBadgeIntroSwing(state, false).state;
+    }
     paint();
-    if (firstSwing) frame = requestAnimationFrame(settle);
+    ensureLoop();
 
     return () => {
       observer.disconnect();
-      cancelAnimationFrame(frame);
-      badge.removeEventListener("pointerdown", start);
-      badge.removeEventListener("pointermove", move);
-      badge.removeEventListener("pointerup", release);
-      badge.removeEventListener("pointercancel", release);
-      badge.removeEventListener("lostpointercapture", release);
-      motion.removeEventListener("change", updateMotion);
+      stopLoop();
+      badge.removeEventListener("pointerdown", onPointerDown);
+      badge.removeEventListener("pointermove", onPointerMove);
+      badge.removeEventListener("pointerup", onPointerRelease);
+      badge.removeEventListener("pointercancel", onPointerRelease);
+      badge.removeEventListener("lostpointercapture", onPointerRelease);
+      motion.removeEventListener("change", onReducedMotionChange);
     };
   }, []);
 
   return (
     <div className="resume-badge" role="group" aria-label="Rhaenyra Liang 個人名牌">
       <div className="resume-badge-field" ref={fieldRef}>
-        <svg className="resume-strap" viewBox="0 0 480 590" preserveAspectRatio="none" aria-hidden="true">
-          <path id={strapId} ref={strapRef} d={restingStrap} />
+        <svg className="resume-strap" ref={svgRef} viewBox={DEFAULT_RESTING_VIEWBOX} aria-hidden="true">
+          <path id={strapId} ref={strapRef} d={DEFAULT_RESTING_STRAP_PATH} />
           <use href={`#${strapId}`} className="resume-strap-weave" />
           <text><textPath href={`#${strapId}`} startOffset="29%">RHAENYRA LIANG</textPath></text>
         </svg>
 
-        <div className="resume-badge-anchor">
+        <div className="resume-badge-anchor" ref={anchorRef}>
           <div className="resume-badge-swing" ref={badgeRef}>
             <Image
+              ref={clipRef}
               src="/resume/badge-clip.svg"
               alt=""
               width={40}

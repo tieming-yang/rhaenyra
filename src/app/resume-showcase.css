@@ -150,11 +150,12 @@
   position: relative;
   grid-column: 1;
   grid-row: 2;
-  z-index: 1;
+  z-index: 3;
   min-width: 0;
   margin-top: 0.85rem;
   align-self: start;
   text-align: center;
+  pointer-events: none;
 }
 
 @media (width >= 48rem) {
@@ -234,10 +235,13 @@
 
 .resume-badge-swing {
   position: relative;
+  pointer-events: auto;
   touch-action: none;
   cursor: grab;
   user-select: none;
+  perspective: 1000px;
   transform-origin: 50% -40px;
+  will-change: transform;
 }
 
 .resume-badge-swing[data-dragging] {
@@ -250,6 +254,7 @@
   top: -48px;
   left: 50%;
   transform: translateX(-50%);
+  transform-origin: 50% 8px;
   pointer-events: none;
 }
 
@@ -274,8 +279,13 @@
   border-radius: 1.1rem;
   background: #fff;
   box-shadow: 0 24px 48px -22px #5022386b, 0 4px 9px #50223816;
+  transition: box-shadow 220ms ease;
   text-align: start;
   backface-visibility: hidden;
+}
+
+.resume-badge-swing[data-dragging] .resume-badge-face {
+  box-shadow: 0 34px 64px -20px #5022387d, 0 10px 22px #50223822;
 }
 
 .resume-badge-face::before {
@@ -1181,7 +1191,7 @@
   }
 
   .resume-strap {
-    clip-path: inset(0 -3rem -3rem);
+    clip-path: inset(0 -100vw -100vh);
   }
 
   .resume-studio-inner {
@@ -1219,6 +1229,7 @@
   }
 
   .resume-badge-card,
+  .resume-badge-face,
   .resume-job-flip,
   .resume-job-placement,
   .resume-screen-strip {
