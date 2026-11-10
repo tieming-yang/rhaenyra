@@ -149,7 +149,6 @@ export function ResumeShowcase() {
             <nav aria-label="履歷內容">
               <a href="#job-desk">工作與實習 <ArrowDown aria-hidden="true" /></a>
               <a href="#product-cases">產品案例 <ArrowDown aria-hidden="true" /></a>
-              <a href="#experience-title">完整履歷 <ArrowDown aria-hidden="true" /></a>
             </nav>
           </div>
 

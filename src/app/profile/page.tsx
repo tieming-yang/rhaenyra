@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { InterviewHeader } from "@/components/interview-header";
-import { ProfileResumeView } from "@/components/profile-resume-view";
 import { ResumeShowcase } from "@/components/resume-showcase";
 import "./resume-showcase.css";
 
@@ -14,7 +13,6 @@ export default function ProfilePage() {
       <InterviewHeader current="profile" />
       <main>
         <ResumeShowcase />
-        <ProfileResumeView />
       </main>
     </>
   );
