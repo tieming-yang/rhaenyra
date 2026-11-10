@@ -131,21 +131,15 @@
 }
 
 .resume-cover-mark {
-  grid-column: 1;
-  grid-row: 2;
-  align-self: center;
-  justify-self: center;
-  z-index: 0;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: clip;
-  translate: 0 8%;
+  position: absolute;
+  z-index: -1;
+  right: var(--resume-gutter);
+  bottom: 0.12em;
+  left: var(--resume-gutter);
   color: #efbdd0;
-  opacity: 0.64;
-  font-size: clamp(1.75rem, 11vw, 10.5rem);
+  font-size: clamp(3rem, 13.5vw, 14rem);
   font-weight: 720;
-  line-height: 1.18;
+  line-height: 0.89;
   letter-spacing: -0.085em;
   white-space: nowrap;
   text-align: center;
@@ -188,15 +182,6 @@
     grid-column: 2;
     grid-row: 1;
     margin-top: 0;
-  }
-
-  .resume-cover-mark {
-    grid-column: 1 / -1;
-    grid-row: 1;
-    align-self: start;
-    margin-top: calc(clamp(32rem, 66svh, 38rem) * 0.58 - 0.59em);
-    translate: none;
-    opacity: 1;
   }
 }
 
@@ -1168,6 +1153,23 @@
 }
 
 @media (width < 48rem) {
+  .resume-cover-mark {
+    position: static;
+    grid-column: 1;
+    grid-row: 2;
+    align-self: center;
+    justify-self: center;
+    z-index: 0;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+    translate: 0 8%;
+    opacity: 0.64;
+    font-size: clamp(1.75rem, 11vw, 4.5rem);
+    line-height: 1.18;
+  }
+
   .resume-badge-field {
     height: clamp(25rem, 106vw, 29rem);
     max-width: 25rem;
