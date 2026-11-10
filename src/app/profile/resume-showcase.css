@@ -44,7 +44,7 @@
 }
 
 .resume-cover-copy .resume-eyebrow {
-  color: var(--sakura-deep);
+  color: var(--sakura-deep, var(--primary));
 }
 
 .resume-cover-copy h1 {
@@ -222,7 +222,7 @@
   height: 0.23rem;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: var(--sakura-line);
+  background: var(--sakura-line, var(--border));
   content: "";
 }
 
@@ -269,7 +269,7 @@
 .resume-badge-name span {
   display: block;
   margin-top: 0.18rem;
-  color: var(--sakura-deep);
+  color: var(--sakura-deep, var(--primary));
   font-size: 0.73rem;
 }
 
@@ -307,8 +307,8 @@
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 999px;
-  background: var(--sakura-deep);
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 .resume-badge-flip svg {
@@ -317,7 +317,7 @@
 }
 
 .resume-badge-flip:hover {
-  background: var(--primary);
+  background: var(--sakura-deep, var(--accent-foreground));
 }
 
 .resume-badge-contact {
@@ -374,7 +374,7 @@
 }
 
 .resume-desk-inner .resume-eyebrow {
-  color: var(--sakura-deep);
+  color: var(--sakura-deep, var(--primary));
 }
 
 .resume-desk-inner h2 {
@@ -528,7 +528,7 @@
   width: 1.3rem;
   height: 0.17rem;
   border-radius: 1rem;
-  background: var(--sakura-line);
+  background: var(--sakura-line, var(--border));
   content: "";
 }
 
@@ -605,7 +605,7 @@
   display: flex;
   width: max-content;
   margin: 2rem auto 0;
-  color: var(--sakura-deep);
+  color: var(--sakura-deep, var(--primary));
   text-decoration: underline;
   text-underline-offset: 0.25em;
 }
@@ -813,17 +813,18 @@
   min-height: 2.75rem;
   padding: 0.4rem 0.95rem;
   transform: translateX(-50%);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--background);
+  background: var(--primary);
   box-shadow: 0 0 0 5px #39132255;
-  color: var(--sakura-deep);
+  color: var(--primary-foreground);
   font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .resume-open-case:hover > span {
-  background: var(--accent);
+  background: var(--sakura-deep, var(--accent-foreground));
 }
 
 .resume-open-case svg {
