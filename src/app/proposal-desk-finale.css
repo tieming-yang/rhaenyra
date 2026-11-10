@@ -1,0 +1,824 @@
+/* Section 3 -> Section 4 portal seam & Section 4 -> Desk Flat-Lay Finale */
+
+main#profile > section.interview-run {
+  position: relative;
+  z-index: 3;
+  border-top: 0;
+  background: var(--background);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  main#profile > section.interview-run {
+    margin-top: -16svh;
+    background: linear-gradient(180deg, transparent 0, var(--background) 14svh);
+  }
+}
+
+.desk-finale-rail {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  overflow-x: clip;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .desk-finale-rail {
+    min-height: 270svh;
+  }
+}
+
+.desk-finale-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 100svh;
+  padding: calc(var(--interview-header-height) + 1rem) clamp(1rem, 4vw, 3.5rem) 1.75rem;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .desk-finale-stage {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+  }
+}
+
+.desk-finale-stage[data-interactive="false"] a,
+.desk-finale-stage[data-interactive="false"] button {
+  pointer-events: none;
+}
+
+.desk-surface-backdrop {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at 50% 44%, rgb(255 252 253 / 0.86) 0%, rgb(245 224 233 / 0.94) 64%, #ebd0dc 100%),
+    radial-gradient(circle at 1px 1px, rgb(177 47 96 / 0.08) 1px, transparent 0);
+  background-size: 100% 100%, 24px 24px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+}
+
+.desk-camera {
+  position: relative;
+  width: min(100%, 66rem);
+  perspective: 1850px;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.desk-world {
+  position: relative;
+  width: 100%;
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.desk-knoll-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(0.85rem, 2.2vw, 1.85rem);
+  align-items: center;
+  transform-style: preserve-3d;
+}
+
+/* 1. Closed / Transforming MacBook */
+.desk-mac-slot {
+  grid-column: 1 / -1;
+  position: relative;
+  width: min(100%, 31rem);
+  aspect-ratio: 16 / 10.4;
+  margin-inline: auto;
+  transform-style: preserve-3d;
+}
+
+.desk-mac-shadow {
+  position: absolute;
+  inset: 4% 2% -5%;
+  border-radius: 1.35rem;
+  background: radial-gradient(ellipse at 50% 52%, rgb(74 25 48 / 0.28), transparent 72%);
+  filter: blur(14px);
+  pointer-events: none;
+}
+
+.desk-mac {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.desk-mac-base {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 6.5% 5.5% 4.5%;
+  border: 1.5px solid #fdebf2;
+  border-radius: 1.15rem;
+  background:
+    linear-gradient(135deg, #f9dce8 0%, #efc1d4 48%, #e4a5be 100%);
+  box-shadow:
+    inset 0 1px 1px rgb(255 255 255 / 0.8),
+    0 4px 0 #b86888,
+    0 14px 28px -10px rgb(74 25 48 / 0.28);
+}
+
+.desk-mac-well {
+  width: 100%;
+  height: 58%;
+  border-radius: 0.45rem;
+  background: linear-gradient(180deg, #b96c8b, #ca7f9d);
+  box-shadow: inset 0 2px 4px rgb(80 26 50 / 0.35);
+}
+
+.desk-mac-pad {
+  width: 36%;
+  height: 27%;
+  margin-inline: auto;
+  border: 1px solid #c97c9b;
+  border-radius: 0.4rem;
+  background: linear-gradient(160deg, #fbe5ee, #f0bed3);
+}
+
+.desk-mac-notch {
+  position: absolute;
+  bottom: 0;
+  left: 42%;
+  width: 16%;
+  height: 4px;
+  border-radius: 0.3rem 0.3rem 0 0;
+  background: #9c4f6e;
+}
+
+.desk-mac-lid {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform-origin: 50% 0%;
+  will-change: transform;
+}
+
+.desk-mac-lid-outer,
+.desk-mac-lid-inner {
+  position: absolute;
+  inset: 0;
+  border-radius: 1.15rem;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.desk-mac-lid-outer {
+  overflow: hidden;
+  border: 1.5px solid rgb(255 246 250 / 0.92);
+  background:
+    radial-gradient(ellipse at 28% 20%, rgb(255 255 255 / 0.72), transparent 54%),
+    linear-gradient(142deg, #f9e2ec 0%, #f1c5d8 45%, #e5abc3 78%, #f4d2e0 100%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.55),
+    inset 0 -2px 5px rgb(138 59 91 / 0.22);
+}
+
+.desk-mac-sheen {
+  position: absolute;
+  inset: -20% -30%;
+  background: linear-gradient(
+    112deg,
+    transparent 38%,
+    rgb(255 255 255 / 0.42) 48%,
+    transparent 58%
+  );
+  pointer-events: none;
+}
+
+.desk-mac-emblem {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: clamp(2.1rem, 3.6vw, 2.75rem);
+  height: clamp(2.1rem, 3.6vw, 2.75rem);
+  transform: translate(-50%, -50%);
+  border: 1px solid rgb(156 72 106 / 0.25);
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgb(255 255 255 / 0.62), rgb(214 142 170 / 0.34));
+  box-shadow: inset 0 1px 2px rgb(255 255 255 / 0.8);
+}
+
+.desk-mac-emblem > span {
+  width: 42%;
+  height: 42%;
+  transform: rotate(45deg);
+  border: 1.5px solid rgb(145 34 76 / 0.52);
+  border-radius: 2px;
+  background: rgb(255 250 252 / 0.65);
+}
+
+.desk-mac-front-lip {
+  position: absolute;
+  bottom: 0;
+  left: 42%;
+  width: 16%;
+  height: 5px;
+  border-radius: 0.35rem 0.35rem 0 0;
+  background: linear-gradient(180deg, #b86a89, #d993af);
+}
+
+.desk-mac-lid-inner {
+  padding: 2.2% 2% 2.6%;
+  border: 2px solid #eb9bb8;
+  background: linear-gradient(180deg, #1d141a, #120c10);
+  transform: rotateX(180deg);
+}
+
+.desk-mac-webcam {
+  position: absolute;
+  top: 0.85%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #2b3a4f;
+}
+
+.desk-mac-display {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 0.65rem 0.65rem 0.25rem 0.25rem;
+  background: #1a0c14;
+}
+
+.desk-mac-snowworld {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at 50% 24%, #fce4ef 0%, #fff8fa 58%, #fff8fa 100%);
+  will-change: opacity;
+}
+
+.desk-mac-snowmountains {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 62%;
+}
+
+.desk-mac-snowcopy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.25rem;
+  padding-inline: 8%;
+  text-align: center;
+  transform: translateY(-12%);
+}
+
+.desk-mac-snowcopy > span {
+  color: var(--sakura);
+  font-size: clamp(0.45rem, 0.7vw, 0.62rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.desk-mac-snowcopy > strong {
+  color: var(--primary);
+  font-size: clamp(0.92rem, 1.7vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+/* 2. Sticky Note Tip ("FINISH / 感謝閱讀") */
+.desk-note-object {
+  position: relative;
+  justify-self: center;
+  width: min(100%, 14.5rem);
+  padding: 1.15rem 1.2rem 1.25rem;
+  border: 1px solid #f0d5be;
+  border-radius: 0.28rem 0.28rem 0.75rem 0.28rem;
+  background:
+    linear-gradient(162deg, #fffaf0 0%, #fff2dc 68%, #fce5c8 100%);
+  box-shadow:
+    0 14px 24px -14px rgb(87 34 60 / 0.26),
+    0 3px 6px rgb(87 34 60 / 0.08),
+    inset 0 1px 0 #fff;
+  will-change: transform, opacity;
+}
+
+.desk-note-tape {
+  position: absolute;
+  top: -0.52rem;
+  left: 50%;
+  width: 4.1rem;
+  height: 1.05rem;
+  transform: translateX(-50%) rotate(-1.5deg);
+  border-radius: 2px;
+  background: rgb(235 155 184 / 0.48);
+  box-shadow: 0 1px 3px rgb(87 34 60 / 0.1);
+}
+
+.desk-note-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--sakura);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+
+.desk-note-eyebrow svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.desk-note-title {
+  margin-top: 0.35rem;
+  color: var(--foreground);
+  font-size: clamp(1.35rem, 2.3vw, 1.85rem);
+  font-weight: 720;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+}
+
+/* 3. Hero's ID Badge + Coiled Lanyard on Desk */
+.desk-badge-object {
+  position: relative;
+  justify-self: center;
+  width: min(100%, 12.25rem);
+  padding-top: 2.3rem;
+  will-change: transform, opacity;
+}
+
+.desk-badge-lanyard {
+  position: absolute;
+  top: -0.35rem;
+  left: 50%;
+  width: 12.5rem;
+  height: 5.4rem;
+  transform: translateX(-50%);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.desk-lanyard-band {
+  fill: none;
+  stroke: #4a1930;
+  stroke-width: 15;
+  stroke-linecap: round;
+  filter: drop-shadow(0 6px 8px rgb(74 25 48 / 0.22));
+}
+
+.desk-lanyard-weave {
+  fill: none;
+  stroke: #8d4461;
+  stroke-width: 13;
+  stroke-dasharray: 0.8 2.8;
+  stroke-linecap: round;
+}
+
+.desk-badge-lanyard text {
+  fill: #ffeaf2;
+  font-size: 4.5px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+}
+
+.desk-badge-clip {
+  position: absolute;
+  z-index: 2;
+  top: 1.65rem;
+  left: 50%;
+  width: 1.55rem;
+  height: 1.1rem;
+  transform: translateX(-50%);
+  border: 1px solid #d5b4c2;
+  border-radius: 0.28rem;
+  background: linear-gradient(180deg, #fff8fb, #dcc0cc);
+  box-shadow: 0 3px 6px rgb(74 25 48 / 0.18);
+  pointer-events: none;
+}
+
+.desk-badge-card-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  perspective: 950px;
+  text-align: left;
+}
+
+.desk-badge-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 0.76;
+  transform-style: preserve-3d;
+  transition: transform 540ms cubic-bezier(0.22, 0.61, 0.33, 1);
+}
+
+.desk-badge-card-btn:hover .desk-badge-card {
+  transform: translateY(-4px);
+}
+
+.desk-badge-card[data-flipped] {
+  transform: rotateY(180deg);
+}
+
+.desk-badge-card-btn:hover .desk-badge-card[data-flipped] {
+  transform: translateY(-4px) rotateY(180deg);
+}
+
+.desk-badge-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  padding: 0.75rem 0.68rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: #fff;
+  box-shadow:
+    0 18px 30px -16px rgb(80 34 56 / 0.36),
+    0 4px 8px rgb(80 34 56 / 0.1);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.desk-badge-front {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0.38rem;
+}
+
+.desk-badge-back {
+  align-content: start;
+  gap: 0.45rem;
+  background: linear-gradient(150deg, #fff, var(--accent));
+  transform: rotateY(180deg);
+}
+
+.desk-badge-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.35rem;
+  color: var(--muted-foreground);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.desk-badge-photo-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 0.55rem;
+}
+
+.desk-badge-photo {
+  object-fit: cover;
+  object-position: center 42%;
+}
+
+.desk-badge-meta {
+  display: grid;
+  padding-right: 1.8rem;
+  line-height: 1.18;
+}
+
+.desk-badge-meta > strong,
+.desk-badge-company {
+  color: var(--foreground);
+  font-size: 0.84rem;
+  font-weight: 730;
+  letter-spacing: -0.03em;
+}
+
+.desk-badge-meta > small {
+  margin-top: 0.12rem;
+  color: var(--sakura-deep);
+  font-size: 0.62rem;
+  font-weight: 600;
+}
+
+.desk-badge-summary {
+  color: var(--muted-foreground);
+  font-size: 0.64rem;
+  line-height: 1.48;
+}
+
+.desk-badge-signature {
+  position: absolute;
+  bottom: 0.72rem;
+  left: 0.68rem;
+  color: var(--muted-foreground);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.desk-badge-flip-chip {
+  position: absolute;
+  right: 0.52rem;
+  bottom: 0.52rem;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+}
+
+.desk-badge-flip-chip svg {
+  width: 0.78rem;
+  height: 0.78rem;
+}
+
+/* 4. Drafting Triangle Ruler CTA ("回到頂部") */
+.desk-ruler-object {
+  position: relative;
+  justify-self: center;
+  display: block;
+  width: min(100%, 19rem);
+  text-decoration: none;
+  color: var(--sakura-deep);
+  filter: drop-shadow(0 12px 18px rgb(145 34 76 / 0.16));
+  transition: transform 220ms cubic-bezier(0.22, 0.74, 0.32, 1), filter 220ms ease;
+  will-change: transform, opacity;
+}
+
+.desk-ruler-object:hover,
+.desk-ruler-object:focus-visible {
+  transform: translateY(-5px) scale(1.02) !important;
+  filter: drop-shadow(0 18px 26px rgb(177 47 96 / 0.26));
+}
+
+.desk-ruler-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.desk-ruler-body {
+  fill: rgb(252 226 237 / 0.76);
+  stroke: rgb(177 47 96 / 0.52);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.desk-ruler-cutout {
+  fill: rgb(244 222 232 / 0.92);
+  stroke: rgb(177 47 96 / 0.34);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.desk-ruler-ticks line {
+  stroke: rgb(145 34 76 / 0.62);
+  stroke-width: 1.15;
+  stroke-linecap: round;
+}
+
+.desk-ruler-label {
+  position: absolute;
+  right: 0;
+  bottom: 15%;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 740;
+  letter-spacing: 0.06em;
+}
+
+.desk-ruler-arrow {
+  color: var(--primary);
+  font-size: 0.72rem;
+}
+
+/* 5. Smartphone CTA ("聯絡我") */
+.desk-phone-object {
+  position: relative;
+  justify-self: center;
+  display: block;
+  width: min(100%, 11.25rem);
+  text-decoration: none;
+  color: #fff;
+  transition: transform 220ms cubic-bezier(0.22, 0.74, 0.32, 1), filter 220ms ease;
+  filter: drop-shadow(0 16px 24px rgb(54 21 39 / 0.28));
+  will-change: transform, opacity;
+}
+
+.desk-phone-object:hover,
+.desk-phone-object:focus-visible {
+  transform: translateY(-5px) scale(1.025) !important;
+  filter: drop-shadow(0 22px 32px rgb(177 47 96 / 0.34));
+}
+
+.desk-phone-frame {
+  display: block;
+  padding: 0.28rem;
+  border: 1.5px solid #f5cadc;
+  border-radius: 1.45rem;
+  background: linear-gradient(145deg, #d88ca9, #9a4c6b);
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 0.65);
+}
+
+.desk-phone-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 11.5rem;
+  padding: 0.5rem 0.58rem 0.42rem;
+  border-radius: 1.2rem;
+  background:
+    radial-gradient(ellipse at 50% 18%, #7a264d 0%, #2b1020 62%, #170811 100%);
+  transition: background 220ms ease;
+}
+
+.desk-phone-object:hover .desk-phone-screen,
+.desk-phone-object:focus-visible .desk-phone-screen {
+  background:
+    radial-gradient(ellipse at 50% 18%, #9e3161 0%, #371328 62%, #1d0a15 100%);
+}
+
+.desk-phone-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgb(255 236 244 / 0.78);
+  font-size: 0.54rem;
+  font-weight: 650;
+}
+
+.desk-phone-island {
+  width: 2.3rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #090306;
+}
+
+.desk-phone-card {
+  display: grid;
+  gap: 0.42rem;
+  padding: 0.62rem;
+  border: 1px solid rgb(255 218 234 / 0.28);
+  border-radius: 0.8rem;
+  background: rgb(255 238 246 / 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.desk-phone-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 0.48rem;
+  background: var(--primary);
+  color: #fff;
+}
+
+.desk-phone-icon svg {
+  width: 0.88rem;
+  height: 0.88rem;
+}
+
+.desk-phone-copy {
+  display: grid;
+  gap: 0.14rem;
+  min-width: 0;
+}
+
+.desk-phone-copy > strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.desk-phone-copy > strong svg {
+  width: 0.78rem;
+  height: 0.78rem;
+}
+
+.desk-phone-copy > small {
+  color: rgb(255 228 239 / 0.82);
+  font-size: 0.58rem;
+  overflow-wrap: anywhere;
+}
+
+.desk-phone-homebar {
+  width: 36%;
+  height: 3px;
+  margin-inline: auto;
+  border-radius: 999px;
+  background: rgb(255 240 246 / 0.5);
+}
+
+/* Desktop Overhead Knolling Layout */
+@media (min-width: 54rem) {
+  .desk-knoll-grid {
+    grid-template-columns: minmax(0, 1.48fr) minmax(13rem, 0.78fr) minmax(12rem, 0.74fr);
+    grid-template-rows: auto auto;
+    gap: clamp(1.1rem, 2.2vw, 2rem);
+  }
+
+  .desk-mac-slot {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    width: 100%;
+    max-width: 34rem;
+  }
+
+  .desk-note-object {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+    align-self: start;
+    margin-top: 0.75rem;
+  }
+
+  .desk-badge-object {
+    grid-column: 3 / 4;
+    grid-row: 1 / 3;
+    align-self: center;
+  }
+
+  .desk-ruler-object {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+    justify-self: center;
+    width: min(100%, 21.5rem);
+  }
+
+  .desk-phone-object {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    align-self: start;
+  }
+}
+
+@media (max-width: 53.99rem) {
+  .desk-finale-stage {
+    padding-top: calc(var(--interview-header-height) + 0.35rem);
+    padding-bottom: 0.75rem;
+  }
+
+  .desk-knoll-grid {
+    gap: 0.5rem;
+  }
+
+  .desk-mac-slot {
+    width: min(76vw, 17.5rem);
+  }
+
+  .desk-badge-object {
+    width: min(100%, 8.4rem);
+    padding-top: 1.15rem;
+  }
+
+  .desk-badge-lanyard {
+    width: 8.8rem;
+    height: 3.4rem;
+  }
+
+  .desk-badge-clip {
+    top: 0.8rem;
+  }
+
+  .desk-note-object {
+    padding: 0.75rem 0.85rem 0.85rem;
+  }
+
+  .desk-phone-screen {
+    min-height: 7.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desk-badge-card,
+  .desk-ruler-object,
+  .desk-phone-object,
+  .desk-phone-screen {
+    transition: none;
+  }
+}
