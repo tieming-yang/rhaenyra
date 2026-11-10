@@ -3,7 +3,7 @@ import { InterviewHeader } from "@/components/interview-header";
 import { ResumeShowcase } from "@/components/resume-showcase";
 import { SnowboardRun } from "@/components/snowboard-run";
 import { CANDIDATE_PROFILE } from "@/domain/portfolio-data";
-import { HEADER_SECTION_HASH } from "@/lib/header-navigation";
+import { HEADER_SECTION_HREF } from "@/lib/header-navigation";
 import "./resume-showcase.css";
 
 export default function HomePage() {
@@ -37,7 +37,8 @@ export default function HomePage() {
             <h2>感謝閱讀</h2>
             <div className="flex flex-wrap justify-center gap-3">
               <a
-                href={HEADER_SECTION_HASH.profile}
+                href={HEADER_SECTION_HREF.hero}
+                data-scroll-section="hero"
                 className="interview-button interview-button-primary"
               >
                 回到頂部
