@@ -192,6 +192,16 @@ describe("parseSiteContent validation", () => {
       "proposal.trail.markerAriaTemplate contains unsupported placeholder {unknown}"
     );
 
+    const missingPrevTopicToken = createValidRawInput();
+    (
+      missingPrevTopicToken.bundle.proposal as {
+        trail: { prevTopicAriaTemplate: string };
+      }
+    ).trail.prevTopicAriaTemplate = "前往上一站";
+    expect(() => parseSiteContent(missingPrevTopicToken)).toThrow(
+      "proposal.trail.prevTopicAriaTemplate must include placeholder {title}"
+    );
+
     const missingNextTopicToken = createValidRawInput();
     (
       missingNextTopicToken.bundle.proposal as {

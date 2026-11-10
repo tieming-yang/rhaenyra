@@ -160,7 +160,9 @@ export interface ProposalIntroContent {
 export interface ProposalTrailContent {
   readonly stopsAriaLabel: string;
   readonly markerAriaTemplate: string;
+  readonly prevTopicAriaTemplate: string;
   readonly nextTopicAriaTemplate: string;
+  readonly introAriaLabel: string;
   readonly finishAriaLabel: string;
 }
 
@@ -816,10 +818,19 @@ function parseProposalContent(raw: unknown): ProposalSectionContent {
         ["step", "title"],
         "proposal.trail.markerAriaTemplate"
       ),
+      prevTopicAriaTemplate: assertTemplatePlaceholders(
+        trail.prevTopicAriaTemplate,
+        ["title"],
+        "proposal.trail.prevTopicAriaTemplate"
+      ),
       nextTopicAriaTemplate: assertTemplatePlaceholders(
         trail.nextTopicAriaTemplate,
         ["title"],
         "proposal.trail.nextTopicAriaTemplate"
+      ),
+      introAriaLabel: assertNonEmptyString(
+        trail.introAriaLabel,
+        "proposal.trail.introAriaLabel"
       ),
       finishAriaLabel: assertNonEmptyString(
         trail.finishAriaLabel,
