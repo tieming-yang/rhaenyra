@@ -1,6 +1,6 @@
 import { WORK_EXPERIENCES } from "./portfolio-data";
 
-interface ResumeBadgeJob {
+export interface ResumeBadgeJob {
   readonly id: string;
   readonly company: string;
   readonly role: string;
@@ -8,26 +8,62 @@ interface ResumeBadgeJob {
   readonly note: string;
 }
 
-const badgeNotes: Readonly<Record<string, string>> = {
-  beacon: "從產品設計、官網與測試到 Threads 社群經營，推廣後 54 天內突破一萬次不重複下載。",
-  "thinker-data": "歷任產品經理、產品長與 AI 營運工程師，建立 AI 客服監控、數據實驗與跨部門協作流程。",
-  "eternal-story": "維護官方網站、開發新功能，並導入一致的品牌介面與設計系統。",
-  "youtube-creator": "透過 8 支影片與標題、縮圖測試，一個月內從零累積至 2,100 位訂閱者。",
-  tvbs: "參與三項大型網站開發與維護，支援技術 SEO、使用者流程與設計系統。",
-  dentall: "研究並實作 Web App 新功能，展示互動原型後獲團隊採納。",
-};
+const workExperienceById = new Map(
+  WORK_EXPERIENCES.map((experience) => [experience.id, experience])
+);
 
+/**
+ * Builds a badge entry from canonical `WORK_EXPERIENCES` metadata, throwing if the experience id is unknown.
+ */
+export function createWorkBadge(id: string, note: string): ResumeBadgeJob {
+  const experience = workExperienceById.get(id);
+  if (!experience) {
+    throw new Error(`Missing work experience entry for badge id: ${id}`);
+  }
+  return {
+    id: experience.id,
+    company: experience.company,
+    role: experience.role,
+    period: experience.period,
+    note,
+  };
+}
+
+/**
+ * Work, internship, and teaching badges ordered newest-to-oldest along the resume timeline.
+ */
 export const RESUME_BADGES: readonly ResumeBadgeJob[] = [
-  ...WORK_EXPERIENCES.flatMap((experience) => {
-    const note = badgeNotes[experience.id];
-    return note ? [{
-      id: experience.id,
-      company: experience.company,
-      role: experience.role,
-      period: experience.period,
-      note,
-    }] : [];
-  }),
+  createWorkBadge(
+    "beacon",
+    "從產品設計、官網與測試到 Threads 社群經營，推廣後 54 天內突破一萬次不重複下載。"
+  ),
+  createWorkBadge(
+    "thinker-data",
+    "歷任產品經理、產品長與 AI 營運工程師，建立 AI 客服監控、數據實驗與跨部門協作流程。"
+  ),
+  {
+    id: "houston-teaching",
+    company: "美國休士頓",
+    role: "舞蹈教學",
+    period: "2025",
+    note: "於舞蹈機構以全英文授課，帶領不同背景的學員。",
+  },
+  createWorkBadge(
+    "eternal-story",
+    "維護官方網站、開發新功能，並導入一致的品牌介面與設計系統。"
+  ),
+  createWorkBadge(
+    "youtube-creator",
+    "透過 8 支影片與標題、縮圖測試，一個月內從零累積至 2,100 位訂閱者。"
+  ),
+  createWorkBadge(
+    "tvbs",
+    "參與三項大型網站開發與維護，支援技術 SEO、使用者流程與設計系統。"
+  ),
+  createWorkBadge(
+    "dentall",
+    "研究並實作 Web App 新功能，展示互動原型後獲團隊採納。"
+  ),
   {
     id: "bole",
     company: "博樂工作室",
@@ -41,13 +77,6 @@ export const RESUME_BADGES: readonly ResumeBadgeJob[] = [
     role: "社群行銷實習生",
     period: "2022/05 – 2022/07",
     note: "撰寫互惠推廣企劃，洽談 KOL 合作，並規劃 Instagram 內容與粉絲活動。",
-  },
-  {
-    id: "houston-teaching",
-    company: "美國休士頓",
-    role: "舞蹈教學",
-    period: "2025",
-    note: "於舞蹈機構以全英文授課，帶領不同背景的學員。",
   },
   {
     id: "taiwan-teaching",
