@@ -55,16 +55,6 @@ export interface RoadmapPhase {
   readonly deliverables: readonly string[];
 }
 
-export interface InterviewSlideSpec {
-  readonly index: number;
-  readonly slideNumber: string;
-  readonly tag: string;
-  readonly axis: "snow" | "sakura" | "dual";
-  readonly title: string;
-  readonly subtitle: string;
-  readonly keyTakeaway: string;
-}
-
 export const CANDIDATE_PROFILE = {
   name: "Rhaenyra Liang",
   chinesePositioning: "數位產品管理 × AI 營運自動化 × 零廣告自然成長",
@@ -108,30 +98,6 @@ export const KEY_METRICS: readonly KeyMetricItem[] = [
     label: "半個月影音曝光",
     detail: "YouTube 頻道透過 8 支影片與標題/縮圖 A/B 測試，首月由 0 成長至 2,100 訂閱",
     accentAxis: "snow",
-  },
-] as const;
-
-export const JSTYLE_ECOSYSTEM_OVERVIEW = [
-  {
-    name: "旅遊規劃與包車服務",
-    domain: "jstylehokkaido.com / rezio.shop",
-    currentStrength: "北海道中文包車一日遊、機場接送、客製化行程與全日本餐廳/飯店代訂",
-    growthOpportunity: "提升客製化詢價效率、強化 AI 搜尋引擎（ChatGPT / Perplexity）行程推薦曝光",
-    axis: "sakura" as const,
-  },
-  {
-    name: "租車預約服務（北海道・岡山・四國）",
-    domain: "jstylerentalcar.com",
-    currentStrength: "冬季 4WD 與雪胎配置、車型與行李空間建議、保險解說與旅途事故中文協處",
-    growthOpportunity: "以 AI 預審助手自動試算「人數 × 28吋行李 × 雪具」車型，並以內容漏斗引爆岡山/四國新區流量",
-    axis: "snow" as const,
-  },
-  {
-    name: "滑雪課程與預約服務",
-    domain: "jstyleski.com",
-    currentStrength: "20+ 國際認證專業中文教練，涵蓋手稻、二世古、留壽都、富良野等各大雪場",
-    growthOpportunity: "優化 20+ 教練排課媒合工作流、課前自動化行前通知與「滑雪＋包車/租車」跨事業交叉銷售",
-    axis: "snow" as const,
   },
 ] as const;
 
@@ -427,78 +393,54 @@ export const ROADMAP_30_60_90: readonly RoadmapPhase[] = [
   },
 ] as const;
 
-export const INTERVIEW_SLIDES: readonly InterviewSlideSpec[] = [
+export const INTERVIEW_WAYPOINTS = [
   {
-    index: 0,
-    slideNumber: "01",
-    tag: "COVER · 主動應徵提案",
-    axis: "dual",
-    title: "當北海道粉雪遇見春櫻：為 Jstyle 打造下一階段的數位與 AI 成長引擎",
-    subtitle: "Rhaenyra Liang｜產品管理 × AI 營運自動化 × 零廣告百萬流量實踐者",
-    keyTakeaway: "以技術與內容雙輪驅動，將「安心、順暢、有效率」的品牌理念放大為可跨區擴張的數位體驗。",
+    id: "intro",
+    label: "INTRO",
+    title: "為北海道旅程設計更順暢的體驗",
+    description: "以產品管理、AI 營運自動化與自然成長經驗，協助 Jstyle 串起旅遊、租車和滑雪服務。",
   },
   {
-    index: 1,
-    slideNumber: "02",
-    tag: "WHO I AM · 跨領域實戰背景",
-    axis: "sakura",
-    title: "兼具 0→1 產品工程、AI 營運與 140萬+ 自然流量的 T 型實踐者",
-    subtitle: "從新創共同創辦人、產品長 (CPO) 到 AI 營運工程師的閉環即戰力",
-    keyTakeaway: "不只能規劃策略與寫規格，更能親自實作前端 UI/UX、串接 n8n/AI 客服，並以零廣告預算跑出破萬轉換。",
+    id: "experience",
+    label: "EXPERIENCE",
+    title: "從策略到實作",
+    description: "從 0 到 1 做產品、前端與自動化。Beacon 在 54 天零廣告投放下累積破萬次不重複下載與 140 萬次瀏覽。",
   },
   {
-    index: 2,
-    slideNumber: "03",
-    tag: "BUSINESS INSIGHT · Jstyle 現況洞察",
-    axis: "snow",
-    title: "我眼中的 Jstyle北海道：從深耕在地信任到跨區擴張的關鍵躍升期",
-    subtitle: "2019 滑雪起家 → 包車旅遊整合 → 租車服務 → 2025 擴展 20+ 教練與岡山・四國版圖",
-    keyTakeaway: "三大事業與四大網站已具堅實口碑，下一階段的核心槓桿在於「客服預審自動化」與「跨站流量數據閉環」。",
+    id: "jstyle",
+    label: "JSTYLE HOKKAIDO",
+    title: "從北海道走向岡山與四國",
+    description: "旅遊規劃、租車與滑雪已有在地服務基礎。下一步是讓顧客跨區諮詢時，依然容易找到對的服務。",
   },
   {
-    index: 3,
-    slideNumber: "04",
-    tag: "PROPOSAL 01 · AI 客服與自動化（含互動 Demo）",
-    axis: "snow",
-    title: "賦能提案一：三大 LINE 客服 AI 智慧預審分流 × n8n 自動化派工",
-    subtitle: "解決旺季重複詢問瓶頸，讓真人客服專注於高價值成交與旅途緊急支援",
-    keyTakeaway: "本頁內建「Jstyle 租車行李配置 & 滑雪課程 AI 預審模擬器」，直接展示可落地的互動預審邏輯。",
+    id: "line-workflow",
+    label: "LINE WORKFLOW",
+    title: "讓 LINE 客服少問一步",
+    description: "由 AI 整理旅客的日期、人數和需求，再透過 n8n 將租車、包車與滑雪諮詢分流給對應團隊。",
   },
   {
-    index: 4,
-    slideNumber: "05",
-    tag: "PROPOSAL 02 · 零廣告自然流量飛輪",
-    axis: "sakura",
-    title: "賦能提案二：放大「北海道女婿」IP × Threads 破圈與岡山/四國新線推廣",
-    subtitle: "借鏡 Beacon 54 天零廣告 140 萬瀏覽與 YouTube 首月 15.59 萬曝光方法論",
-    keyTakeaway: "透過長短影音拆解、標題縮圖 A/B 測試與 KOL 互惠策展，建立低獲客成本（CAC）的全季內容漏斗。",
+    id: "organic-growth",
+    label: "ORGANIC GROWTH",
+    title: "讓短影音帶來自然詢問",
+    description: "將「北海道女婿」的 YouTube 素材拆成 Threads 與短影音企劃，測試哪些主題能為北海道、岡山與四國帶來詢問。",
   },
   {
-    index: 5,
-    slideNumber: "06",
-    tag: "PROPOSAL 03 · 數據漏斗與 AI 搜尋優化",
-    axis: "sakura",
-    title: "賦能提案三：多站點 GA4 跨網域追蹤 × SEO 與 AI 可讀性（GEO）",
-    subtitle: "串聯 jstylehokkaido / jstylerentalcar / jstyleski / rezio.shop 數據軌跡",
-    keyTakeaway: "讓旅客在 Google 與 ChatGPT 詢問「北海道中文租車／包車／滑雪教練」時，Jstyle 成為首選推薦答案。",
+    id: "search",
+    label: "ANALYTICS & SEARCH",
+    title: "看見從搜尋到預約的路徑",
+    description: "以 GA4 和 GTM 追蹤各站到 LINE 的轉換，再整理常見旅遊問答，讓搜尋引擎與 AI 更容易理解服務內容。",
   },
   {
-    index: 6,
-    slideNumber: "07",
-    tag: "PROPOSAL 04 · 預約協作與台日團隊賦能",
-    axis: "snow",
-    title: "賦能提案四：20+ 教練排課數位化、Notion 知識庫 SOP 與 B2B 商務提案",
-    subtitle: "結合舞蹈預約平台產品經驗與台美實體教學背景，強化內部與外部協作",
-    keyTakeaway: "以結構化 SOP 與敏捷工具降低跨國團隊溝通成本，並以專業簡報支援日本在地飯店、雪場與車行合作洽談。",
+    id: "coach-ops",
+    label: "COACH OPERATIONS",
+    title: "把教練排課和行前通知串起來",
+    description: "統整教練時段、學員程度與課前提醒，並用 Notion 文件協助台日團隊與合作夥伴交接。",
   },
   {
-    index: 7,
-    slideNumber: "08",
-    tag: "ROADMAP · 30-60-90 天落地計畫",
-    axis: "dual",
-    title: "加入 Jstyle 後的 30-60-90 天執行藍圖與聯絡方式",
-    subtitle: "快速融入團隊節奏，從數據盤點、客服減負到跨區流量增長穩步推進",
-    keyTakeaway: "期待與 Jstyle 團隊攜手，為每一位前往日本自由行的旅客創造更「安心、順暢、有效率」的美好旅程。",
+    id: "roadmap",
+    label: "30 / 60 / 90",
+    title: "把提案拆成三個階段",
+    description: "先盤點數據與客服需求，再驗證分流與內容實驗，最後推進教練排課和跨事業加購。",
   },
 ] as const;
 

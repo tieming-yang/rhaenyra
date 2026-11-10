@@ -1,126 +1,41 @@
-"use client";
-
-import { useCallback, useState } from "react";
-import { FileDown } from "lucide-react";
-import { LiquidGlassPanel } from "@/components/liquid-glass-panel";
-import { SlideDeckView } from "@/components/slide-deck-view";
-import { ProfileResumeView } from "@/components/profile-resume-view";
-import {
-  CANDIDATE_PROFILE,
-  INTERVIEW_SLIDES,
-} from "@/domain/portfolio-data";
-import {
-  transitionSlideDeck,
-  type ExperienceCategoryFilter,
-  type PortfolioViewState,
-  type SlideNavigationAction,
-} from "@/domain/portfolio-domain";
+import Link from "next/link";
+import { ArrowDown, ArrowRight, Mail } from "lucide-react";
+import { InterviewHeader } from "@/components/interview-header";
+import { SnowboardRun } from "@/components/snowboard-run";
+import { CANDIDATE_PROFILE } from "@/domain/portfolio-data";
 
 export default function HomePage() {
-  const [viewState, setViewState] = useState<PortfolioViewState>({
-    kind: "slides",
-    activeSlideIndex: 0,
-    totalSlides: INTERVIEW_SLIDES.length,
-  });
-
-  const handleSlideNavigation = useCallback(
-    (action: SlideNavigationAction) => {
-      setViewState((prev) => {
-        if (prev.kind !== "slides") {
-          return prev;
-        }
-        const outcome = transitionSlideDeck(prev, action);
-        if (outcome.status === "transitioned") {
-          return {
-            ...prev,
-            activeSlideIndex: outcome.nextIndex,
-          };
-        }
-        return prev;
-      });
-    },
-    []
-  );
-
-  const handleSwitchToProfile = useCallback(() => {
-    setViewState({
-      kind: "profile",
-      categoryFilter: "all",
-    });
-  }, []);
-
-  const handleSwitchToSlides = useCallback((slideIndex = 0) => {
-    setViewState({
-      kind: "slides",
-      activeSlideIndex: slideIndex,
-      totalSlides: INTERVIEW_SLIDES.length,
-    });
-  }, []);
-
-  const handleChangeCategory = useCallback(
-    (categoryFilter: ExperienceCategoryFilter) => {
-      setViewState({
-        kind: "profile",
-        categoryFilter,
-      });
-    },
-    []
-  );
-
   return (
-    <div
-      className="interview-shell"
-      data-cover={viewState.kind === "slides" && viewState.activeSlideIndex === 0 ? "" : undefined}
-      data-lg-backdrop=".interview-backdrop"
-    >
-      <div className="interview-backdrop" aria-hidden="true" />
-      <header className="interview-header">
-        <div className="interview-header-inner">
-          <span className="interview-wordmark">{CANDIDATE_PROFILE.name}</span>
-          <nav className="mode-switch glass-control" aria-label="檢視模式">
-            <LiquidGlassPanel />
-            <button
-              type="button"
-              onClick={() => handleSwitchToSlides(0)}
-              aria-pressed={viewState.kind === "slides"}
-            >
-              簡報
-            </button>
-            <button
-              type="button"
-              onClick={handleSwitchToProfile}
-              aria-pressed={viewState.kind === "profile"}
-            >
-              履歷
-            </button>
-          </nav>
-          <a
-            href={CANDIDATE_PROFILE.resumePdfUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="interview-pdf"
-          >
-            <FileDown className="hidden size-4 sm:block" aria-hidden="true" />
-            履歷 PDF
+    <>
+      <InterviewHeader current="run" />
+      <main className="interview-run">
+        <section className="run-intro" aria-labelledby="run-title">
+          <p className="interview-kicker">{CANDIDATE_PROFILE.targetCompany} · 面試提案</p>
+          <h1 id="run-title">{CANDIDATE_PROFILE.name}</h1>
+          <p className="run-intro-subtitle">{CANDIDATE_PROFILE.chinesePositioning}</p>
+          <a className="run-start" href="#intro">
+            向下探索
+            <ArrowDown className="size-4" aria-hidden="true" />
           </a>
-        </div>
-      </header>
+        </section>
 
-      <main>
-        {viewState.kind === "slides" ? (
-          <SlideDeckView
-            activeSlideIndex={viewState.activeSlideIndex}
-            onNavigate={handleSlideNavigation}
-            onSwitchToProfile={handleSwitchToProfile}
-          />
-        ) : (
-          <ProfileResumeView
-            categoryFilter={viewState.categoryFilter}
-            onChangeCategory={handleChangeCategory}
-            onSwitchToSlides={handleSwitchToSlides}
-          />
-        )}
+        <SnowboardRun />
+
+        <footer className="run-finish">
+          <p className="interview-kicker">FINISH</p>
+          <h2>感謝閱讀</h2>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link href="/profile" className="interview-button interview-button-primary">
+              查看完整履歷
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+            <a href={`mailto:${CANDIDATE_PROFILE.email}`} className="interview-button">
+              <Mail className="size-4" aria-hidden="true" />
+              聯絡我
+            </a>
+          </div>
+        </footer>
       </main>
-    </div>
+    </>
   );
 }
