@@ -1,10 +1,14 @@
 import type { RiderRigPose } from "./snowboard-route";
 
-export const RIDER_CANVAS_SIZE = 70;
-const RIDER_ANCHOR_X = 35;
-const RIDER_ANCHOR_Y = 56;
+export const RIDER_CANVAS_SIZE = 140;
+export const RIDER_ANCHOR_X_PCT = 50;
+export const RIDER_ANCHOR_Y_PCT = 70;
+
+const RIDER_ANCHOR_X = (RIDER_CANVAS_SIZE * RIDER_ANCHOR_X_PCT) / 100;
+const RIDER_ANCHOR_Y = (RIDER_CANVAS_SIZE * RIDER_ANCHOR_Y_PCT) / 100;
 const RIDER_PIXEL_SCALE = 1.56;
 const CAMERA_PITCH_RAD = 0.41;
+const MAX_POWDER_PARTICLES = 96;
 
 export type RiderPixelBuffer = Readonly<{
   width: number;
@@ -15,6 +19,8 @@ export type RiderPixelBuffer = Readonly<{
   outlineU32: Uint32Array;
 }>;
 
+export type PowderKind = "spray" | "mist" | "slash";
+
 export type PowderParticle = Readonly<{
   x: number;
   y: number;
@@ -22,7 +28,16 @@ export type PowderParticle = Readonly<{
   vy: number;
   life: number;
   maxLife: number;
+  size: 1 | 2 | 3;
+  kind: PowderKind;
 }>;
+
+export type WorldShiftPx = Readonly<{
+  dx: number;
+  dy: number;
+}>;
+
+const ZERO_WORLD_SHIFT: WorldShiftPx = { dx: 0, dy: 0 };
 
 type Mat3x4 = readonly [
   number, number, number, number,
@@ -65,8 +80,12 @@ const PALETTE = {
   shadowSoft: hexToU32("#91224c", 26),
 
   sprayCore: hexToU32("#ffffff"),
-  sprayMist: hexToU32("#fbd5e5"),
-  sprayRim: hexToU32("#df8cae", 215),
+  sprayHighlight: hexToU32("#fff1f7", 245),
+  sprayMist: hexToU32("#f9cde0", 228),
+  sprayShadow: hexToU32("#e495b6", 212),
+  sprayRim: hexToU32("#c96690", 198),
+  mistSoft: hexToU32("#f3bcd5", 150),
+  mistFaint: hexToU32("#e8abca", 110),
 
   alpineWhite: hexRamp("#ffffff", "#fff6fa", "#eed7e2", "#d5b4c4"),
   sakuraDeep: hexRamp("#e26a99", "#b12f60", "#91224c", "#6c1637"),
@@ -201,51 +220,137 @@ export function createRiderPixelBuffer(
   };
 }
 
-/** Advances existing powder spray particles and spawns fresh spray along the carving edge. */
+/** Advances world-space powder plumes, lingering snow mist, and gate-check hockey-slash bursts. */
 export function stepPowderParticles(
   particles: readonly PowderParticle[],
   pose: RiderRigPose,
   dtSec: number,
+  worldShift: WorldShiftPx = ZERO_WORLD_SHIFT,
   randomFn: () => number = Math.random
 ): readonly PowderParticle[] {
   if (!Number.isFinite(dtSec) || dtSec < 0) {
     throw new Error("Powder particle step requires a non-negative finite dtSec");
   }
+  if (!Number.isFinite(worldShift.dx) || !Number.isFinite(worldShift.dy)) {
+    throw new Error("Powder particle step requires finite worldShift coordinates");
+  }
 
   const stepScale = Math.min(2.5, Math.max(0.2, dtSec * 60));
+  const shiftX = Math.max(-32, Math.min(32, worldShift.dx));
+  const shiftY = Math.max(-32, Math.min(32, worldShift.dy));
   const next: PowderParticle[] = [];
 
   for (const p of particles) {
     const life = p.life - stepScale;
     if (life <= 0) continue;
+
+    const advect = p.kind === "mist" ? 0.92 : 0.78;
+    const drag = Math.pow(p.kind === "mist" ? 0.9 : 0.955, stepScale);
+    const gravity = p.kind === "mist" ? 0.018 : 0.055;
+    const vx = p.vx * drag;
+    const vy = p.vy * drag + gravity * stepScale;
+    const x = p.x - shiftX * advect + vx * stepScale;
+    const y = p.y - shiftY * advect + vy * stepScale;
+
+    if (
+      x < -4 ||
+      x > RIDER_CANVAS_SIZE + 4 ||
+      y < -4 ||
+      y > RIDER_CANVAS_SIZE + 4
+    ) {
+      continue;
+    }
+
     next.push({
-      x: p.x + p.vx * stepScale,
-      y: p.y + p.vy * stepScale,
-      vx: p.vx,
-      vy: p.vy + 0.065 * stepScale,
+      x,
+      y,
+      vx,
+      vy,
       life,
       maxLife: p.maxLife,
+      size: p.size,
+      kind: p.kind,
     });
   }
 
   if (
     pose.kind === "carving" &&
-    pose.sprayIntensity > 0.12 &&
+    pose.sprayIntensity > 0.08 &&
     pose.spraySide !== 0 &&
-    next.length < 24
+    next.length < MAX_POWDER_PARTICLES
   ) {
-    const spawnCount = pose.sprayIntensity > 0.58 ? 2 : 1;
-    for (let i = 0; i < spawnCount && next.length < 24; i++) {
-      if (randomFn() > pose.sprayIntensity + 0.25) continue;
-      const maxLife = 12 + Math.floor(randomFn() * 8);
+    const sinYaw = Math.sin(pose.boardYaw);
+    const cosYaw = Math.cos(pose.boardYaw);
+    const railBaseX = RIDER_ANCHOR_X + pose.spraySide * 4.8;
+    const railBaseY = RIDER_ANCHOR_Y - pose.boardLift * 1.4 - 1.2;
+    const speedBoost = Math.min(0.65, Math.hypot(shiftX, shiftY) * 0.08);
+
+    const sprayCount = Math.min(4, Math.ceil(pose.sprayIntensity * 3.8));
+    for (let i = 0; i < sprayCount && next.length < MAX_POWDER_PARTICLES; i++) {
+      if (randomFn() > pose.sprayIntensity + 0.3) continue;
+      const railT = -0.95 + randomFn() * 1.35;
+      const maxLife = 15 + Math.floor(randomFn() * 12);
+      const sizeRoll = randomFn();
+      const size: 1 | 2 | 3 =
+        pose.sprayIntensity > 0.62 && sizeRoll > 0.48
+          ? 3
+          : sizeRoll > 0.3
+            ? 2
+            : 1;
+
       next.push({
-        x: RIDER_ANCHOR_X + pose.spraySide * 5 + (randomFn() - 0.5) * 3,
-        y: RIDER_ANCHOR_Y - randomFn() * 3.5,
-        vx: pose.spraySide * (0.45 + randomFn() * 0.95 * pose.sprayIntensity),
-        vy: -0.55 - randomFn() * 0.75 * pose.sprayIntensity,
+        x: railBaseX + sinYaw * railT * 10.5 + (randomFn() - 0.5) * 2.6,
+        y: railBaseY + cosYaw * railT * 4.4 + (randomFn() - 0.5) * 2.2,
+        vx:
+          pose.spraySide *
+            (0.75 + randomFn() * 1.65 * (pose.sprayIntensity + speedBoost)) -
+          sinYaw * 0.32,
+        vy:
+          -0.68 -
+          randomFn() * 1.25 * (pose.sprayIntensity + speedBoost * 0.6),
         life: maxLife,
         maxLife,
+        size,
+        kind: "spray",
       });
+    }
+
+    if (pose.sprayIntensity > 0.26 && next.length < MAX_POWDER_PARTICLES) {
+      const mistCount = pose.sprayIntensity > 0.68 ? 2 : 1;
+      for (let i = 0; i < mistCount && next.length < MAX_POWDER_PARTICLES; i++) {
+        const maxLife = 22 + Math.floor(randomFn() * 14);
+        next.push({
+          x:
+            railBaseX -
+            sinYaw * (5.5 + randomFn() * 5) +
+            pose.spraySide * (1.5 + randomFn() * 3),
+          y: railBaseY - cosYaw * (2.5 + randomFn() * 3.5) - randomFn() * 2.5,
+          vx: pose.spraySide * (0.35 + randomFn() * 0.7 * pose.sprayIntensity),
+          vy: -0.35 - randomFn() * 0.55 * pose.sprayIntensity,
+          life: maxLife,
+          maxLife,
+          size: randomFn() > 0.4 ? 3 : 2,
+          kind: "mist",
+        });
+      }
+    }
+
+    if (pose.isGateSlash && next.length < MAX_POWDER_PARTICLES) {
+      const slashCount = 4;
+      for (let i = 0; i < slashCount && next.length < MAX_POWDER_PARTICLES; i++) {
+        const fanT = (i / (slashCount - 1)) * 2 - 1;
+        const maxLife = 18 + Math.floor(randomFn() * 10);
+        next.push({
+          x: railBaseX + sinYaw * fanT * 9 + pose.spraySide * 2,
+          y: railBaseY + cosYaw * fanT * 4,
+          vx: pose.spraySide * (1.45 + randomFn() * 2.15),
+          vy: -0.95 + fanT * 0.55 - randomFn() * 0.85,
+          life: maxLife,
+          maxLife,
+          size: randomFn() > 0.35 ? 3 : 2,
+          kind: "slash",
+        });
+      }
     }
   }
 
@@ -362,6 +467,57 @@ const setPixelSafe = (
   }
 };
 
+const drawPowderPuff = (
+  buffer: RiderPixelBuffer,
+  px: number,
+  py: number,
+  size: 1 | 2 | 3,
+  ratio: number,
+  isMist: boolean
+): void => {
+  if (isMist) {
+    const col = ratio > 0.45 ? PALETTE.mistSoft : PALETTE.mistFaint;
+    setPixelSafe(buffer, px, py, col);
+    setPixelSafe(buffer, px + 1, py, PALETTE.mistFaint);
+    if (size >= 3 && ratio > 0.35) {
+      setPixelSafe(buffer, px - 1, py, PALETTE.mistFaint);
+      setPixelSafe(buffer, px, py - 1, col);
+      setPixelSafe(buffer, px, py + 1, PALETTE.mistFaint);
+    }
+    return;
+  }
+
+  if (size === 3 && ratio > 0.42) {
+    setPixelSafe(buffer, px, py - 1, PALETTE.sprayCore);
+    setPixelSafe(buffer, px - 1, py, PALETTE.sprayCore);
+    setPixelSafe(buffer, px, py, PALETTE.sprayHighlight);
+    setPixelSafe(buffer, px + 1, py, PALETTE.sprayMist);
+    setPixelSafe(buffer, px - 1, py + 1, PALETTE.sprayShadow);
+    setPixelSafe(buffer, px, py + 1, PALETTE.sprayShadow);
+    setPixelSafe(buffer, px + 1, py + 1, PALETTE.sprayRim);
+    return;
+  }
+
+  if (size >= 2 && ratio > 0.35) {
+    setPixelSafe(buffer, px, py, PALETTE.sprayCore);
+    setPixelSafe(buffer, px + 1, py, PALETTE.sprayMist);
+    setPixelSafe(buffer, px, py + 1, PALETTE.sprayShadow);
+    setPixelSafe(buffer, px + 1, py + 1, PALETTE.sprayRim);
+    return;
+  }
+
+  setPixelSafe(
+    buffer,
+    px,
+    py,
+    ratio > 0.5
+      ? PALETTE.sprayHighlight
+      : ratio > 0.25
+        ? PALETTE.sprayMist
+        : PALETTE.sprayShadow
+  );
+};
+
 /** Renders the Option B (Niseko Powder Pro) 3D pixel rider, contact shadow, and powder spray. */
 export function renderNisekoPowderPro(
   buffer: RiderPixelBuffer,
@@ -376,10 +532,12 @@ export function renderNisekoPowderPro(
   const cx = (width * RIDER_ANCHOR_X) / RIDER_CANVAS_SIZE;
   const cy = (height * RIDER_ANCHOR_Y) / RIDER_CANVAS_SIZE;
   const scale = (width / RIDER_CANVAS_SIZE) * RIDER_PIXEL_SCALE;
+  const coordScaleX = width / RIDER_CANVAS_SIZE;
+  const coordScaleY = height / RIDER_CANVAS_SIZE;
 
   if (pose.kind === "carving" && pose.shadowScale > 0) {
-    const rx = Math.round(9.5 * pose.shadowScale * (width / RIDER_CANVAS_SIZE));
-    const ry = Math.max(2, Math.round(3.2 * (height / RIDER_CANVAS_SIZE)));
+    const rx = Math.round(9.5 * pose.shadowScale * coordScaleX);
+    const ry = Math.max(2, Math.round(3.2 * coordScaleY));
     for (let oy = -ry; oy <= ry; oy++) {
       for (let ox = -rx; ox <= rx; ox++) {
         const d = (ox * ox) / Math.max(1, rx * rx) + (oy * oy) / Math.max(1, ry * ry);
@@ -392,10 +550,24 @@ export function renderNisekoPowderPro(
     }
   }
 
+  // Trailing airborne snow mist hangs behind the rider's 3D silhouette
+  for (const p of particles) {
+    if (p.kind !== "mist") continue;
+    drawPowderPuff(
+      buffer,
+      Math.round(p.x * coordScaleX),
+      Math.round(p.y * coordScaleY),
+      p.size,
+      p.life / p.maxLife,
+      true
+    );
+  }
+
+  const lift = pose.boardLift;
   const camera = makeCamera(cx, cy, scale, CAMERA_PITCH_RAD);
   const boardRoot = composeTRS(
     0,
-    0,
+    lift,
     0,
     pose.boardPitch,
     pose.boardYaw,
@@ -411,7 +583,7 @@ export function renderNisekoPowderPro(
 
   // Boots & angulated technical plum snow pants
   const crouch = pose.crouch;
-  const hipY = 7.2 - crouch;
+  const hipY = 7.2 - crouch + lift;
   drawBox(buffer, camera, matMul(boardRoot, composeTRS(0, 1.8, 4.4)), 1.5, 1.1, 1.7, PALETTE.sakuraDeep, 0.02);
   drawBox(buffer, camera, matMul(boardRoot, composeTRS(0, 1.8, -4.2)), 1.5, 1.1, 1.7, PALETTE.sakuraDeep, 0.02);
 
@@ -513,19 +685,41 @@ export function renderNisekoPowderPro(
     }
   }
 
-  // Crisp pixel powder spray overlay
-  const coordScaleX = width / RIDER_CANVAS_SIZE;
-  const coordScaleY = height / RIDER_CANVAS_SIZE;
-  for (const p of particles) {
-    const px = Math.round(p.x * coordScaleX);
-    const py = Math.round(p.y * coordScaleY);
-    const ratio = p.life / p.maxLife;
-    if (ratio > 0.55) {
-      setPixelSafe(buffer, px, py, PALETTE.sprayCore);
-      setPixelSafe(buffer, px + 1, py, PALETTE.sprayMist);
-      setPixelSafe(buffer, px, py + 1, PALETTE.sprayRim);
-    } else {
-      setPixelSafe(buffer, px, py, ratio > 0.28 ? PALETTE.sprayMist : PALETTE.sprayRim);
+  // Active carving rail snow-curl wave + foreground rooster-tail plumes
+  if (
+    pose.kind === "carving" &&
+    pose.sprayIntensity > 0.2 &&
+    pose.spraySide !== 0
+  ) {
+    const sinYaw = Math.sin(pose.boardYaw);
+    const cosYaw = Math.cos(pose.boardYaw);
+    const curlSteps = pose.isGateSlash ? 9 : 6;
+    const baseRailX = cx + pose.spraySide * 5.2 * coordScaleX;
+    const baseRailY = cy - (1.2 + lift * 1.4) * coordScaleY;
+
+    for (let s = 0; s < curlSteps; s++) {
+      const t = (s / (curlSteps - 1)) * 1.6 - 0.85;
+      const rx = Math.round(
+        baseRailX +
+          (sinYaw * t * 9.5 + pose.spraySide * (1 - Math.abs(t)) * 2.4) *
+            coordScaleX
+      );
+      const ry = Math.round(baseRailY + cosYaw * t * 4.2 * coordScaleY);
+      setPixelSafe(buffer, rx, ry - 1, PALETTE.sprayCore);
+      setPixelSafe(buffer, rx + pose.spraySide, ry, PALETTE.sprayMist);
+      setPixelSafe(buffer, rx + pose.spraySide, ry + 1, PALETTE.sprayShadow);
     }
+  }
+
+  for (const p of particles) {
+    if (p.kind === "mist") continue;
+    drawPowderPuff(
+      buffer,
+      Math.round(p.x * coordScaleX),
+      Math.round(p.y * coordScaleY),
+      p.size,
+      p.life / p.maxLife,
+      false
+    );
   }
 }

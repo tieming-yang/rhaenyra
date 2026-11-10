@@ -8,29 +8,84 @@ import {
   getMacJumpProgress,
   getSnowboardPose,
   getTrailScrollSpan,
+  getTrenchReveal,
   stepSettleEnergy,
 } from "./snowboard-route";
 
 describe("the snowboard route", () => {
   const route = createSnowboardRoute(8);
 
-  it("places the rider on each alternating turn and clamps at the ends", () => {
+  it("places the rider on each alternating wide topic gate and clamps at the ends", () => {
     route.checkpoints.forEach(({ x, y }, index) => {
       const pose = getSnowboardPose(route, index, false);
+      expect(x).toBe(index % 2 === 0 ? 20 : 80);
       expect(pose).toMatchObject({ activeIndex: index, x, y });
-      expect(Math.abs(pose.lean)).toBe(0);
     });
+    expect(Math.abs(getSnowboardPose(route, 0, false).lean)).toBe(0);
+    expect(getSnowboardPose(route, 1, false).lean).toBeLessThan(-14);
+    expect(getSnowboardPose(route, 2, false).lean).toBeGreaterThan(14);
     expect(getSnowboardPose(route, -1, false)).toEqual(getSnowboardPose(route, 0, false));
     expect(getSnowboardPose(route, 9, false)).toEqual(getSnowboardPose(route, 7, false));
   });
 
-  it("crosses the middle and leans in opposite directions on consecutive turns", () => {
-    expect(getSnowboardPose(route, 0.5, false)).toMatchObject({ x: 50, y: 100, lean: 18 });
-    expect(getSnowboardPose(route, 1.5, false)).toMatchObject({ x: 50, y: 200, lean: -18 });
+  it("carves 3 genuine C-turns (1.5 S-cycles) between consecutive topics instead of sliding straight", () => {
+    const startGate = getSnowboardPose(route, 0, false);
+    const firstCarve = getSnowboardPose(route, 1 / 3, false);
+    const centerCrossover = getSnowboardPose(route, 0.5, false);
+    const secondCarve = getSnowboardPose(route, 2 / 3, false);
+    const nextGate = getSnowboardPose(route, 1, false);
+
+    expect(startGate.x).toBe(20);
+    expect(firstCarve.x).toBeGreaterThan(68);
+    expect(firstCarve.lean).toBeLessThan(-10);
+    expect(centerCrossover.x).toBeCloseTo(50, 6);
+    expect(Math.abs(centerCrossover.lean)).toBeCloseTo(0, 6);
+    expect(secondCarve.x).toBeLessThan(32);
+    expect(secondCarve.lean).toBeGreaterThan(10);
+    expect(nextGate.x).toBe(80);
+    expect(nextGate.lean).toBeLessThan(-14);
   });
 
-  it("stops at the nearest checkpoint when motion is reduced", () => {
-    expect(getSnowboardPose(route, 1.7, true)).toEqual(getSnowboardPose(route, 2, false));
+  it("generates alternating C-carve edge trenches separated by unweighted crossover gaps", () => {
+    expect(route.edgeTrenches).toHaveLength(21);
+    expect(createSnowboardRoute(1).edgeTrenches).toEqual([]);
+
+    for (let i = 0; i < route.edgeTrenches.length; i++) {
+      const trench = route.edgeTrenches[i];
+      expect(trench.endProgress).toBeGreaterThan(trench.startProgress);
+      expect(trench.isGateCheck).toBe(i % 3 === 2);
+      expect(trench.groovePath.startsWith("M ")).toBe(true);
+      expect(trench.bermPath.startsWith("M ")).toBe(true);
+
+      if (i > 0) {
+        const prev = route.edgeTrenches[i - 1];
+        expect(trench.startProgress - prev.endProgress).toBeCloseTo(0.064, 5);
+        expect(trench.outsideSign).toBe(-prev.outsideSign);
+      }
+    }
+
+    const firstTrench = route.edgeTrenches[0];
+    expect(getTrenchReveal(firstTrench, 0)).toBe(0);
+    expect(getTrenchReveal(firstTrench, firstTrench.startProgress)).toBe(0);
+    expect(
+      getTrenchReveal(
+        firstTrench,
+        (firstTrench.startProgress + firstTrench.endProgress) / 2
+      )
+    ).toBeCloseTo(0.5, 6);
+    expect(getTrenchReveal(firstTrench, firstTrench.endProgress)).toBe(1);
+    expect(getTrenchReveal(firstTrench, 5)).toBe(1);
+    expect(() => getTrenchReveal(firstTrench, Number.NaN)).toThrow(
+      "Trench reveal requires a finite progress value"
+    );
+  });
+
+  it("stops at the nearest checkpoint with zero lean when motion is reduced", () => {
+    const reduced = getSnowboardPose(route, 1.7, true);
+    expect(reduced.activeIndex).toBe(2);
+    expect(reduced.x).toBe(route.checkpoints[2].x);
+    expect(reduced.y).toBe(route.checkpoints[2].y);
+    expect(reduced.lean).toBe(0);
   });
 
   it("maps each checkpoint index to the exact scrollY where the snowboarder lands on that turn", () => {
@@ -56,7 +111,6 @@ describe("the snowboard route", () => {
       expect(pose.activeIndex).toBe(index);
       expect(pose.x).toBeCloseTo(route.checkpoints[index].x, 8);
       expect(pose.y).toBeCloseTo(route.checkpoints[index].y, 8);
-      expect(Math.abs(pose.lean)).toBeCloseTo(0, 8);
     }
   });
 
@@ -201,22 +255,40 @@ describe("Mac-to-trail jump kinematics", () => {
 describe("Option B 3D rig kinematics and settle policy", () => {
   const route = createSnowboardRoute(8);
 
-  it("transitions smoothly through neutral, heelside, and toeside carves", () => {
+  it("transitions through drop-in, toeside carve, unweighted crossover pop, heelside carve, and gate hockey-slash", () => {
     const startGate = deriveTrailRigPose(route, {
       progress: 0,
       motionEnergy: 0.8,
       elapsedSec: 1.2,
       reducedMotion: false,
     });
-    const heelside = deriveTrailRigPose(route, {
-      progress: 0.5,
-      motionEnergy: 0.8,
+    const toesideRhythm = deriveTrailRigPose(route, {
+      progress: 1 / 3,
+      motionEnergy: 0.9,
       elapsedSec: 1.2,
       reducedMotion: false,
     });
-    const toeside = deriveTrailRigPose(route, {
-      progress: 1.5,
-      motionEnergy: 0.8,
+    const crossoverPop = deriveTrailRigPose(route, {
+      progress: 0.5,
+      motionEnergy: 0.9,
+      elapsedSec: 1.2,
+      reducedMotion: false,
+    });
+    const heelsideRhythm = deriveTrailRigPose(route, {
+      progress: 2 / 3,
+      motionEnergy: 0.9,
+      elapsedSec: 1.2,
+      reducedMotion: false,
+    });
+    const topicGateSlash = deriveTrailRigPose(route, {
+      progress: 1.0,
+      motionEnergy: 0.9,
+      elapsedSec: 1.2,
+      reducedMotion: false,
+    });
+    const settledMidTurn = deriveTrailRigPose(route, {
+      progress: 2 / 3,
+      motionEnergy: 0,
       elapsedSec: 1.2,
       reducedMotion: false,
     });
@@ -225,21 +297,34 @@ describe("Option B 3D rig kinematics and settle policy", () => {
     expect(startGate.carveSide).toBe("neutral");
     expect(startGate.sprayIntensity).toBe(0);
     expect(startGate.spraySide).toBe(0);
+    expect(startGate.boardLift).toBe(0);
     expect(startGate.boardYaw).toBeGreaterThan(0);
 
-    expect(heelside.carveSide).toBe("heelside");
-    expect(heelside.boardYaw).toBeGreaterThan(0.8);
-    expect(heelside.edgeRoll).toBeLessThan(-0.5);
-    expect(heelside.rightArmDrop).toBeGreaterThan(0.5);
-    expect(heelside.spraySide).toBe(-1);
-    expect(heelside.sprayIntensity).toBeGreaterThan(0.7);
+    expect(toesideRhythm.carveSide).toBe("toeside");
+    expect(toesideRhythm.edgeRoll).toBeGreaterThan(0.4);
+    expect(toesideRhythm.leftArmDrop).toBeGreaterThan(0.5);
+    expect(toesideRhythm.spraySide).toBe(1);
+    expect(toesideRhythm.sprayIntensity).toBeGreaterThan(0.5);
+    expect(toesideRhythm.isGateSlash).toBe(false);
 
-    expect(toeside.carveSide).toBe("toeside");
-    expect(toeside.boardYaw).toBeLessThan(-0.8);
-    expect(toeside.edgeRoll).toBeGreaterThan(0.5);
-    expect(toeside.leftArmDrop).toBeGreaterThan(0.5);
-    expect(toeside.spraySide).toBe(1);
-    expect(toeside.sprayIntensity).toBeGreaterThan(0.7);
+    expect(crossoverPop.carveSide).toBe("neutral");
+    expect(crossoverPop.boardLift).toBeGreaterThan(1.0);
+    expect(crossoverPop.sprayIntensity).toBe(0);
+    expect(crossoverPop.boardYaw).toBeLessThan(-0.5);
+
+    expect(heelsideRhythm.carveSide).toBe("heelside");
+    expect(heelsideRhythm.edgeRoll).toBeLessThan(-0.4);
+    expect(heelsideRhythm.rightArmDrop).toBeGreaterThan(0.5);
+    expect(heelsideRhythm.spraySide).toBe(-1);
+    expect(heelsideRhythm.sprayIntensity).toBeGreaterThan(0.5);
+
+    expect(topicGateSlash.carveSide).toBe("toeside");
+    expect(topicGateSlash.isGateSlash).toBe(true);
+    expect(topicGateSlash.sprayIntensity).toBeGreaterThan(0.9);
+    expect(topicGateSlash.crouch).toBeGreaterThan(toesideRhythm.crouch);
+
+    expect(settledMidTurn.sprayIntensity).toBe(0);
+    expect(settledMidTurn.boardLift).toBe(0);
 
     const beforeGate = deriveTrailRigPose(route, {
       progress: 0.9999,

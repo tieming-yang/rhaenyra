@@ -46,13 +46,21 @@ const measureOpaqueBounds = (
 describe("Niseko Powder Pro pixel-3D software renderer", () => {
   const route = createSnowboardRoute(8);
 
-  it("renders unclipped 3D silhouettes on a transparent canvas across neutral, heelside, toeside, and airborne poses", () => {
+  it("renders unclipped 3D silhouettes at invariant pixel scale across neutral, carving, pop, slash, and airborne poses", () => {
     const buffer = createRiderPixelBuffer();
+    expect(RIDER_CANVAS_SIZE).toBe(140);
+
     const poses = [
       deriveTrailRigPose(route, {
         progress: 0,
         motionEnergy: 0,
         elapsedSec: 0,
+        reducedMotion: false,
+      }),
+      deriveTrailRigPose(route, {
+        progress: 1 / 3,
+        motionEnergy: 1,
+        elapsedSec: 0.6,
         reducedMotion: false,
       }),
       deriveTrailRigPose(route, {
@@ -62,7 +70,13 @@ describe("Niseko Powder Pro pixel-3D software renderer", () => {
         reducedMotion: false,
       }),
       deriveTrailRigPose(route, {
-        progress: 1.5,
+        progress: 2 / 3,
+        motionEnergy: 1,
+        elapsedSec: 0.6,
+        reducedMotion: false,
+      }),
+      deriveTrailRigPose(route, {
+        progress: 1,
         motionEnergy: 1,
         elapsedSec: 0.6,
         reducedMotion: false,
@@ -85,10 +99,12 @@ describe("Niseko Powder Pro pixel-3D software renderer", () => {
         buffer.height
       );
       expect(bounds.solidPixels).toBeGreaterThan(250);
-      expect(bounds.minX).toBeGreaterThanOrEqual(2);
-      expect(bounds.maxX).toBeLessThanOrEqual(buffer.width - 3);
-      expect(bounds.minY).toBeGreaterThanOrEqual(2);
-      expect(bounds.maxY).toBeLessThanOrEqual(buffer.height - 2);
+      expect(bounds.maxX - bounds.minX).toBeLessThan(48);
+      expect(bounds.maxY - bounds.minY).toBeLessThan(48);
+      expect(bounds.minX).toBeGreaterThanOrEqual(24);
+      expect(bounds.maxX).toBeLessThanOrEqual(buffer.width - 24);
+      expect(bounds.minY).toBeGreaterThanOrEqual(24);
+      expect(bounds.maxY).toBeLessThanOrEqual(buffer.height - 16);
 
       if (pose.kind === "airborne") {
         expect(bounds.shadowPixels).toBe(0);
@@ -105,8 +121,8 @@ describe("Niseko Powder Pro pixel-3D software renderer", () => {
     renderNisekoPowderPro(
       heelsideBuf,
       deriveTrailRigPose(route, {
-        progress: 0.5,
-        motionEnergy: 0.6,
+        progress: 2 / 3,
+        motionEnergy: 0.8,
         elapsedSec: 0,
         reducedMotion: false,
       }),
@@ -115,8 +131,8 @@ describe("Niseko Powder Pro pixel-3D software renderer", () => {
     renderNisekoPowderPro(
       toesideBuf,
       deriveTrailRigPose(route, {
-        progress: 1.5,
-        motionEnergy: 0.6,
+        progress: 1 / 3,
+        motionEnergy: 0.8,
         elapsedSec: 0,
         reducedMotion: false,
       }),
@@ -132,24 +148,50 @@ describe("Niseko Powder Pro pixel-3D software renderer", () => {
     expect(differingPixels).toBeGreaterThan(200);
   });
 
-  it("spawns powder spray only when actively carving and ages particles out cleanly", () => {
+  it("spawns rooster-tail spray, mist, and gate-slash bursts, advects in world space, and ages out cleanly", () => {
     const deterministicRng = () => 0.25;
+    const zeroShift = { dx: 0, dy: 0 };
     const airborne = deriveAirborneRigPose({
       jumpProgress: 0.4,
       leanDeg: 10,
       elapsedSec: 0.2,
     });
-    expect(stepPowderParticles([], airborne, 1 / 60, deterministicRng)).toEqual([]);
+    expect(
+      stepPowderParticles([], airborne, 1 / 60, zeroShift, deterministicRng)
+    ).toEqual([]);
 
     const heelside = deriveTrailRigPose(route, {
-      progress: 0.5,
+      progress: 2 / 3,
       motionEnergy: 1,
       elapsedSec: 0.3,
       reducedMotion: false,
     });
-    const spawned = stepPowderParticles([], heelside, 1 / 60, deterministicRng);
-    expect(spawned.length).toBeGreaterThan(0);
+    const spawned = stepPowderParticles(
+      [],
+      heelside,
+      1 / 60,
+      zeroShift,
+      deterministicRng
+    );
+    expect(spawned.some((p) => p.kind === "spray")).toBe(true);
+    expect(spawned.some((p) => p.kind === "mist")).toBe(true);
+    expect(spawned.some((p) => p.kind === "slash")).toBe(false);
     expect(spawned[0].vx).toBeLessThan(0);
+
+    const gateSlash = deriveTrailRigPose(route, {
+      progress: 1.0,
+      motionEnergy: 1,
+      elapsedSec: 0.3,
+      reducedMotion: false,
+    });
+    const slashParticles = stepPowderParticles(
+      [],
+      gateSlash,
+      1 / 60,
+      zeroShift,
+      deterministicRng
+    );
+    expect(slashParticles.filter((p) => p.kind === "slash").length).toBeGreaterThanOrEqual(4);
 
     const neutral = deriveTrailRigPose(route, {
       progress: 0,
@@ -157,14 +199,34 @@ describe("Niseko Powder Pro pixel-3D software renderer", () => {
       elapsedSec: 1,
       reducedMotion: false,
     });
+    const advected = stepPowderParticles(
+      spawned,
+      neutral,
+      1 / 60,
+      { dx: 10, dy: 14 },
+      deterministicRng
+    );
+    expect(advected[0].x).toBeLessThan(spawned[0].x - 5);
+    expect(advected[0].y).toBeLessThan(spawned[0].y - 8);
+
+    const buf = createRiderPixelBuffer();
+    renderNisekoPowderPro(buf, gateSlash, slashParticles);
+    expect(measureOpaqueBounds(buf.colorU32, buf.width, buf.height).solidPixels).toBeGreaterThan(300);
+
     let active = spawned;
-    for (let frame = 0; frame < 20; frame++) {
-      active = stepPowderParticles(active, neutral, 1 / 30, deterministicRng);
+    for (let frame = 0; frame < 30; frame++) {
+      active = stepPowderParticles(
+        active,
+        neutral,
+        1 / 30,
+        zeroShift,
+        deterministicRng
+      );
     }
     expect(active).toEqual([]);
   });
 
-  it("validates pixel buffer dimensions and particle dtSec", () => {
+  it("validates pixel buffer dimensions, particle dtSec, and worldShift", () => {
     expect(() => createRiderPixelBuffer(8, 8)).toThrow(
       "Rider pixel buffer requires integer dimensions of at least 16x16"
     );
@@ -177,5 +239,8 @@ describe("Niseko Powder Pro pixel-3D software renderer", () => {
     expect(() => stepPowderParticles([], neutral, -0.01)).toThrow(
       "Powder particle step requires a non-negative finite dtSec"
     );
+    expect(() =>
+      stepPowderParticles([], neutral, 1 / 60, { dx: Number.NaN, dy: 0 })
+    ).toThrow("Powder particle step requires finite worldShift coordinates");
   });
 });
