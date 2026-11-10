@@ -352,6 +352,26 @@ export function stepPowderParticles(
         });
       }
     }
+  } else if (
+    pose.kind === "carving" &&
+    pose.boardLift < 0.25 &&
+    shiftY > 0.35 &&
+    next.length < MAX_POWDER_PARTICLES &&
+    randomFn() < 0.55
+  ) {
+    const sinYaw = Math.sin(pose.boardYaw);
+    const cosYaw = Math.cos(pose.boardYaw);
+    const maxLife = 20 + Math.floor(randomFn() * 10);
+    next.push({
+      x: RIDER_ANCHOR_X - sinYaw * 8.5 + (randomFn() - 0.5) * 3.2,
+      y: RIDER_ANCHOR_Y - cosYaw * 3.6 - 1.5,
+      vx: (randomFn() - 0.5) * 0.45,
+      vy: -0.3 - randomFn() * 0.35,
+      life: maxLife,
+      maxLife,
+      size: 2,
+      kind: "mist",
+    });
   }
 
   return next;

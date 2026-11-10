@@ -417,6 +417,8 @@ export type RiderRigPose =
 export type TrailRigInput = Readonly<{
   progress: number;
   motionEnergy: number;
+  riderSpeed?: number;
+  sprintBoost?: number;
   elapsedSec: number;
   reducedMotion: boolean;
 }>;
@@ -425,11 +427,245 @@ export type AirborneRigInput = Readonly<{
   jumpProgress: number;
   leanDeg: number;
   elapsedSec: number;
+  reducedMotion?: boolean;
+}>;
+
+export type RiderSpringState = Readonly<{
+  progress: number;
+  velocity: number;
+}>;
+
+export type RiderSpringStepInput = Readonly<{
+  state: RiderSpringState;
+  targetProgress: number;
+  maxProgress: number;
+  dtSec: number;
+  reducedMotion: boolean;
+}>;
+
+export type WaypointSprintState =
+  | Readonly<{ kind: "idle" }>
+  | Readonly<{
+      kind: "sprinting";
+      startScrollY: number;
+      targetScrollY: number;
+      elapsedMs: number;
+      durationMs: number;
+    }>;
+
+export type WaypointSprintStep =
+  | Readonly<{ kind: "idle" }>
+  | Readonly<{
+      kind: "active";
+      scrollY: number;
+      sprintBoost: number;
+      nextState: WaypointSprintState;
+    }>
+  | Readonly<{
+      kind: "completed";
+      scrollY: number;
+      nextState: Readonly<{ kind: "idle" }>;
+    }>;
+
+export type SlopeFlowInput = Readonly<{
+  riderVelocity: number;
+  motionEnergy: number;
+  sprintBoost?: number;
+  reducedMotion: boolean;
+}>;
+
+export type SlopeFlowMetrics = Readonly<{
+  upwardSpeedPxPerSec: number;
+  speedMultiplier: number;
+  streakIntensity: number;
 }>;
 
 const SETTLE_DURATION_MS = 600;
 const GATE_LEAD_YAW = 0.36;
 const CARVE_DEADZONE = 0.08;
+const RIDER_SPRING_OMEGA = 9.5;
+const BASE_SLOPE_SPEED_PX = 108;
+
+function sampleAmbientCruise(elapsedSec: number) {
+  return {
+    surf: Math.sin(elapsedSec * 3.1),
+    pump: 0.5 - 0.5 * Math.cos(elapsedSec * 6.2),
+    wind: Math.sin(elapsedSec * 7.4),
+  };
+}
+
+/** Advances the rider's position with critically damped spring-momentum pursuit toward targetProgress. */
+export function stepRiderSpringState(
+  input: RiderSpringStepInput
+): RiderSpringState {
+  const { state, targetProgress, maxProgress, dtSec, reducedMotion } = input;
+  if (
+    !Number.isFinite(state.progress) ||
+    !Number.isFinite(state.velocity) ||
+    !Number.isFinite(targetProgress) ||
+    !Number.isFinite(maxProgress) ||
+    maxProgress < 0 ||
+    !Number.isFinite(dtSec) ||
+    dtSec < 0
+  ) {
+    throw new Error(
+      "Rider spring step requires finite progress/velocity/targetProgress and non-negative maxProgress/dtSec"
+    );
+  }
+
+  const clampedTarget = Math.min(Math.max(targetProgress, 0), maxProgress);
+  if (reducedMotion) {
+    return { progress: Math.round(clampedTarget), velocity: 0 };
+  }
+
+  const dt = Math.min(0.1, dtSec);
+  if (dt === 0) {
+    return {
+      progress: Math.min(Math.max(state.progress, 0), maxProgress),
+      velocity: state.velocity,
+    };
+  }
+
+  const delta = state.progress - clampedTarget;
+  const exp = Math.exp(-RIDER_SPRING_OMEGA * dt);
+  const c2 = state.velocity + RIDER_SPRING_OMEGA * delta;
+  const rawProgress = clampedTarget + (delta + c2 * dt) * exp;
+  const rawVelocity = (state.velocity - RIDER_SPRING_OMEGA * c2 * dt) * exp;
+
+  if (
+    Math.abs(rawProgress - clampedTarget) < 1e-4 &&
+    Math.abs(rawVelocity) < 1e-3
+  ) {
+    return { progress: clampedTarget, velocity: 0 };
+  }
+
+  if (rawProgress <= 0) {
+    return { progress: 0, velocity: Math.max(0, rawVelocity) };
+  }
+  if (rawProgress >= maxProgress) {
+    return { progress: maxProgress, velocity: Math.min(0, rawVelocity) };
+  }
+
+  return { progress: rawProgress, velocity: rawVelocity };
+}
+
+/** Initiates a custom acceleration-and-check downhill scroll sprint toward a clicked topic waypoint. */
+export function createWaypointSprint(
+  startScrollY: number,
+  targetScrollY: number,
+  viewportHeight: number,
+  reducedMotion: boolean
+): WaypointSprintState {
+  if (
+    !Number.isFinite(startScrollY) ||
+    !Number.isFinite(targetScrollY) ||
+    !Number.isFinite(viewportHeight) ||
+    viewportHeight <= 0
+  ) {
+    throw new Error(
+      "Waypoint sprint requires finite scroll coordinates and positive viewportHeight"
+    );
+  }
+
+  const distPx = Math.abs(targetScrollY - startScrollY);
+  if (reducedMotion || distPx < 2) {
+    return { kind: "idle" };
+  }
+
+  const durationMs = Math.round(
+    520 + Math.min(1130, Math.sqrt(distPx / Math.max(320, viewportHeight)) * 460)
+  );
+
+  return {
+    kind: "sprinting",
+    startScrollY,
+    targetScrollY,
+    elapsedMs: 0,
+    durationMs,
+  };
+}
+
+/** Steps an active downhill topic sprint along an aero-tuck push-off and smooth gate-check braking curve. */
+export function stepWaypointSprint(
+  state: WaypointSprintState,
+  dtMs: number
+): WaypointSprintStep {
+  if (!Number.isFinite(dtMs) || dtMs < 0) {
+    throw new Error("Waypoint sprint step requires a non-negative finite dtMs");
+  }
+
+  if (state.kind === "idle") {
+    return { kind: "idle" };
+  }
+
+  const elapsedMs = state.elapsedMs + dtMs;
+  if (elapsedMs >= state.durationMs) {
+    return {
+      kind: "completed",
+      scrollY: state.targetScrollY,
+      nextState: { kind: "idle" },
+    };
+  }
+
+  const u = elapsedMs / state.durationMs;
+  const s = Math.pow(u, 0.85);
+  const eased = s * s * (3 - 2 * s);
+  const scrollY =
+    state.startScrollY + (state.targetScrollY - state.startScrollY) * eased;
+
+  return {
+    kind: "active",
+    scrollY,
+    sprintBoost: Math.sin(Math.PI * u),
+    nextState: {
+      ...state,
+      elapsedMs,
+    },
+  };
+}
+
+/** Computes upward snow-backdrop velocity and speed-streak intensity from continuous cruise + rider acceleration. */
+export function deriveSlopeFlow(input: SlopeFlowInput): SlopeFlowMetrics {
+  const {
+    riderVelocity,
+    motionEnergy,
+    sprintBoost = 0,
+    reducedMotion,
+  } = input;
+  if (
+    !Number.isFinite(riderVelocity) ||
+    !Number.isFinite(motionEnergy) ||
+    motionEnergy < 0 ||
+    motionEnergy > 1 ||
+    !Number.isFinite(sprintBoost) ||
+    sprintBoost < 0 ||
+    sprintBoost > 1
+  ) {
+    throw new Error(
+      "Slope flow requires finite riderVelocity and normalized motionEnergy/sprintBoost within [0, 1]"
+    );
+  }
+
+  if (reducedMotion) {
+    return {
+      upwardSpeedPxPerSec: 0,
+      speedMultiplier: 0,
+      streakIntensity: 0,
+    };
+  }
+
+  const accel = Math.min(
+    1,
+    Math.max(Math.abs(riderVelocity) / 2.6, motionEnergy * 0.8, sprintBoost)
+  );
+  const speedMultiplier = 1 + accel * 2.8;
+
+  return {
+    upwardSpeedPxPerSec: BASE_SLOPE_SPEED_PX * speedMultiplier,
+    speedMultiplier,
+    streakIntensity: 0.24 + accel * 0.76,
+  };
+}
 
 /** Advances scroll-driven motion energy and decays it linearly to zero over 600ms when idle. */
 export function stepSettleEnergy(
@@ -464,21 +700,33 @@ export function stepSettleEnergy(
   return Math.max(0, energized - dtMs / SETTLE_DURATION_MS);
 }
 
-/** Derives continuous 3D Option B (Niseko Powder Pro) multi-carve kinematics along the trail. */
+/** Derives continuous 3D Option B (Niseko Powder Pro) cruising, aero-tuck acceleration, and multi-carve kinematics. */
 export function deriveTrailRigPose(
   route: ReturnType<typeof createSnowboardRoute>,
   input: TrailRigInput
 ): Extract<RiderRigPose, { kind: "carving" }> {
-  const { progress, motionEnergy, elapsedSec, reducedMotion } = input;
+  const {
+    progress,
+    motionEnergy,
+    riderSpeed = 0,
+    sprintBoost = 0,
+    elapsedSec,
+    reducedMotion,
+  } = input;
   if (
     !Number.isFinite(progress) ||
     !Number.isFinite(motionEnergy) ||
     motionEnergy < 0 ||
     motionEnergy > 1 ||
+    !Number.isFinite(riderSpeed) ||
+    riderSpeed < 0 ||
+    !Number.isFinite(sprintBoost) ||
+    sprintBoost < 0 ||
+    sprintBoost > 1 ||
     !Number.isFinite(elapsedSec)
   ) {
     throw new Error(
-      "Trail rig pose requires finite progress/elapsedSec and motionEnergy within [0, 1]"
+      "Trail rig pose requires finite progress/elapsedSec, non-negative riderSpeed, and motionEnergy/sprintBoost within [0, 1]"
     );
   }
 
@@ -486,81 +734,124 @@ export function deriveTrailRigPose(
   const clamped = Math.min(Math.max(progress, 0), last);
   const position = reducedMotion ? Math.round(clamped) : clamped;
   const energy = reducedMotion ? 0 : motionEnergy;
+  const speedNorm = reducedMotion
+    ? 0
+    : Math.min(1, Math.max(riderSpeed / 2.6, sprintBoost));
+  const drive = Math.min(1, Math.max(energy, speedNorm));
+
+  const cruise = reducedMotion
+    ? { surf: 0, pump: 0, wind: 0 }
+    : sampleAmbientCruise(elapsedSec);
+  const cruiseWeight = reducedMotion ? 0 : 1 - drive * 0.72;
+  const cSurf = cruise.surf * cruiseWeight;
+  const cPump = cruise.pump * cruiseWeight;
+  const cWind = cruise.wind * cruiseWeight;
 
   const sample = sampleRouteCurve(position);
   const ramp = smoothDropInRamp(position);
   const rawBank = Math.tanh(sample.d2xDp2 / CURVATURE_REFERENCE);
   const bank = rawBank * ramp;
   const absBank = Math.abs(bank);
+  const effectiveBank = bank + cSurf * 0.24 * (1 - absBank * 0.65);
+  const absEffectiveBank = Math.abs(effectiveBank);
 
   const gateRaw = Math.max(0, (Math.cos(2 * Math.PI * position) - 0.55) / 0.45);
   const gateCheck =
     position <= 0.5 ? 0 : gateRaw * gateRaw * (3 - 2 * gateRaw);
 
   const carveSide: CarveSide =
-    bank > CARVE_DEADZONE
+    effectiveBank > CARVE_DEADZONE
       ? "heelside"
-      : bank < -CARVE_DEADZONE
+      : effectiveBank < -CARVE_DEADZONE
         ? "toeside"
         : "neutral";
 
   const tangentYaw = Math.atan2(sample.dxDp, turnSpacing);
   const activeCarveYaw =
-    tangentYaw * 0.92 + rawBank * 0.28 + rawBank * 0.26 * gateCheck * energy;
-  const boardYaw = GATE_LEAD_YAW * (1 - ramp) + activeCarveYaw * ramp;
+    tangentYaw * 0.92 +
+    rawBank * 0.28 +
+    rawBank * 0.26 * gateCheck * drive +
+    cSurf * 0.08;
+  const boardYaw =
+    (GATE_LEAD_YAW + cSurf * 0.11) * (1 - ramp) + activeCarveYaw * ramp;
 
-  const edgeRoll = bank === 0 ? 0 : -bank * (0.52 + 0.16 * energy);
+  const carveRoll = bank === 0 ? 0 : -bank * (0.52 + 0.18 * drive);
+  const surfRoll =
+    cSurf === 0 ? 0 : -cSurf * 0.15 * (1 - absBank * 0.55);
+  const edgeRoll = carveRoll + surfRoll;
+
   const crossoverWindow = Math.max(0, 1 - (Math.abs(rawBank) / 0.24) ** 2);
   const boardLift =
-    energy === 0 ? 0 : energy * ramp * crossoverWindow * 1.35;
+    drive === 0 ? 0 : drive * ramp * crossoverWindow * 1.35;
 
-  const breath = energy === 0 ? 0 : energy * Math.sin(elapsedSec * 5.4) * 0.18;
+  const breath = drive === 0 ? 0 : drive * Math.sin(elapsedSec * 5.4) * 0.16;
   const crouch = Math.max(
     0,
-    absBank * (1.25 + 0.95 * energy) + gateCheck * 0.45 * energy - breath
+    absBank * (1.25 + 0.95 * drive) +
+      speedNorm * 0.85 * ramp +
+      gateCheck * 0.45 * drive +
+      cPump * 0.38 -
+      breath
   );
-  const hipShift = bank === 0 ? 0 : -bank * (1.1 + 0.45 * energy);
+  const carveHip = bank === 0 ? 0 : -bank * (1.1 + 0.45 * drive);
+  const surfHip = cSurf === 0 ? 0 : -cSurf * 0.34 * (1 - absBank * 0.5);
+  const hipShift = carveHip + surfHip;
   const pelvisYaw = boardYaw - 0.78;
 
   const torsoLead = GATE_LEAD_YAW * (16 / 36);
   const headLead = GATE_LEAD_YAW * (12 / 36);
   const torsoYaw =
-    (torsoLead - 0.24) * (1 - ramp) +
-    (boardYaw * 0.55 + bank * 0.18 - 0.24) * ramp;
+    (torsoLead - 0.24 + cSurf * 0.08) * (1 - ramp) +
+    (boardYaw * 0.55 + bank * 0.18 - 0.24 + cSurf * 0.05) * ramp;
   const headYaw =
-    (headLead - 0.05) * (1 - ramp) +
-    (boardYaw * 0.34 + bank * 0.14 - 0.05) * ramp;
+    (headLead - 0.05 + cSurf * 0.05) * (1 - ramp) +
+    (boardYaw * 0.34 + bank * 0.14 - 0.05 + cSurf * 0.03) * ramp;
 
   const popArmLift =
-    energy === 0 ? 0 : crossoverWindow * 0.12 * energy * ramp;
-  const leftArmDrop =
+    drive === 0 ? 0 : crossoverWindow * 0.12 * drive * ramp;
+  const tuckArmCompact = speedNorm * 0.14 * ramp;
+  const surfLeftArm = cSurf < 0 ? -cSurf * 0.18 : 0;
+  const surfRightArm = cSurf > 0 ? cSurf * 0.18 : 0;
+  const carveLeftArm =
     bank < -CARVE_DEADZONE
-      ? absBank * (0.52 + 0.28 * energy)
-      : -0.25 - popArmLift;
-  const rightArmDrop =
+      ? absBank * (0.52 + 0.3 * drive)
+      : -0.25 - popArmLift - tuckArmCompact + surfLeftArm * 0.5;
+  const carveRightArm =
     bank > CARVE_DEADZONE
-      ? absBank * (0.52 + 0.28 * energy)
-      : -0.25 - popArmLift;
+      ? absBank * (0.52 + 0.3 * drive)
+      : -0.25 - popArmLift - tuckArmCompact + surfRightArm * 0.5;
+  const leftArmDrop =
+    (-0.25 + surfLeftArm) * (1 - ramp) + carveLeftArm * ramp;
+  const rightArmDrop =
+    (-0.25 + surfRightArm) * (1 - ramp) + carveRightArm * ramp;
 
   const hairSway =
-    -0.2 * (1 - ramp) + (-bank * 1.25 - tangentYaw * 0.45) * ramp;
+    (-0.2 - cSurf * 0.28) * (1 - ramp) +
+    (-bank * 1.25 - tangentYaw * 0.45 - speedNorm * 0.55 - cSurf * 0.18) * ramp;
   const hairFlutter =
-    energy === 0 ? 0 : energy * Math.sin(elapsedSec * 8.8) * 0.55;
+    cWind * 0.26 +
+    (drive === 0 ? 0 : drive * Math.sin(elapsedSec * 9.6) * 0.52);
 
-  const isGateSlash = gateCheck > 0.35 && energy > 0.2;
+  const isGateSlash = gateCheck > 0.35 && drive > 0.2;
   const sprayIntensity =
-    carveSide === "neutral" || energy <= 0
+    carveSide === "neutral" || reducedMotion
       ? 0
-      : Math.min(1, (absBank * 0.95 + gateCheck * 0.35) * energy);
+      : Math.min(
+          1,
+          absEffectiveBank * (0.4 + 0.6 * drive) +
+            gateCheck * 0.38 * drive +
+            0.12 * cruiseWeight
+        );
   const spraySide: -1 | 0 | 1 =
-    sprayIntensity <= 0 ? 0 : bank > 0 ? -1 : 1;
+    sprayIntensity <= 0 ? 0 : effectiveBank > 0 ? -1 : 1;
 
   return {
     kind: "carving",
     carveSide,
     boardYaw,
     edgeRoll,
-    boardPitch: absBank * 0.07 + boardLift * 0.04,
+    boardPitch:
+      absBank * 0.07 + boardLift * 0.04 + speedNorm * 0.05 * ramp + cPump * 0.025,
     boardLift,
     crouch,
     hipShift,
@@ -582,7 +873,7 @@ export function deriveTrailRigPose(
 export function deriveAirborneRigPose(
   input: AirborneRigInput
 ): Extract<RiderRigPose, { kind: "airborne" }> {
-  const { jumpProgress, leanDeg, elapsedSec } = input;
+  const { jumpProgress, leanDeg, elapsedSec, reducedMotion = false } = input;
   if (
     !Number.isFinite(jumpProgress) ||
     !Number.isFinite(leanDeg) ||
@@ -592,25 +883,52 @@ export function deriveAirborneRigPose(
   }
 
   const t = Math.min(Math.max(jumpProgress, 0), 1);
-  const airArc = Math.sin(Math.PI * t);
+  const airArc = t <= 0 || t >= 1 ? 0 : Math.sin(Math.PI * t);
   const leanNorm = Math.max(-1, Math.min(1, leanDeg / 18));
-  const boardYaw = GATE_LEAD_YAW + leanNorm * 0.35;
+  const cruiseBlend = reducedMotion ? 0 : t * t * (3 - 2 * t);
+  const cruise =
+    cruiseBlend === 0
+      ? { surf: 0, pump: 0, wind: 0 }
+      : sampleAmbientCruise(elapsedSec);
+  const cSurf = cruise.surf * cruiseBlend;
+  const cPump = cruise.pump * cruiseBlend;
+  const cWind = cruise.wind * cruiseBlend;
+
+  const boardYaw = GATE_LEAD_YAW + leanNorm * 0.35 + cSurf * 0.11 * (1 - airArc);
+  const surfLeftArm = cSurf < 0 ? -cSurf * 0.18 : 0;
+  const surfRightArm = cSurf > 0 ? cSurf * 0.18 : 0;
 
   return {
     kind: "airborne",
     boardYaw,
-    edgeRoll: leanNorm === 0 ? 0 : -leanNorm * 0.38,
-    boardPitch: airArc === 0 ? 0 : -airArc * 0.24,
+    edgeRoll:
+      (leanNorm === 0 ? 0 : -leanNorm * 0.38) +
+      (cSurf === 0 ? 0 : -cSurf * 0.15 * (1 - airArc)),
+    boardPitch: (airArc === 0 ? 0 : -airArc * 0.24) + cPump * 0.025 * (1 - airArc),
     boardLift: 0,
-    crouch: airArc * 2.2,
-    hipShift: leanNorm === 0 ? 0 : -leanNorm * 0.6,
+    crouch: airArc * 2.2 + cPump * 0.38 * (1 - airArc),
+    hipShift:
+      (leanNorm === 0 ? 0 : -leanNorm * 0.6) +
+      (cSurf === 0 ? 0 : -cSurf * 0.34 * (1 - airArc)),
     pelvisYaw: boardYaw - 0.78,
-    torsoYaw: GATE_LEAD_YAW * (16 / 36) - 0.24 + leanNorm * 0.25,
-    headYaw: GATE_LEAD_YAW * (12 / 36) - 0.05 + leanNorm * 0.15,
-    leftArmDrop: -0.45 * airArc - 0.25 * (1 - airArc),
-    rightArmDrop: -0.45 * airArc - 0.25 * (1 - airArc),
-    hairSway: -0.2 - airArc * 0.85,
-    hairFlutter: airArc === 0 ? 0 : airArc * Math.sin(elapsedSec * 10) * 0.6,
+    torsoYaw:
+      GATE_LEAD_YAW * (16 / 36) -
+      0.24 +
+      leanNorm * 0.25 +
+      cSurf * 0.08 * (1 - airArc),
+    headYaw:
+      GATE_LEAD_YAW * (12 / 36) -
+      0.05 +
+      leanNorm * 0.15 +
+      cSurf * 0.05 * (1 - airArc),
+    leftArmDrop:
+      -0.45 * airArc + (-0.25 + surfLeftArm) * (1 - airArc),
+    rightArmDrop:
+      -0.45 * airArc + (-0.25 + surfRightArm) * (1 - airArc),
+    hairSway: -0.2 - airArc * 0.85 - cSurf * 0.28 * (1 - airArc),
+    hairFlutter:
+      cWind * 0.26 * (1 - airArc) +
+      (airArc === 0 ? 0 : airArc * Math.sin(elapsedSec * 10) * 0.6),
     shadowScale: 0,
     sprayIntensity: 0,
     spraySide: 0,

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   createSnowboardRoute,
+  createWaypointSprint,
   deriveAirborneRigPose,
+  deriveSlopeFlow,
   deriveTrailRigPose,
   getCheckpointScrollTarget,
   getMacJumpPose,
@@ -9,7 +11,9 @@ import {
   getSnowboardPose,
   getTrailScrollSpan,
   getTrenchReveal,
+  stepRiderSpringState,
   stepSettleEnergy,
+  stepWaypointSprint,
 } from "./snowboard-route";
 
 describe("the snowboard route", () => {
@@ -292,13 +296,29 @@ describe("Option B 3D rig kinematics and settle policy", () => {
       elapsedSec: 1.2,
       reducedMotion: false,
     });
+    const cruisingCheckpoint = deriveTrailRigPose(route, {
+      progress: 0,
+      motionEnergy: 0,
+      elapsedSec: 0.5,
+      reducedMotion: false,
+    });
+    const highSpeedSprint = deriveTrailRigPose(route, {
+      progress: 1 / 3,
+      motionEnergy: 0.9,
+      riderSpeed: 3.2,
+      sprintBoost: 0.9,
+      elapsedSec: 1.2,
+      reducedMotion: false,
+    });
 
     expect(startGate.kind).toBe("carving");
     expect(startGate.carveSide).toBe("neutral");
-    expect(startGate.sprayIntensity).toBe(0);
-    expect(startGate.spraySide).toBe(0);
     expect(startGate.boardLift).toBe(0);
     expect(startGate.boardYaw).toBeGreaterThan(0);
+
+    expect(cruisingCheckpoint.carveSide).toBe("heelside");
+    expect(cruisingCheckpoint.sprayIntensity).toBeGreaterThan(0.18);
+    expect(cruisingCheckpoint.hairFlutter).not.toBe(0);
 
     expect(toesideRhythm.carveSide).toBe("toeside");
     expect(toesideRhythm.edgeRoll).toBeGreaterThan(0.4);
@@ -306,6 +326,11 @@ describe("Option B 3D rig kinematics and settle policy", () => {
     expect(toesideRhythm.spraySide).toBe(1);
     expect(toesideRhythm.sprayIntensity).toBeGreaterThan(0.5);
     expect(toesideRhythm.isGateSlash).toBe(false);
+
+    expect(highSpeedSprint.crouch).toBeGreaterThan(toesideRhythm.crouch + 0.5);
+    expect(highSpeedSprint.sprayIntensity).toBeGreaterThanOrEqual(
+      toesideRhythm.sprayIntensity
+    );
 
     expect(crossoverPop.carveSide).toBe("neutral");
     expect(crossoverPop.boardLift).toBeGreaterThan(1.0);
@@ -323,7 +348,10 @@ describe("Option B 3D rig kinematics and settle policy", () => {
     expect(topicGateSlash.sprayIntensity).toBeGreaterThan(0.9);
     expect(topicGateSlash.crouch).toBeGreaterThan(toesideRhythm.crouch);
 
-    expect(settledMidTurn.sprayIntensity).toBe(0);
+    expect(settledMidTurn.sprayIntensity).toBeGreaterThan(0.25);
+    expect(settledMidTurn.sprayIntensity).toBeLessThan(
+      heelsideRhythm.sprayIntensity
+    );
     expect(settledMidTurn.boardLift).toBe(0);
 
     const beforeGate = deriveTrailRigPose(route, {
@@ -381,16 +409,125 @@ describe("Option B 3D rig kinematics and settle policy", () => {
     const reduced = deriveTrailRigPose(route, {
       progress: 1.65,
       motionEnergy: 1,
+      riderSpeed: 3,
+      sprintBoost: 1,
       elapsedSec: 2.5,
       reducedMotion: true,
     });
-    const exactTwo = deriveTrailRigPose(route, {
-      progress: 2,
+    expect(reduced.sprayIntensity).toBe(0);
+    expect(reduced.hairFlutter).toBe(0);
+    expect(reduced.boardLift).toBe(0);
+    expect(reduced).toEqual(
+      deriveTrailRigPose(route, {
+        progress: 2,
+        motionEnergy: 0,
+        elapsedSec: 0,
+        reducedMotion: true,
+      })
+    );
+  });
+
+  it("pursues target progress via critically damped spring without overshoot", () => {
+    let state = { progress: 0, velocity: 0 };
+    let peakVelocity = 0;
+
+    for (let step = 0; step < 90; step++) {
+      state = stepRiderSpringState({
+        state,
+        targetProgress: 2,
+        maxProgress: 7,
+        dtSec: 1 / 60,
+        reducedMotion: false,
+      });
+      expect(state.progress).toBeGreaterThanOrEqual(0);
+      expect(state.progress).toBeLessThanOrEqual(2);
+      if (state.velocity > peakVelocity) {
+        peakVelocity = state.velocity;
+      }
+    }
+
+    expect(peakVelocity).toBeGreaterThan(4);
+    expect(state.progress).toBe(2);
+    expect(state.velocity).toBe(0);
+
+    expect(
+      stepRiderSpringState({
+        state: { progress: 0.4, velocity: 3 },
+        targetProgress: 1.6,
+        maxProgress: 7,
+        dtSec: 1 / 60,
+        reducedMotion: true,
+      })
+    ).toEqual({ progress: 2, velocity: 0 });
+  });
+
+  it("accelerates smoothly and checks into target scrollY on waypoint sprint", () => {
+    expect(createWaypointSprint(1000, 1001, 900, false)).toEqual({
+      kind: "idle",
+    });
+    expect(createWaypointSprint(1000, 2400, 900, true)).toEqual({
+      kind: "idle",
+    });
+
+    let sprint = createWaypointSprint(1000, 2600, 900, false);
+    expect(sprint.kind).toBe("sprinting");
+    if (sprint.kind !== "sprinting") return;
+    expect(sprint.durationMs).toBeGreaterThan(700);
+    expect(sprint.durationMs).toBeLessThan(1650);
+
+    let lastScrollY = 1000;
+    let maxBoost = 0;
+    let completedScrollY = 0;
+
+    for (let tick = 0; tick < 200 && sprint.kind === "sprinting"; tick++) {
+      const outcome = stepWaypointSprint(sprint, 16);
+      if (outcome.kind === "active") {
+        expect(outcome.scrollY).toBeGreaterThan(lastScrollY);
+        expect(outcome.scrollY).toBeLessThan(2600);
+        maxBoost = Math.max(maxBoost, outcome.sprintBoost);
+        lastScrollY = outcome.scrollY;
+        sprint = outcome.nextState;
+      } else if (outcome.kind === "completed") {
+        completedScrollY = outcome.scrollY;
+        sprint = outcome.nextState;
+      }
+    }
+
+    expect(sprint).toEqual({ kind: "idle" });
+    expect(completedScrollY).toBe(2600);
+    expect(maxBoost).toBeGreaterThan(0.95);
+    expect(stepWaypointSprint(sprint, 16)).toEqual({ kind: "idle" });
+  });
+
+  it("drives continuous upward snow-slope cruise speed and accelerates up to 3.8x on sprint", () => {
+    const cruise = deriveSlopeFlow({
+      riderVelocity: 0,
       motionEnergy: 0,
-      elapsedSec: 0,
       reducedMotion: false,
     });
-    expect(reduced).toEqual(exactTwo);
+    const sprint = deriveSlopeFlow({
+      riderVelocity: 3.0,
+      motionEnergy: 1,
+      sprintBoost: 1,
+      reducedMotion: false,
+    });
+    const reduced = deriveSlopeFlow({
+      riderVelocity: 3.0,
+      motionEnergy: 1,
+      sprintBoost: 1,
+      reducedMotion: true,
+    });
+
+    expect(cruise.speedMultiplier).toBe(1);
+    expect(cruise.upwardSpeedPxPerSec).toBe(108);
+    expect(sprint.speedMultiplier).toBeCloseTo(3.8, 5);
+    expect(sprint.upwardSpeedPxPerSec).toBeGreaterThan(400);
+    expect(sprint.streakIntensity).toBe(1);
+    expect(reduced).toEqual({
+      upwardSpeedPxPerSec: 0,
+      speedMultiplier: 0,
+      streakIntensity: 0,
+    });
   });
 
   it("boosts settle energy on scroll and decays cleanly to zero at 600ms", () => {
@@ -406,7 +543,7 @@ describe("Option B 3D rig kinematics and settle policy", () => {
     expect(stepSettleEnergy(1, 50, 16, true)).toBe(0);
   });
 
-  it("throws on malformed rig or settle inputs", () => {
+  it("throws on malformed rig, spring, sprint, or slope-flow inputs", () => {
     expect(() => stepSettleEnergy(-0.1, 0, 16, false)).toThrow();
     expect(() => stepSettleEnergy(0.5, 0, -1, false)).toThrow();
     expect(() =>
@@ -414,6 +551,34 @@ describe("Option B 3D rig kinematics and settle policy", () => {
         progress: 0.5,
         motionEnergy: 1.2,
         elapsedSec: 0,
+        reducedMotion: false,
+      })
+    ).toThrow();
+    expect(() =>
+      deriveTrailRigPose(route, {
+        progress: 0.5,
+        motionEnergy: 0.5,
+        riderSpeed: -1,
+        elapsedSec: 0,
+        reducedMotion: false,
+      })
+    ).toThrow();
+    expect(() =>
+      stepRiderSpringState({
+        state: { progress: 0, velocity: 0 },
+        targetProgress: 1,
+        maxProgress: 7,
+        dtSec: -0.1,
+        reducedMotion: false,
+      })
+    ).toThrow();
+    expect(() => createWaypointSprint(0, 500, 0, false)).toThrow();
+    expect(() => stepWaypointSprint({ kind: "idle" }, -5)).toThrow();
+    expect(() =>
+      deriveSlopeFlow({
+        riderVelocity: 0,
+        motionEnergy: 0,
+        sprintBoost: 1.5,
         reducedMotion: false,
       })
     ).toThrow();

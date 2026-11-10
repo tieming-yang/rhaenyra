@@ -197,7 +197,7 @@ describe("Niseko Powder Pro pixel-3D software renderer", () => {
       progress: 0,
       motionEnergy: 0,
       elapsedSec: 1,
-      reducedMotion: false,
+      reducedMotion: true,
     });
     const advected = stepPowderParticles(
       spawned,
@@ -208,6 +208,21 @@ describe("Niseko Powder Pro pixel-3D software renderer", () => {
     );
     expect(advected[0].x).toBeLessThan(spawned[0].x - 5);
     expect(advected[0].y).toBeLessThan(spawned[0].y - 8);
+
+    const flatCruise = deriveTrailRigPose(route, {
+      progress: 0,
+      motionEnergy: 0,
+      elapsedSec: 0,
+      reducedMotion: false,
+    });
+    const cruiseWake = stepPowderParticles(
+      [],
+      flatCruise,
+      1 / 60,
+      { dx: 0, dy: 1.8 },
+      deterministicRng
+    );
+    expect(cruiseWake.some((p) => p.kind === "mist")).toBe(true);
 
     const buf = createRiderPixelBuffer();
     renderNisekoPowderPro(buf, gateSlash, slashParticles);
