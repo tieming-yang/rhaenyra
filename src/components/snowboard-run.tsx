@@ -4,61 +4,75 @@ import { useEffect, useRef, useState } from "react";
 import { INTERVIEW_WAYPOINTS } from "@/domain/portfolio-data";
 import {
   createSnowboardRoute,
+  deriveAirborneRigPose,
+  deriveTrailRigPose,
   getMacJumpPose,
   getMacJumpProgress,
   getSnowboardPose,
+  stepSettleEnergy,
 } from "@/lib/snowboard-route";
+import {
+  createRiderPixelBuffer,
+  type PowderParticle,
+  renderNisekoPowderPro,
+  RIDER_CANVAS_SIZE,
+  stepPowderParticles,
+} from "@/lib/snowboarder-pixel-3d";
 
 const route = createSnowboardRoute(INTERVIEW_WAYPOINTS.length);
 const start = route.checkpoints[0];
 
-function PixelSnowboarder() {
-  return (
-    <svg
-      viewBox="0 0 42 39"
-      shapeRendering="crispEdges"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <g fill="var(--sakura-deep)">
-        <path d="M16 1h9v2h3v2h2v9h-2v3h-3v2h-9v-2h-3v-3h-2V6h2V3h3z" />
-        <path d="M15 16h12v2h4v2h4v1h4v5h-6v-2h-4v4h-4v3H13v-4h-2v-4H8v2H3v-5h4v-2h4v-2z" />
-        <path d="M13 25h14v2h2v3h3v5h-7v-2h-3v-3h-4v3h-2v2H9v-4h3v-4z" />
-        <path d="M1 32h4v2h29v-2h4v-2h3v5h-3v2h-5v1H6v-1H3v-2H1z" />
-      </g>
-      <path fill="#f18eb3" d="M16 3h9v2h3v4H13V6h3zM15 18h11v2h4v2h4v2h-5v-2h-3v5H14v-5h-3v1H7v-3h4v-2z" />
-      <path fill="#ffc7da" d="M17 4h6v2h-6zM14 19h6v2h-6zM12 21h3v2h-3z" />
-      <path fill="#e6a0c0" d="M14 10h13v3H14z" />
-      <path fill="#fff4f9" d="M15 10h5v1h-5z" />
-      <path fill="#f8c3a5" d="M16 14h10v2h-3v1h-5v-1h-2z" />
-      <path fill="#d1578a" d="M23 20h3v7h-3zM14 27h11v2h3v3h-3v-1h-3v-2h-5v3h-5v-2h2z" />
-      <path fill="#f8d7e4" d="M5 35h29v-2h4v2h-4v1H6v-1z" />
-      <path fill="var(--sakura)" d="M16 35h10v1H16z" />
-    </svg>
-  );
-}
-
 export function SnowboardRun() {
   const laneRef = useRef<HTMLDivElement>(null);
   const riderRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const activeIndexRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     const lane = laneRef.current;
     const rider = riderRef.current;
-    if (!lane || !rider) return;
+    const canvas = canvasRef.current;
+    if (!lane || !rider || !canvas) return;
 
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const pixelBuffer = createRiderPixelBuffer(RIDER_CANVAS_SIZE, RIDER_CANVAS_SIZE);
+    const imageData = ctx.createImageData(RIDER_CANVAS_SIZE, RIDER_CANVAS_SIZE);
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let frame = 0;
 
-    const update = () => {
+    let frame = 0;
+    let lastScrollY = window.scrollY;
+    let lastFrameMs = performance.now();
+    let motionEnergy = 0;
+    let particles: readonly PowderParticle[] = [];
+
+    const paintCanvas = () => {
+      imageData.data.set(pixelBuffer.rgba);
+      ctx.putImageData(imageData, 0, 0);
+    };
+
+    const update = (nowMs: number) => {
       frame = 0;
+      const dtMs = Math.min(50, Math.max(0, nowMs - lastFrameMs));
+      lastFrameMs = nowMs;
+
       const bounds = lane.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
       if (bounds.height === 0 || viewportHeight <= 0) return;
 
       const scroll = window.scrollY;
+      const scrollDelta = scroll - lastScrollY;
+      lastScrollY = scroll;
+      motionEnergy = stepSettleEnergy(
+        motionEnergy,
+        scrollDelta,
+        dtMs,
+        motion.matches
+      );
+      const elapsedSec = nowMs / 1000;
+
       const center = viewportHeight / 2;
       const halfRow = bounds.height / route.checkpoints.length / 2;
       const firstTurn = Math.max(0, bounds.top + scroll + halfRow - center);
@@ -90,11 +104,25 @@ export function SnowboardRun() {
             reducedMotion: false,
           });
           rider.style.opacity = String(jumpPose.opacity);
-          rider.style.transform = `translate3d(${jumpPose.x}px, ${jumpPose.y}px, 0) translate(-50%, -88%) scale(${jumpPose.scale}) rotate(${jumpPose.lean}deg)`;
+          rider.style.transform = `translate3d(${jumpPose.x}px, ${jumpPose.y}px, 0) translate(-50%, -80%) scale(${jumpPose.scale})`;
+
+          if (jumpPose.opacity > 0) {
+            particles = [];
+            const airbornePose = deriveAirborneRigPose({
+              jumpProgress,
+              leanDeg: jumpPose.lean,
+              elapsedSec,
+            });
+            renderNisekoPowderPro(pixelBuffer, airbornePose, particles);
+            paintCanvas();
+          }
 
           if (activeIndexRef.current !== 0) {
             activeIndexRef.current = 0;
             setActiveIndex(0);
+          }
+          if (jumpPose.opacity > 0 && motionEnergy > 0) {
+            frame = window.requestAnimationFrame(update);
           }
           return;
         }
@@ -107,16 +135,35 @@ export function SnowboardRun() {
       const x = (pose.x - start.x) / route.width * bounds.width;
       const y = (pose.y - start.y) / route.height * bounds.height;
       rider.style.opacity = "1";
-      rider.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -88%) scale(1) rotate(${pose.lean}deg)`;
+      rider.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -80%) scale(1)`;
+
+      const rigPose = deriveTrailRigPose(route, {
+        progress,
+        motionEnergy,
+        elapsedSec,
+        reducedMotion: motion.matches,
+      });
+      particles = motion.matches
+        ? []
+        : stepPowderParticles(particles, rigPose, dtMs > 0 ? dtMs / 1000 : 1 / 60);
+      renderNisekoPowderPro(pixelBuffer, rigPose, particles);
+      paintCanvas();
 
       if (pose.activeIndex !== activeIndexRef.current) {
         activeIndexRef.current = pose.activeIndex;
         setActiveIndex(pose.activeIndex);
       }
+
+      if (!motion.matches && (motionEnergy > 0 || particles.length > 0)) {
+        frame = window.requestAnimationFrame(update);
+      }
     };
 
     const schedule = () => {
-      if (!frame) frame = window.requestAnimationFrame(update);
+      if (!frame) {
+        lastFrameMs = performance.now();
+        frame = window.requestAnimationFrame(update);
+      }
     };
 
     const observer = new ResizeObserver(schedule);
@@ -155,7 +202,12 @@ export function SnowboardRun() {
           ref={riderRef}
           style={{ left: `${start.x / route.width * 100}%`, top: `${start.y / route.height * 100}%` }}
         >
-          <PixelSnowboarder />
+          <canvas
+            ref={canvasRef}
+            width={RIDER_CANVAS_SIZE}
+            height={RIDER_CANVAS_SIZE}
+            aria-hidden="true"
+          />
         </div>
       </div>
 

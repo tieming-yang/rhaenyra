@@ -394,16 +394,18 @@ html {
 
 .run-rider {
   z-index: 1;
-  width: clamp(3.25rem, 12vw, 4rem);
-  transform: translate(-50%, -88%);
-  transform-origin: 50% 88%;
+  width: clamp(4.5rem, 15vw, 5.5rem);
+  transform: translate(-50%, -80%);
+  transform-origin: 50% 80%;
   will-change: transform, opacity;
 }
 
-.run-rider svg {
+.run-rider canvas {
   display: block;
   width: 100%;
   height: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 .run-stops {
@@ -560,7 +562,7 @@ html {
   }
 
   .run-rider {
-    width: clamp(4.5rem, 7vw, 5.5rem);
+    width: clamp(6rem, 9.5vw, 7.5rem);
   }
 
   .run-stop {
