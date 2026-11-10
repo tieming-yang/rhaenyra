@@ -12,17 +12,18 @@ export function MountainCardBackdrop({ index }: MountainCardBackdropProps) {
   const idPrefix = rawId.replace(/[^a-zA-Z0-9_-]/g, "");
   const profile = getMountainCardProfile(index);
 
+  const backGradId = `${idPrefix}-back`;
   const bodyGradId = `${idPrefix}-body`;
-  const capGradId = `${idPrefix}-cap`;
-  const facetGradId = `${idPrefix}-facet`;
-  const crestGradId = `${idPrefix}-crest`;
-  const lipGradId = `${idPrefix}-lip`;
+  const sunlitGradId = `${idPrefix}-sunlit`;
+  const shadedGradId = `${idPrefix}-shaded`;
+  const ridgeGradId = `${idPrefix}-ridge`;
 
   return (
     <div
       className="run-mountain-stage"
       data-peak={profile.kind}
       data-flank={profile.flank}
+      data-peaks={profile.peakCount}
       aria-hidden="true"
     >
       <svg
@@ -32,86 +33,128 @@ export function MountainCardBackdrop({ index }: MountainCardBackdropProps) {
       >
         <defs>
           <linearGradient
+            id={backGradId}
+            gradientUnits="userSpaceOnUse"
+            x1="0"
+            y1="14"
+            x2="0"
+            y2="116"
+          >
+            <stop
+              offset="0%"
+              stopColor="var(--mountain-back-top, #ebd0dc)"
+              stopOpacity="0.68"
+            />
+            <stop
+              offset="62%"
+              stopColor="var(--mountain-back-mid, #f6e4ec)"
+              stopOpacity="0.32"
+            />
+            <stop offset="100%" stopColor="var(--background)" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient
             id={bodyGradId}
             gradientUnits="userSpaceOnUse"
             x1="0"
             y1="8"
             x2="0"
-            y2="408"
+            y2="424"
           >
-            <stop offset="0%" stopColor="var(--mountain-peak-color)" stopOpacity="1" />
-            <stop offset="30%" stopColor="var(--mountain-core-color)" stopOpacity="0.98" />
-            <stop offset="58%" stopColor="var(--mountain-mid-color)" stopOpacity="0.88" />
+            <stop
+              offset="0%"
+              stopColor="var(--mountain-peak-color)"
+              stopOpacity="1"
+            />
+            <stop
+              offset="28%"
+              stopColor="var(--mountain-core-color)"
+              stopOpacity="0.99"
+            />
+            <stop
+              offset="58%"
+              stopColor="var(--mountain-mid-color)"
+              stopOpacity="0.9"
+            />
             <stop offset="80%" stopColor="var(--background)" stopOpacity="0.38" />
             <stop offset="97%" stopColor="var(--background)" stopOpacity="0" />
           </linearGradient>
           <linearGradient
-            id={capGradId}
+            id={sunlitGradId}
             gradientUnits="userSpaceOnUse"
             x1="0"
             y1="8"
-            x2="0"
-            y2="88"
-          >
-            <stop offset="0%" stopColor="var(--mountain-cap-top)" stopOpacity="0.95" />
-            <stop offset="62%" stopColor="var(--mountain-cap-mid)" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="var(--mountain-core-color)" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient
-            id={facetGradId}
-            gradientUnits="userSpaceOnUse"
-            x1="0"
-            y1="8"
-            x2="0"
-            y2="96"
-          >
-            <stop offset="0%" stopColor="var(--mountain-facet-color)" stopOpacity="0.36" />
-            <stop offset="68%" stopColor="var(--mountain-facet-color)" stopOpacity="0.12" />
-            <stop offset="100%" stopColor="var(--mountain-facet-color)" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient
-            id={crestGradId}
-            gradientUnits="userSpaceOnUse"
-            x1="0"
-            y1="9"
             x2="0"
             y2="118"
           >
-            <stop offset="0%" stopColor="var(--mountain-ridge-stroke)" stopOpacity="0.62" />
-            <stop offset="48%" stopColor="var(--mountain-ridge-stroke)" stopOpacity="0.24" />
-            <stop offset="100%" stopColor="var(--mountain-ridge-stroke)" stopOpacity="0" />
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.96" />
+            <stop offset="58%" stopColor="#ffffff" stopOpacity="0.55" />
+            <stop
+              offset="100%"
+              stopColor="var(--mountain-core-color)"
+              stopOpacity="0"
+            />
           </linearGradient>
           <linearGradient
-            id={lipGradId}
+            id={shadedGradId}
             gradientUnits="userSpaceOnUse"
             x1="0"
-            y1="54"
+            y1="8"
             x2="0"
-            y2="88"
+            y2="124"
           >
-            <stop offset="0%" stopColor="var(--mountain-ridge-stroke)" stopOpacity="0.36" />
-            <stop offset="100%" stopColor="var(--mountain-ridge-stroke)" stopOpacity="0" />
+            <stop
+              offset="0%"
+              stopColor="var(--mountain-shade-top, #ebc8d7)"
+              stopOpacity="0.88"
+            />
+            <stop
+              offset="50%"
+              stopColor="var(--mountain-shade-mid, #f6e1eb)"
+              stopOpacity="0.48"
+            />
+            <stop
+              offset="100%"
+              stopColor="var(--mountain-core-color)"
+              stopOpacity="0"
+            />
+          </linearGradient>
+          <linearGradient
+            id={ridgeGradId}
+            gradientUnits="userSpaceOnUse"
+            x1="0"
+            y1="8"
+            x2="0"
+            y2="118"
+          >
+            <stop
+              offset="0%"
+              stopColor="var(--mountain-ridge-stroke)"
+              stopOpacity="0.72"
+            />
+            <stop
+              offset="50%"
+              stopColor="var(--mountain-ridge-stroke)"
+              stopOpacity="0.28"
+            />
+            <stop
+              offset="100%"
+              stopColor="var(--mountain-ridge-stroke)"
+              stopOpacity="0"
+            />
           </linearGradient>
         </defs>
+        <path d={profile.backRangePath} fill={`url(#${backGradId})`} />
         <path d={profile.silhouettePath} fill={`url(#${bodyGradId})`} />
-        <path d={profile.snowcapPath} fill={`url(#${capGradId})`} />
-        <path d={profile.sunlitFacetPath} fill={`url(#${facetGradId})`} />
+        <path d={profile.sunlitFacesPath} fill={`url(#${sunlitGradId})`} />
+        <path d={profile.shadedFacesPath} fill={`url(#${shadedGradId})`} />
         <path
-          d={profile.snowlipPath}
+          d={profile.areteRidgesPath}
           fill="none"
-          stroke={`url(#${lipGradId})`}
-          strokeWidth="1.1"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d={profile.ridgeCrestPath}
-          fill="none"
-          stroke={`url(#${crestGradId})`}
-          strokeWidth="1.25"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          stroke={`url(#${ridgeGradId})`}
+          strokeWidth="1.2"
+          strokeLinecap="butt"
+          strokeLinejoin="miter"
+          strokeMiterlimit="3"
           vectorEffect="non-scaling-stroke"
         />
       </svg>

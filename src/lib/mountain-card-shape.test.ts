@@ -10,7 +10,9 @@ import {
   type MountainValleyFlank,
 } from "./mountain-card-shape";
 
-function extractPathCoordinates(pathData: string): Array<{ readonly x: number; readonly y: number }> {
+function extractPathCoordinates(
+  pathData: string
+): Array<{ readonly x: number; readonly y: number }> {
   const numbers = pathData.match(/-?\d+(\.\d+)?/g)?.map(Number) ?? [];
   expect(numbers.length).toBeGreaterThan(0);
   expect(numbers.length % 2).toBe(0);
@@ -23,19 +25,10 @@ function extractPathCoordinates(pathData: string): Array<{ readonly x: number; r
 }
 
 describe("getMountainCardProfile and buildMountainCardProfile", () => {
-  it("rotates deterministically across all four Hokkaido peak kinds and alternates valley flanks", () => {
-    const profiles = Array.from({ length: 8 }, (_, index) => getMountainCardProfile(index));
-
-    expect(profiles.map((profile) => profile.kind)).toEqual([
-      "yotei-cone",
-      "annupuri-twin",
-      "asahidake-ridge",
-      "moiwa-shoulder",
-      "yotei-cone",
-      "annupuri-twin",
-      "asahidake-ridge",
-      "moiwa-shoulder",
-    ]);
+  it("produces eight unique multi-peak (range, flank) combinations across the eight proposal waypoints", () => {
+    const profiles = Array.from({ length: 8 }, (_, index) =>
+      getMountainCardProfile(index)
+    );
 
     expect(profiles.map((profile) => profile.flank)).toEqual([
       "left",
@@ -47,9 +40,21 @@ describe("getMountainCardProfile and buildMountainCardProfile", () => {
       "left",
       "right",
     ]);
+
+    const uniqueKeys = new Set(
+      profiles.map((profile) => `${profile.kind}:${profile.flank}`)
+    );
+    expect(uniqueKeys.size).toBe(8);
+
+    for (let index = 0; index < profiles.length; index += 1) {
+      expect(profiles[index].peakCount).toBeGreaterThanOrEqual(3);
+      if (index > 0) {
+        expect(profiles[index].kind).not.toBe(profiles[index - 1].kind);
+      }
+    }
   });
 
-  it("produces closed silhouettes and bounded finite SVG coordinates across all peak and flank variants", () => {
+  it("uses angular multi-peak crown segments and bounded finite SVG coordinates across all variants", () => {
     const flanks: readonly MountainValleyFlank[] = ["left", "right"];
 
     for (const kind of MOUNTAIN_PEAK_KINDS) {
@@ -57,19 +62,25 @@ describe("getMountainCardProfile and buildMountainCardProfile", () => {
         const profile = buildMountainCardProfile(kind, flank);
         expect(profile.viewBox).toBe(MOUNTAIN_VIEWBOX);
 
+        expect(profile.backRangePath.startsWith("M ")).toBe(true);
+        expect(profile.backRangePath.endsWith(" Z")).toBe(true);
         expect(profile.silhouettePath.startsWith("M ")).toBe(true);
         expect(profile.silhouettePath.endsWith(" Z")).toBe(true);
-        expect(profile.snowcapPath.endsWith(" Z")).toBe(true);
-        expect(profile.sunlitFacetPath.endsWith(" Z")).toBe(true);
-        expect(profile.ridgeCrestPath.endsWith(" Z")).toBe(false);
-        expect(profile.snowlipPath.endsWith(" Z")).toBe(false);
+        expect(profile.sunlitFacesPath.endsWith(" Z")).toBe(true);
+        expect(profile.shadedFacesPath.endsWith(" Z")).toBe(true);
+        expect(profile.areteRidgesPath.endsWith(" Z")).toBe(false);
+
+        // Crown ridges and arête facets must be crisp polygonal lines (no quadratic Q scallops)
+        expect(profile.areteRidgesPath).not.toContain("Q ");
+        expect(profile.sunlitFacesPath).not.toContain("Q ");
+        expect(profile.shadedFacesPath).not.toContain("Q ");
 
         const allPaths = [
+          profile.backRangePath,
           profile.silhouettePath,
-          profile.snowcapPath,
-          profile.sunlitFacetPath,
-          profile.ridgeCrestPath,
-          profile.snowlipPath,
+          profile.sunlitFacesPath,
+          profile.shadedFacesPath,
+          profile.areteRidgesPath,
         ];
 
         for (const pathData of allPaths) {
@@ -87,20 +98,18 @@ describe("getMountainCardProfile and buildMountainCardProfile", () => {
     }
   });
 
-  it("mirrors horizontal coordinates across MOUNTAIN_VIEWBOX_WIDTH on the right valley flank while preserving elevation", () => {
+  it("mirrors silhouette geometry on the right flank while preserving consistent upper-left sunlight direction", () => {
     for (const kind of MOUNTAIN_PEAK_KINDS) {
       const left = buildMountainCardProfile(kind, "left");
       const right = buildMountainCardProfile(kind, "right");
 
-      const fields = [
+      const directMirroredFields = [
+        "backRangePath",
         "silhouettePath",
-        "snowcapPath",
-        "sunlitFacetPath",
-        "ridgeCrestPath",
-        "snowlipPath",
+        "areteRidgesPath",
       ] as const;
 
-      for (const field of fields) {
+      for (const field of directMirroredFields) {
         const leftCoords = extractPathCoordinates(left[field]);
         const rightCoords = extractPathCoordinates(right[field]);
         expect(rightCoords).toHaveLength(leftCoords.length);
@@ -113,11 +122,40 @@ describe("getMountainCardProfile and buildMountainCardProfile", () => {
           expect(rightCoords[index].y).toBeCloseTo(leftCoords[index].y, 5);
         }
       }
+
+      // Mirrored east faces become sunlit (upper-left sun) and mirrored west faces become shaded
+      const leftSunlit = extractPathCoordinates(left.sunlitFacesPath);
+      const rightShaded = extractPathCoordinates(right.shadedFacesPath);
+      expect(rightShaded).toHaveLength(leftSunlit.length);
+      for (let index = 0; index < leftSunlit.length; index += 1) {
+        expect(rightShaded[index].x).toBeCloseTo(
+          MOUNTAIN_VIEWBOX_WIDTH - leftSunlit[index].x,
+          5
+        );
+        expect(rightShaded[index].y).toBeCloseTo(leftSunlit[index].y, 5);
+      }
+
+      const leftShaded = extractPathCoordinates(left.shadedFacesPath);
+      const rightSunlit = extractPathCoordinates(right.sunlitFacesPath);
+      expect(rightSunlit).toHaveLength(leftShaded.length);
+      for (let index = 0; index < leftShaded.length; index += 1) {
+        expect(rightSunlit[index].x).toBeCloseTo(
+          MOUNTAIN_VIEWBOX_WIDTH - leftShaded[index].x,
+          5
+        );
+        expect(rightSunlit[index].y).toBeCloseTo(leftShaded[index].y, 5);
+      }
     }
   });
 
   it("throws concrete errors for malformed waypoint indices or unsupported union inputs", () => {
-    for (const invalidIndex of [-1, -42, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    for (const invalidIndex of [
+      -1,
+      -42,
+      1.5,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+    ]) {
       expect(() => getMountainCardProfile(invalidIndex)).toThrow(
         "waypointIndex must be a non-negative integer"
       );
@@ -128,7 +166,7 @@ describe("getMountainCardProfile and buildMountainCardProfile", () => {
     ).toThrow("Unsupported mountain peak kind");
 
     expect(() =>
-      buildMountainCardProfile("yotei-cone", "center" as MountainValleyFlank)
+      buildMountainCardProfile("daisetsuzan-massif", "center" as MountainValleyFlank)
     ).toThrow("Unsupported mountain valley flank");
   });
 });
