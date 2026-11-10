@@ -136,20 +136,13 @@ export function ResumeShowcase() {
     const update = () => {
       frame = 0;
       const viewport = window.innerHeight;
-      const deskBounds = desk.getBoundingClientRect();
-      if (reduce.matches) {
-        desk.style.removeProperty("--desk-close");
-      } else {
-        const exit = Math.min(1, Math.max(0, (viewport * 0.68 - deskBounds.bottom) / (viewport * 0.46)));
-        desk.style.setProperty("--desk-close", String(exit));
-      }
       for (const { element, entry, distance } of tracks) {
         if (reduce.matches) {
           element.style.removeProperty("--scene-progress");
           continue;
         }
 
-        const top = element === desk ? deskBounds.top : element.getBoundingClientRect().top;
+        const top = element.getBoundingClientRect().top;
         const position = (viewport * entry - top) / (viewport * distance);
         const progress = Math.min(1, Math.max(0, position));
         element.style.setProperty("--scene-progress", String(progress * progress * (3 - 2 * progress)));

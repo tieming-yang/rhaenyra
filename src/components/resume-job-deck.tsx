@@ -88,7 +88,10 @@ export function ResumeJobDeck() {
         </div>
       </header>
 
-      <ol className="resume-job-deck" ref={listRef}>
+      <ol
+        className="resume-job-deck grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5"
+        ref={listRef}
+      >
         {RESUME_BADGES.map((job, index) => {
           const isFlipped = flipped.has(job.id);
           const number = index + 1;
@@ -97,7 +100,7 @@ export function ResumeJobDeck() {
 
           return (
             <li
-              className="resume-job-slot"
+              className="resume-job-slot w-full max-w-[19.5rem] mx-auto sm:max-w-none"
               id={slot}
               key={job.id}
               style={{ "--flip-delay": `${flipDelays.get(slot) ?? 0}ms` } as CSSProperties}

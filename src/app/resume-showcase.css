@@ -22,8 +22,8 @@
 .resume-cover {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(15rem, 1.28fr) minmax(0, 0.8fr);
-  gap: clamp(0.85rem, 2.5vw, 2.6rem);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
   isolation: isolate;
   overflow: clip;
   min-height: min(50rem, calc(100svh - var(--interview-header-height)));
@@ -38,7 +38,11 @@
 .resume-cover-aside {
   position: relative;
   z-index: 2;
-  padding-top: clamp(2rem, 6vh, 4rem);
+  padding-top: 1.6rem;
+}
+
+.resume-cover-aside {
+  padding-bottom: 2.5rem;
 }
 
 .resume-cover-copy .resume-eyebrow {
@@ -96,15 +100,21 @@
 }
 
 .resume-cover-mark {
-  position: absolute;
-  z-index: -1;
-  right: var(--resume-gutter);
-  bottom: 0.12em;
-  left: var(--resume-gutter);
+  grid-column: 1;
+  grid-row: 2;
+  align-self: center;
+  justify-self: center;
+  z-index: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+  translate: 0 8%;
   color: #efbdd0;
-  font-size: clamp(3rem, 13.5vw, 14rem);
+  opacity: 0.64;
+  font-size: clamp(1.75rem, 11vw, 10.5rem);
   font-weight: 720;
-  line-height: 0.89;
+  line-height: 1.18;
   letter-spacing: -0.085em;
   white-space: nowrap;
   text-align: center;
@@ -113,10 +123,50 @@
 
 .resume-badge {
   position: relative;
+  grid-column: 1;
+  grid-row: 2;
   z-index: 1;
   min-width: 0;
+  margin-top: 0.85rem;
   align-self: start;
   text-align: center;
+}
+
+@media (width >= 48rem) {
+  .resume-cover {
+    grid-template-columns: minmax(0, 0.95fr) minmax(15rem, 1.28fr) minmax(0, 0.8fr);
+    gap: clamp(0.85rem, 2.5vw, 2.6rem);
+  }
+
+  .resume-cover-copy,
+  .resume-cover-aside {
+    grid-row: 1;
+    padding-top: clamp(2rem, 6vh, 4rem);
+  }
+
+  .resume-cover-copy {
+    grid-column: 1;
+  }
+
+  .resume-cover-aside {
+    grid-column: 3;
+    padding-bottom: 0;
+  }
+
+  .resume-badge {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+  }
+
+  .resume-cover-mark {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    align-self: start;
+    margin-top: calc(clamp(32rem, 66svh, 38rem) * 0.58 - 0.59em);
+    translate: none;
+    opacity: 1;
+  }
 }
 
 .resume-badge-field {
@@ -426,17 +476,11 @@
 }
 
 .resume-job-deck {
-  --deal: calc(var(--scene-progress, 1) * (1 - var(--desk-close, 0)));
+  --deal: 1;
   position: relative;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: clamp(0.6rem, 2.1vw, 1.7rem);
+  gap: clamp(0.85rem, 2.1vw, 1.7rem);
   margin-top: clamp(2.4rem, 6vw, 4.25rem);
   list-style: none;
-}
-
-.resume-job-deck:has(:focus-visible) {
-  --deal: 1;
 }
 
 .resume-job-slot {
@@ -454,11 +498,7 @@
 }
 
 .resume-job-placement {
-  transform: translate(
-    calc(var(--gather-x, 0px) * (1 - var(--deal))),
-    calc(var(--gather-y, 0px) * (1 - var(--deal)))
-  );
-  transition: transform 380ms cubic-bezier(.22,.74,.32,1);
+  transform: none;
 }
 
 .resume-job-button {
@@ -603,7 +643,7 @@
   text-underline-offset: 0.25em;
 }
 
-@media (min-width: 70rem) {
+@media (width >= 80rem) {
   .resume-desk-inner {
     position: relative;
   }
@@ -624,7 +664,20 @@
   }
 
   .resume-job-deck {
+    --deal: var(--scene-progress, 1);
     margin-left: clamp(5.25rem, 9vw, 8rem);
+  }
+
+  .resume-job-deck:has(:focus-visible) {
+    --deal: 1;
+  }
+
+  .resume-job-placement {
+    transform: translate(
+      calc(var(--gather-x, 0px) * (1 - var(--deal))),
+      calc(var(--gather-y, 0px) * (1 - var(--deal)))
+    );
+    transition: transform 380ms cubic-bezier(.22,.74,.32,1);
   }
 }
 
@@ -1039,7 +1092,7 @@
   to { opacity: 1; transform: translateX(0); }
 }
 
-@media (min-width: 62rem) and (min-height: 620px) and (prefers-reduced-motion: no-preference) {
+@media (width >= 64rem) and (min-height: 620px) and (prefers-reduced-motion: no-preference) {
   .resume-cover-rail {
     min-height: 151svh;
   }
@@ -1083,33 +1136,7 @@
   }
 }
 
-@media (min-width: 768px) and (max-width: 1039px) {
-  .resume-job-deck {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 767px) {
-  .resume-cover {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-  }
-
-  .resume-cover-copy,
-  .resume-cover-aside {
-    padding-top: 1.6rem;
-  }
-
-  .resume-cover-aside {
-    padding-bottom: 2.5rem;
-  }
-
-  .resume-cover-mark {
-    bottom: 0.42em;
-    font-size: 13vw;
-    opacity: 0.64;
-  }
-
+@media (width < 48rem) {
   .resume-badge-field {
     height: clamp(25rem, 106vw, 29rem);
     max-width: 25rem;
@@ -1120,25 +1147,8 @@
     width: clamp(12.55rem, 60vw, 14rem);
   }
 
-  .resume-badge {
-    margin-top: 0.85rem;
-  }
-
   .resume-strap {
     clip-path: inset(0 -3rem -3rem);
-  }
-
-  .resume-job-deck {
-    --deal: 1;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .resume-job-placement {
-    transform: none;
-  }
-
-  .resume-job-flip {
-    min-height: 17rem;
   }
 
   .resume-studio-inner {
