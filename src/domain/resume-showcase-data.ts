@@ -73,22 +73,6 @@ interface ResumeProduct {
 
 export const RESUME_PRODUCTS: readonly ResumeProduct[] = [
   {
-    id: "crispygrooves",
-    name: "CrispyGrooves",
-    category: "預約平台",
-    title: "把教室的工作流程帶進手機",
-    summary: "以一線教師的排課與聯繫需求為起點，規劃舞蹈與皮拉提斯預約平台。",
-    display: "01",
-    caption: "BOOKING STUDIO",
-    site: "https://crispygrooves.norman-tmy.workers.dev/",
-    preview: "/resume/screen-crispygrooves.webp",
-    details: [
-      { title: "情境", text: "教學者需要同時管理不同課程時段、老師的排課及學生聯繫。" },
-      { title: "做法", text: "訪談一線教師，以行動優先的預約流程呈現課程與時段，並用 AI 輔助規劃和開發。" },
-      { title: "角色", text: "舞蹈預約平台產品經理，2026/08 – 2026/10。" },
-    ],
-  },
-  {
     id: "beacon",
     name: "Beacon",
     category: "社區安全 App",
@@ -131,6 +115,22 @@ export const RESUME_PRODUCTS: readonly ResumeProduct[] = [
     details: [
       { title: "產品", text: "在瀏覽器探索 RPG 世界，練習涵蓋預估 JLPT N5 至 N1 程度的原創題目。" },
       { title: "學習體驗", text: "支援訪客遊玩，將題目與解析放進遊戲流程，並提供回顧練習的空間。" },
+    ],
+  },
+  {
+    id: "crispygrooves",
+    name: "CrispyGrooves",
+    category: "預約平台",
+    title: "把教室的工作流程帶進手機",
+    summary: "以一線教師的排課與聯繫需求為起點，規劃舞蹈與皮拉提斯預約平台。",
+    display: "01",
+    caption: "BOOKING STUDIO",
+    site: "https://crispygrooves.norman-tmy.workers.dev/",
+    preview: "/resume/screen-crispygrooves.webp",
+    details: [
+      { title: "情境", text: "教學者需要同時管理不同課程時段、老師的排課及學生聯繫。" },
+      { title: "做法", text: "訪談一線教師，以行動優先的預約流程呈現課程與時段，並用 AI 輔助規劃和開發。" },
+      { title: "角色", text: "舞蹈預約平台產品經理，2026/08 – 2026/10。" },
     ],
   },
 ];
