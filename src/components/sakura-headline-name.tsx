@@ -5,6 +5,8 @@ import {
   BLOSSOM_PALETTE,
   clearSakuraPointer,
   createSakuraSimulationState,
+  DEFAULT_WATERMARK_BASE_RGB,
+  deriveSakuraScaleConfig,
   resolveGlyphSakuraRgb,
   sampleGlyphParticlesFromRgba,
   stepSakuraSimulation,
@@ -13,6 +15,8 @@ import {
   updateSakuraPointer,
   type BlossomPetal,
   type CharacterBounds,
+  type RgbTuple,
+  type SakuraScaleConfig,
   type SakuraSimulationState,
 } from "@/lib/sakura-headline";
 
@@ -37,17 +41,74 @@ interface RasterizedHeadline {
   readonly rootWidth: number;
   readonly rootHeight: number;
   readonly dpr: number;
+  readonly scaleConfig: SakuraScaleConfig;
   readonly atlasCanvas: HTMLCanvasElement;
   readonly sprites: readonly CharacterAtlasSprite[];
   readonly glyphsByChar: readonly (readonly number[])[];
+  readonly baseColorCss: string;
+  readonly roseColorRamp: readonly string[];
+  readonly highlightColorRamp: readonly string[];
 }
 
-const BLEED_LEFT = 88;
-const BLEED_RIGHT = 160;
-const BLEED_TOP = 84;
-const BLEED_BOTTOM = 136;
-const INTERACTION_HALO_PX = 56;
-const ATLAS_PAD_PX = 8;
+export const SAKURA_CANVAS_BLEED = {
+  left: 120,
+  right: 140,
+  top: 280,
+  bottom: 96,
+} as const;
+
+const ATLAS_PAD_PX = 12;
+const COLOR_RAMP_STEPS = 32;
+const MAX_CANVAS_DEVICE_DIM = 3840;
+
+function parseComputedRgb(cssColor: string): RgbTuple {
+  const match = cssColor.match(
+    /rgba?\(\s*(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)/i
+  );
+  if (!match) {
+    return DEFAULT_WATERMARK_BASE_RGB;
+  }
+  return {
+    r: Math.max(0, Math.min(255, Math.round(Number(match[1])))),
+    g: Math.max(0, Math.min(255, Math.round(Number(match[2])))),
+    b: Math.max(0, Math.min(255, Math.round(Number(match[3])))),
+  };
+}
+
+function buildSakuraCssRamps(baseRgb: RgbTuple): {
+  readonly baseColorCss: string;
+  readonly roseColorRamp: readonly string[];
+  readonly highlightColorRamp: readonly string[];
+} {
+  const roseColorRamp: string[] = [];
+  const highlightColorRamp: string[] = [];
+
+  for (let i = 0; i < COLOR_RAMP_STEPS; i += 1) {
+    const heat = i / (COLOR_RAMP_STEPS - 1);
+    const rose = resolveGlyphSakuraRgb(heat, 0.45, baseRgb);
+    const highlight = resolveGlyphSakuraRgb(heat, 0.9, baseRgb);
+    roseColorRamp.push(`rgb(${rose.r} ${rose.g} ${rose.b})`);
+    highlightColorRamp.push(`rgb(${highlight.r} ${highlight.g} ${highlight.b})`);
+  }
+
+  return {
+    baseColorCss: `rgb(${baseRgb.r} ${baseRgb.g} ${baseRgb.b})`,
+    roseColorRamp,
+    highlightColorRamp,
+  };
+}
+
+function isForegroundInteractiveTarget(target: EventTarget | null): boolean {
+  if (document.querySelector(".resume-badge-swing[data-dragging]") !== null) {
+    return true;
+  }
+  if (!(target instanceof Element)) {
+    return false;
+  }
+  return (
+    target.closest(".resume-badge-swing, a, button, summary, details") !== null
+  );
+}
 
 function drawNotchedSakuraPetal(
   ctx: CanvasRenderingContext2D,
@@ -62,11 +123,14 @@ function drawNotchedSakuraPetal(
   const palette = BLOSSOM_PALETTE[petal.tone];
 
   ctx.save();
-  ctx.translate(BLEED_LEFT + petal.x, BLEED_TOP + petal.y);
+  ctx.translate(
+    SAKURA_CANVAS_BLEED.left + petal.x,
+    SAKURA_CANVAS_BLEED.top + petal.y
+  );
   ctx.rotate(petal.rotation);
   ctx.scale(1, tumbleScale);
 
-  // Authentic notched sakura petal silhouette (tapered calyx base + cleft tip)
+  // Authentic notched sakura petal silhouette (tapered calyx base + V-cleft tip)
   ctx.globalAlpha = petal.opacity;
   ctx.fillStyle = palette.fill;
   ctx.beginPath();
@@ -92,8 +156,8 @@ function drawNotchedSakuraPetal(
   ctx.closePath();
   ctx.fill();
 
-  // Subtle botanical blush accent near the petal base
-  ctx.globalAlpha = petal.opacity * 0.34;
+  // Botanical blush accent near the petal calyx base
+  ctx.globalAlpha = petal.opacity * 0.36;
   ctx.fillStyle = palette.accent;
   ctx.beginPath();
   ctx.moveTo(0, r * 0.95);
@@ -125,11 +189,22 @@ function rasterizeHeadlineLayout(
     return null;
   }
 
-  const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  const logicalCanvasMax = Math.max(
+    rootWidth + SAKURA_CANVAS_BLEED.left + SAKURA_CANVAS_BLEED.right,
+    rootHeight + SAKURA_CANVAS_BLEED.top + SAKURA_CANVAS_BLEED.bottom
+  );
+  const rawDpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = Math.max(
+    1,
+    Math.min(rawDpr, MAX_CANVAS_DEVICE_DIM / Math.max(1, logicalCanvasMax))
+  );
+
   const computed = window.getComputedStyle(rootEl);
   const fontSpec = `${computed.fontStyle} ${computed.fontWeight} ${computed.fontSize} ${computed.fontFamily}`;
-  const inkColor = computed.color || "#311b25";
-  const fontSizePx = Number.parseFloat(computed.fontSize) || 40;
+  const inkColor = computed.color || "#efbdd0";
+  const baseRgb = parseComputedRgb(inkColor);
+  const fontSizePx = Number.parseFloat(computed.fontSize) || 96;
+  const scaleConfig = deriveSakuraScaleConfig(fontSizePx);
 
   const range = document.createRange();
   const measuredChars: {
@@ -264,20 +339,29 @@ function rasterizeHeadlineLayout(
     cursorAtlasX += slotW;
   }
 
-  const imageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+  const imageData = maskCtx.getImageData(
+    0,
+    0,
+    maskCanvas.width,
+    maskCanvas.height
+  );
   const sampled = sampleGlyphParticlesFromRgba({
     rgba: imageData.data,
     width: maskCanvas.width,
     height: maskCanvas.height,
     dpr,
-    sampleStepPx: 1.9,
-    maxParticles: 1600,
+    sampleStepPx: scaleConfig.sampleStepPx,
+    maxParticles: scaleConfig.maxParticles,
+    particleMinSize: scaleConfig.particleMinSize,
+    particleMaxSize: scaleConfig.particleMaxSize,
     charBoxes: sprites.map((sprite) => sprite.bounds),
   });
 
   const initialState = createSakuraSimulationState(
     sampled.glyphs,
-    sampled.charCount
+    sampled.charCount,
+    0x20261111,
+    scaleConfig
   );
 
   const buckets: number[][] = Array.from(
@@ -288,22 +372,27 @@ function rasterizeHeadlineLayout(
     buckets[glyph.charIndex]?.push(particleIdx);
   });
 
+  const ramps = buildSakuraCssRamps(baseRgb);
+
   return {
     layout: {
       rootWidth,
       rootHeight,
       dpr,
+      scaleConfig,
       atlasCanvas,
       sprites,
       glyphsByChar: buckets,
+      ...ramps,
     },
     initialState,
   };
 }
 
 /**
- * Renders the hero headline name with localized cursor wind-brush sakura
- * dissolve, elastic glyph reformation, and drifting notched cherry blossoms.
+ * Renders the giant hero display name ("Rhaenyra Liang") with localized wind-brush
+ * sakura dissolve, elastic glyph reformation, and buoyant notched cherry blossoms
+ * while keeping foreground badge drag and links unobstructed.
  */
 export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
   const rootRef = useRef<HTMLSpanElement>(null);
@@ -323,7 +412,14 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
       return;
     }
 
-    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const hostCoverEl =
+      rootEl.closest<HTMLElement>(".resume-cover") ??
+      rootEl.parentElement ??
+      rootEl;
+    const reducedMotionQuery = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    );
+
     let layout: RasterizedHeadline | null = null;
     let simState: SakuraSimulationState = createSakuraSimulationState([], 0);
     let animFrame = 0;
@@ -331,13 +427,28 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
     let introTimer = 0;
     let hasPlayedIntro = false;
     let lastFrameTime = 0;
-    let lastPointer: { x: number; y: number; time: number; vx: number; vy: number } | null =
-      null;
-    let touchTapCandidate: { id: number; startX: number; startY: number } | null = null;
+    let lastPointer: {
+      x: number;
+      y: number;
+      time: number;
+      vx: number;
+      vy: number;
+    } | null = null;
+    let touchTapCandidate: {
+      id: number;
+      startX: number;
+      startY: number;
+    } | null = null;
 
     const syncCanvasBackingStore = (nextLayout: RasterizedHeadline) => {
-      const logicalW = nextLayout.rootWidth + BLEED_LEFT + BLEED_RIGHT;
-      const logicalH = nextLayout.rootHeight + BLEED_TOP + BLEED_BOTTOM;
+      const logicalW =
+        nextLayout.rootWidth +
+        SAKURA_CANVAS_BLEED.left +
+        SAKURA_CANVAS_BLEED.right;
+      const logicalH =
+        nextLayout.rootHeight +
+        SAKURA_CANVAS_BLEED.top +
+        SAKURA_CANVAS_BLEED.bottom;
       canvasEl.style.width = `${logicalW}px`;
       canvasEl.style.height = `${logicalH}px`;
       canvasEl.width = Math.max(1, Math.round(logicalW * nextLayout.dpr));
@@ -350,8 +461,14 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
         return;
       }
 
-      const logicalW = layout.rootWidth + BLEED_LEFT + BLEED_RIGHT;
-      const logicalH = layout.rootHeight + BLEED_TOP + BLEED_BOTTOM;
+      const logicalW =
+        layout.rootWidth +
+        SAKURA_CANVAS_BLEED.left +
+        SAKURA_CANVAS_BLEED.right;
+      const logicalH =
+        layout.rootHeight +
+        SAKURA_CANVAS_BLEED.top +
+        SAKURA_CANVAS_BLEED.bottom;
 
       ctx.setTransform(layout.dpr, 0, 0, layout.dpr, 0, 0);
       ctx.clearRect(0, 0, logicalW, logicalH);
@@ -367,11 +484,12 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
 
       if (hasDisplacedCharacters) {
         const elapsedSec = simState.elapsedMs / 1000;
+        const maxRampIdx = COLOR_RAMP_STEPS - 1;
 
         for (const sprite of layout.sprites) {
           const charEnergy = simState.charEnergies[sprite.charIndex] ?? 0;
 
-          // Keep untouched or gently settling letters razor-sharp via Retina atlas
+          // Keep untouched or nearly-settled giant letters razor-sharp via Retina atlas
           if (charEnergy < 0.34) {
             ctx.globalAlpha = 1 - charEnergy / 0.34;
             ctx.drawImage(
@@ -380,8 +498,8 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
               sprite.atlasY,
               sprite.atlasWidth,
               sprite.atlasHeight,
-              BLEED_LEFT + sprite.drawLeft,
-              BLEED_TOP + sprite.drawTop,
+              SAKURA_CANVAS_BLEED.left + sprite.drawLeft,
+              SAKURA_CANVAS_BLEED.top + sprite.drawTop,
               sprite.drawWidth,
               sprite.drawHeight
             );
@@ -396,24 +514,32 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
 
           for (const particleIndex of indices) {
             const glyph = simState.glyphs[particleIndex];
-            const px = BLEED_LEFT + glyph.x;
-            const py = BLEED_TOP + glyph.y;
-            const rgb = resolveGlyphSakuraRgb(glyph.heat, glyph.variant);
+            const px = SAKURA_CANVAS_BLEED.left + glyph.x;
+            const py = SAKURA_CANVAS_BLEED.top + glyph.y;
 
             ctx.globalAlpha = glyph.alpha * particleVisibility;
-            ctx.fillStyle = `rgb(${rgb.r} ${rgb.g} ${rgb.b})`;
 
-            if (glyph.heat < 0.08) {
+            if (glyph.heat < 0.06) {
+              ctx.fillStyle = layout.baseColorCss;
               ctx.beginPath();
-              ctx.arc(px, py, glyph.size * 0.68, 0, Math.PI * 2);
+              ctx.arc(px, py, glyph.size * 0.72, 0, Math.PI * 2);
               ctx.fill();
             } else {
+              const rampIdx = Math.min(
+                maxRampIdx,
+                Math.round(glyph.heat * maxRampIdx)
+              );
+              ctx.fillStyle =
+                glyph.variant >= 0.76
+                  ? layout.highlightColorRamp[rampIdx]
+                  : layout.roseColorRamp[rampIdx];
+
               const speed = Math.hypot(glyph.vx, glyph.vy);
               const baseAngle =
                 speed > 6 ? Math.atan2(glyph.vy, glyph.vx) : glyph.phase;
               const angle =
                 baseAngle + Math.sin(elapsedSec * 6.4 + glyph.phase) * 0.32;
-              const rx = glyph.size * (0.95 + glyph.heat * 0.72);
+              const rx = glyph.size * (0.96 + glyph.heat * 0.74);
               const ry = glyph.size * (0.82 - glyph.heat * 0.24);
 
               ctx.beginPath();
@@ -461,9 +587,17 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
       }
     };
 
+    const releasePointerField = () => {
+      if (simState.phase !== "active") {
+        return;
+      }
+      lastPointer = null;
+      simState = clearSakuraPointer(simState);
+      ensureLoopRunning();
+    };
+
     const rebuildLayout = () => {
       measureFrame = 0;
-      // Ensure DOM text is temporarily untouched if needed; root color stays var(--foreground)
       const built = rasterizeHeadlineLayout(rootEl, textEl, text);
       if (!built) {
         return;
@@ -471,8 +605,8 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
 
       const dimensionsUnchanged =
         layout !== null &&
-        layout.rootWidth === built.layout.rootWidth &&
-        layout.rootHeight === built.layout.rootHeight &&
+        Math.abs(layout.rootWidth - built.layout.rootWidth) <= 1 &&
+        Math.abs(layout.rootHeight - built.layout.rootHeight) <= 1 &&
         layout.dpr === built.layout.dpr &&
         simState.glyphs.length > 0;
 
@@ -489,14 +623,21 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
       if (!hasPlayedIntro && !reducedMotionQuery.matches) {
         window.clearTimeout(introTimer);
         introTimer = window.setTimeout(() => {
-          if (hasPlayedIntro || reducedMotionQuery.matches || simState.phase !== "idle") {
+          if (
+            hasPlayedIntro ||
+            reducedMotionQuery.matches ||
+            simState.phase !== "idle"
+          ) {
             return;
           }
           hasPlayedIntro = true;
-          const outcome = triggerSakuraIntroHint(simState, reducedMotionQuery.matches);
+          const outcome = triggerSakuraIntroHint(
+            simState,
+            reducedMotionQuery.matches
+          );
           simState = outcome.state;
           ensureLoopRunning();
-        }, 320);
+        }, 360);
       }
     };
 
@@ -506,17 +647,23 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
       }
     };
 
-    const applyFinePointerSample = (clientX: number, clientY: number, timeStamp: number) => {
-      const rect = rootEl.getBoundingClientRect();
-      const localX = clientX - rect.left;
-      const localY = clientY - rect.top;
-
+    const applyFinePointerSample = (
+      localX: number,
+      localY: number,
+      timeStamp: number
+    ) => {
       let vx = 0;
-      let vy = -18;
+      let vy = -24;
       if (lastPointer !== null) {
         const dtSec = Math.max(0.004, (timeStamp - lastPointer.time) / 1000);
-        const rawVx = Math.max(-1600, Math.min(1600, (localX - lastPointer.x) / dtSec));
-        const rawVy = Math.max(-1600, Math.min(1600, (localY - lastPointer.y) / dtSec));
+        const rawVx = Math.max(
+          -1800,
+          Math.min(1800, (localX - lastPointer.x) / dtSec)
+        );
+        const rawVy = Math.max(
+          -1800,
+          Math.min(1800, (localY - lastPointer.y) / dtSec)
+        );
         vx = lastPointer.vx * 0.42 + rawVx * 0.58;
         vy = lastPointer.vy * 0.42 + rawVy * 0.58;
       }
@@ -532,57 +679,53 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
       ensureLoopRunning();
     };
 
-    const handleRootPointerEnter = (event: PointerEvent) => {
+    const handleCoverPointerMove = (event: PointerEvent) => {
       if (event.pointerType === "touch" || reducedMotionQuery.matches) {
+        return;
+      }
+      if (event.buttons !== 0 || isForegroundInteractiveTarget(event.target)) {
+        releasePointerField();
         return;
       }
       if (!layout) {
         rebuildLayout();
-      }
-      applyFinePointerSample(event.clientX, event.clientY, event.timeStamp);
-    };
-
-    const handleRootPointerMove = (event: PointerEvent) => {
-      if (event.pointerType === "touch" || reducedMotionQuery.matches) {
-        return;
-      }
-      if (!layout) {
-        rebuildLayout();
-      }
-      applyFinePointerSample(event.clientX, event.clientY, event.timeStamp);
-    };
-
-    const handleWindowPointerMove = (event: PointerEvent) => {
-      if (simState.phase !== "active" || event.pointerType === "touch") {
-        return;
       }
       const rect = rootEl.getBoundingClientRect();
-      const withinHalo =
-        event.clientX >= rect.left - INTERACTION_HALO_PX &&
-        event.clientX <= rect.right + INTERACTION_HALO_PX &&
-        event.clientY >= rect.top - INTERACTION_HALO_PX &&
-        event.clientY <= rect.bottom + INTERACTION_HALO_PX;
-
-      if (withinHalo) {
-        applyFinePointerSample(event.clientX, event.clientY, event.timeStamp);
-      } else {
-        lastPointer = null;
-        simState = clearSakuraPointer(simState);
-        ensureLoopRunning();
-      }
-    };
-
-    const releasePointerField = () => {
-      if (simState.phase !== "active") {
+      if (rect.width <= 0 || rect.height <= 0) {
         return;
       }
-      lastPointer = null;
-      simState = clearSakuraPointer(simState);
-      ensureLoopRunning();
+
+      const activeHalo = Math.max(
+        76,
+        (layout?.scaleConfig.brushRadiusPx ?? 80) * 0.85
+      );
+      const padX = simState.phase === "active" ? activeHalo : 18;
+      const padTop = simState.phase === "active" ? activeHalo * 1.15 : 16;
+      const padBottom = simState.phase === "active" ? activeHalo * 0.8 : 16;
+
+      const isNearWatermark =
+        event.clientX >= rect.left - padX &&
+        event.clientX <= rect.right + padX &&
+        event.clientY >= rect.top - padTop &&
+        event.clientY <= rect.bottom + padBottom;
+
+      if (isNearWatermark) {
+        applyFinePointerSample(
+          event.clientX - rect.left,
+          event.clientY - rect.top,
+          event.timeStamp
+        );
+      } else {
+        releasePointerField();
+      }
     };
 
-    const handlePointerDown = (event: PointerEvent) => {
-      if (event.pointerType !== "touch" || reducedMotionQuery.matches) {
+    const handleCoverPointerDown = (event: PointerEvent) => {
+      if (
+        event.pointerType !== "touch" ||
+        reducedMotionQuery.matches ||
+        isForegroundInteractiveTarget(event.target)
+      ) {
         return;
       }
       touchTapCandidate = {
@@ -592,7 +735,7 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
       };
     };
 
-    const handlePointerUp = (event: PointerEvent) => {
+    const handleCoverPointerUp = (event: PointerEvent) => {
       if (
         event.pointerType !== "touch" ||
         !touchTapCandidate ||
@@ -605,13 +748,28 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
         event.clientY - touchTapCandidate.startY
       );
       touchTapCandidate = null;
-      if (moved >= 12 || reducedMotionQuery.matches) {
+      if (
+        moved >= 12 ||
+        reducedMotionQuery.matches ||
+        isForegroundInteractiveTarget(event.target)
+      ) {
         return;
       }
       if (!layout) {
         rebuildLayout();
       }
       const rect = rootEl.getBoundingClientRect();
+      const tapPad = 24;
+      const hitWatermark =
+        event.clientX >= rect.left - tapPad &&
+        event.clientX <= rect.right + tapPad &&
+        event.clientY >= rect.top - tapPad &&
+        event.clientY <= rect.bottom + tapPad;
+
+      if (!hitWatermark) {
+        return;
+      }
+
       hasPlayedIntro = true;
       const outcome = triggerSakuraTapBloom(
         simState,
@@ -643,14 +801,22 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
     const resizeObserver = new ResizeObserver(scheduleRebuild);
     resizeObserver.observe(rootEl);
 
-    rootEl.addEventListener("pointerenter", handleRootPointerEnter);
-    rootEl.addEventListener("pointermove", handleRootPointerMove);
-    rootEl.addEventListener("pointerdown", handlePointerDown);
-    rootEl.addEventListener("pointerup", handlePointerUp);
-    rootEl.addEventListener("pointercancel", clearTouchCandidate);
-    window.addEventListener("pointermove", handleWindowPointerMove, { passive: true });
+    hostCoverEl.addEventListener("pointermove", handleCoverPointerMove, {
+      passive: true,
+    });
+    hostCoverEl.addEventListener("pointerleave", releasePointerField);
+    hostCoverEl.addEventListener("pointerdown", handleCoverPointerDown, {
+      passive: true,
+    });
+    hostCoverEl.addEventListener("pointerup", handleCoverPointerUp, {
+      passive: true,
+    });
+    hostCoverEl.addEventListener("pointercancel", clearTouchCandidate);
     window.addEventListener("blur", releasePointerField);
-    document.documentElement.addEventListener("pointerleave", releasePointerField);
+    document.documentElement.addEventListener(
+      "pointerleave",
+      releasePointerField
+    );
     reducedMotionQuery.addEventListener("change", handleReducedMotionChange);
 
     let cancelled = false;
@@ -667,15 +833,20 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
       window.cancelAnimationFrame(animFrame);
       window.cancelAnimationFrame(measureFrame);
       resizeObserver.disconnect();
-      rootEl.removeEventListener("pointerenter", handleRootPointerEnter);
-      rootEl.removeEventListener("pointermove", handleRootPointerMove);
-      rootEl.removeEventListener("pointerdown", handlePointerDown);
-      rootEl.removeEventListener("pointerup", handlePointerUp);
-      rootEl.removeEventListener("pointercancel", clearTouchCandidate);
-      window.removeEventListener("pointermove", handleWindowPointerMove);
+      hostCoverEl.removeEventListener("pointermove", handleCoverPointerMove);
+      hostCoverEl.removeEventListener("pointerleave", releasePointerField);
+      hostCoverEl.removeEventListener("pointerdown", handleCoverPointerDown);
+      hostCoverEl.removeEventListener("pointerup", handleCoverPointerUp);
+      hostCoverEl.removeEventListener("pointercancel", clearTouchCandidate);
       window.removeEventListener("blur", releasePointerField);
-      document.documentElement.removeEventListener("pointerleave", releasePointerField);
-      reducedMotionQuery.removeEventListener("change", handleReducedMotionChange);
+      document.documentElement.removeEventListener(
+        "pointerleave",
+        releasePointerField
+      );
+      reducedMotionQuery.removeEventListener(
+        "change",
+        handleReducedMotionChange
+      );
       delete rootEl.dataset.sakuraCanvas;
     };
   }, [text]);
