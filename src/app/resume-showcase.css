@@ -1142,15 +1142,15 @@
   line-height: 1.55;
 }
 
-.resume-case-details summary {
-  width: max-content;
+.resume-case-details-heading {
   color: var(--foreground);
-  font-weight: 650;
-  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .resume-case-details > div {
-  margin-top: 0.65rem;
+  margin-top: 0.55rem;
 }
 
 .resume-case-details strong {

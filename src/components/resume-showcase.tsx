@@ -352,15 +352,17 @@ export function ResumeShowcase({
               <a className="resume-product-site" href={product.siteUrl} target="_blank" rel="noopener noreferrer">
                 {products.openSiteLabel} <ArrowUpRight aria-hidden="true" />
               </a>
-              <details className="resume-case-details" key={product.id}>
-                <summary>{products.readCaseLabel}</summary>
-                {product.details.map((detail) => (
-                  <div key={detail.title}>
-                    <strong>{detail.title}</strong>
-                    <p>{detail.text}</p>
-                  </div>
-                ))}
-              </details>
+              {product.details.length > 0 ? (
+                <div className="resume-case-details">
+                  <h3 className="resume-case-details-heading">{products.readCaseLabel}</h3>
+                  {product.details.map((detail) => (
+                    <div key={detail.title}>
+                      <strong>{detail.title}</strong>
+                      <p>{detail.text}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <div className="resume-device-slot" ref={deviceSlotRef}>

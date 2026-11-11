@@ -63,12 +63,17 @@ describe("getSiteContent", () => {
     expect(content.experience.items[2].fallbackMark).toBe("HT");
     expect(content.experience.items[9].bullets).toHaveLength(2);
 
+    expect(content.products.readCaseLabel).toBe("成果");
     expect(content.products.items.map((item) => item.id)).toEqual([
       "beacon",
       "pocket-wish",
       "n1ghtmare",
       "crispygrooves",
     ]);
+    expect(content.products.items[0].details).toHaveLength(4);
+    expect(content.products.items[1].details).toEqual([]);
+    expect(content.products.items[2].details).toEqual([]);
+    expect(content.products.items[3].details).toHaveLength(1);
     expect(content.products.items[0].previewSrc).toBeUndefined();
     expect(content.products.items[1].previewSrc).toBe(
       "/resume/screen-pocket-wish.webp"
@@ -139,6 +144,31 @@ describe("parseSiteContent validation", () => {
     ).items[0].bullets = ["   "];
     expect(() => parseSiteContent(blankBullet)).toThrow(
       "experience.items[0].bullets[0] must be a non-empty string"
+    );
+  });
+
+  it("allows empty product details arrays while rejecting blank detail fields", () => {
+    const validEmptyDetails = createValidRawInput();
+    expect(() => parseSiteContent(validEmptyDetails)).not.toThrow();
+
+    const blankDetailTitle = createValidRawInput();
+    (
+      blankDetailTitle.bundle.products as {
+        items: Array<{ details: Array<{ title: string; text: string }> }>;
+      }
+    ).items[0].details[0].title = "   ";
+    expect(() => parseSiteContent(blankDetailTitle)).toThrow(
+      "products.items[0].details[0].title must be a non-empty string"
+    );
+
+    const blankDetailText = createValidRawInput();
+    (
+      blankDetailText.bundle.products as {
+        items: Array<{ details: Array<{ title: string; text: string }> }>;
+      }
+    ).items[0].details[0].text = "   ";
+    expect(() => parseSiteContent(blankDetailText)).toThrow(
+      "products.items[0].details[0].text must be a non-empty string"
     );
   });
 

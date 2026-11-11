@@ -671,26 +671,31 @@ function parseProductsContent(
       item.details,
       `products.items[${index}].details`
     );
-    if (rawDetails.length === 0) {
-      throw new Error(
-        `products.items[${index}].details must contain at least one entry`
-      );
-    }
     const details: ProductCaseDetail[] = rawDetails.map(
       (detailRaw, detailIndex) => {
         const detail = assertRecord(
           detailRaw,
           `products.items[${index}].details[${detailIndex}]`
         );
+        if (
+          typeof detail.title !== "string" ||
+          detail.title.trim().length === 0
+        ) {
+          throw new Error(
+            `products.items[${index}].details[${detailIndex}].title must be a non-empty string`
+          );
+        }
+        if (
+          typeof detail.text !== "string" ||
+          detail.text.trim().length === 0
+        ) {
+          throw new Error(
+            `products.items[${index}].details[${detailIndex}].text must be a non-empty string`
+          );
+        }
         return {
-          title: assertNonEmptyString(
-            detail.title,
-            `products.items[${index}].details[${detailIndex}].title`
-          ),
-          text: assertNonEmptyString(
-            detail.text,
-            `products.items[${index}].details[${detailIndex}].text`
-          ),
+          title: detail.title,
+          text: detail.text,
         };
       }
     );
