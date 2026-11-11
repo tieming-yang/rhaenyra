@@ -329,15 +329,14 @@ describe("sakura simulation lifecycle and physics", () => {
 });
 
 describe("sakura color and palette policies", () => {
-  it("preserves exact resting watermark blush (#efbdd0) at heat=0 and blooms into rich sakura crimson/highlights", () => {
+  it("preserves exact static watermark blush (#efbdd0) across standard particles and adds only soft pastel highlights", () => {
     expect(resolveGlyphSakuraRgb(0, 0.4)).toEqual(DEFAULT_WATERMARK_BASE_RGB);
-
-    const crimsonBloom = resolveGlyphSakuraRgb(1, 0.5);
-    expect(crimsonBloom).toEqual({ r: 177, g: 47, b: 96 });
+    expect(resolveGlyphSakuraRgb(1, 0.5)).toEqual(DEFAULT_WATERMARK_BASE_RGB);
 
     const highlightBloom = resolveGlyphSakuraRgb(1, 0.9);
-    expect(highlightBloom.r).toBeGreaterThan(DEFAULT_WATERMARK_BASE_RGB.r);
-    expect(highlightBloom.g).toBeGreaterThan(DEFAULT_WATERMARK_BASE_RGB.g);
+    expect(highlightBloom.r).toBeGreaterThanOrEqual(DEFAULT_WATERMARK_BASE_RGB.r);
+    expect(highlightBloom.g).toBeGreaterThanOrEqual(DEFAULT_WATERMARK_BASE_RGB.g);
+    expect(highlightBloom.b).toBeGreaterThanOrEqual(DEFAULT_WATERMARK_BASE_RGB.b);
 
     const tones: readonly BlossomTone[] = [0, 1, 2, 3];
     for (const tone of tones) {

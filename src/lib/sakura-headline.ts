@@ -138,25 +138,19 @@ export const DEFAULT_WATERMARK_BASE_RGB: RgbTuple = {
   b: 208,
 }; // #efbdd0 (.resume-cover-mark)
 
-const ACTIVE_SAKURA_STOPS: readonly RgbTuple[] = [
-  { r: 229, g: 150, b: 176 }, // --sakura-petal (#e596b0)
-  { r: 209, g: 82, b: 130 }, // vibrant sakura rose (#d15282)
-  { r: 177, g: 47, b: 96 }, // --sakura (#b12f60)
-];
-
 const HIGHLIGHT_SAKURA_STOP: RgbTuple = {
-  r: 255,
-  g: 222,
-  b: 235,
+  r: 249,
+  g: 223,
+  b: 233,
 };
 
 export const BLOSSOM_PALETTE: Readonly<
   Record<BlossomTone, { readonly fill: string; readonly accent: string }>
 > = {
-  0: { fill: "#f6b8ce", accent: "#cf5684" },
-  1: { fill: "#e596b0", accent: "#b12f60" },
-  2: { fill: "#ffd7e6", accent: "#d96f98" },
-  3: { fill: "#f09cbc", accent: "#91224c" },
+  0: { fill: "#efbdd0", accent: "#e3a3bc" },
+  1: { fill: "#f5cada", accent: "#e8adc4" },
+  2: { fill: "#f9dce7", accent: "#edb8cd" },
+  3: { fill: "#ebb4ca", accent: "#de9db7" },
 };
 
 function nextRandom(seed: number): readonly [number, number] {
@@ -1036,8 +1030,9 @@ export function stepSakuraSimulation(
 }
 
 /**
- * Interpolates a glyph particle's RGB color from its exact resting base color
- * (defaulting to `#efbdd0`) into rich sakura blossom rose/crimson and sunlit highlights.
+ * Keeps glyph particles in the exact static watermark pink (`#efbdd0`) during
+ * interaction, adding only a gentle pastel highlight sheen on top-lit variants
+ * so there is no dark or harsh color shift between rest and motion.
  */
 export function resolveGlyphSakuraRgb(
   heat: number,
@@ -1050,31 +1045,15 @@ export function resolveGlyphSakuraRgb(
   assertFiniteNumber(baseRgb.g, "baseRgb.g");
   assertFiniteNumber(baseRgb.b, "baseRgb.b");
 
-  if (heat <= 0) {
+  if (heat <= 0 || variant < 0.8) {
     return baseRgb;
   }
 
   const clampedHeat = Math.min(1, Math.max(0, heat));
-  if (variant >= 0.76) {
-    const t = clampedHeat * 0.85;
-    return {
-      r: Math.round(baseRgb.r + (HIGHLIGHT_SAKURA_STOP.r - baseRgb.r) * t),
-      g: Math.round(baseRgb.g + (HIGHLIGHT_SAKURA_STOP.g - baseRgb.g) * t),
-      b: Math.round(baseRgb.b + (HIGHLIGHT_SAKURA_STOP.b - baseRgb.b) * t),
-    };
-  }
-
-  const stops: readonly RgbTuple[] = [baseRgb, ...ACTIVE_SAKURA_STOPS];
-  const boosted = Math.min(1, clampedHeat * (0.85 + variant * 0.3));
-  const scaled = boosted * (stops.length - 1);
-  const index = Math.min(stops.length - 2, Math.floor(scaled));
-  const frac = scaled - index;
-  const from = stops[index];
-  const to = stops[index + 1];
-
+  const t = clampedHeat * 0.55;
   return {
-    r: Math.round(from.r + (to.r - from.r) * frac),
-    g: Math.round(from.g + (to.g - from.g) * frac),
-    b: Math.round(from.b + (to.b - from.b) * frac),
+    r: Math.round(baseRgb.r + (HIGHLIGHT_SAKURA_STOP.r - baseRgb.r) * t),
+    g: Math.round(baseRgb.g + (HIGHLIGHT_SAKURA_STOP.g - baseRgb.g) * t),
+    b: Math.round(baseRgb.b + (HIGHLIGHT_SAKURA_STOP.b - baseRgb.b) * t),
   };
 }

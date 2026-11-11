@@ -68,11 +68,15 @@ function parseComputedRgb(cssColor: string): RgbTuple {
   if (!match) {
     return DEFAULT_WATERMARK_BASE_RGB;
   }
-  return {
-    r: Math.max(0, Math.min(255, Math.round(Number(match[1])))),
-    g: Math.max(0, Math.min(255, Math.round(Number(match[2])))),
-    b: Math.max(0, Math.min(255, Math.round(Number(match[3])))),
-  };
+  const r = Math.max(0, Math.min(255, Math.round(Number(match[1]))));
+  const g = Math.max(0, Math.min(255, Math.round(Number(match[2]))));
+  const b = Math.max(0, Math.min(255, Math.round(Number(match[3]))));
+
+  // Guard against unstyled dark body `--foreground` (#311b25) before page CSS settles
+  if (r < 140 && g < 100) {
+    return DEFAULT_WATERMARK_BASE_RGB;
+  }
+  return { r, g, b };
 }
 
 function buildSakuraCssRamps(baseRgb: RgbTuple): {
@@ -201,8 +205,8 @@ function rasterizeHeadlineLayout(
 
   const computed = window.getComputedStyle(rootEl);
   const fontSpec = `${computed.fontStyle} ${computed.fontWeight} ${computed.fontSize} ${computed.fontFamily}`;
-  const inkColor = computed.color || "#efbdd0";
-  const baseRgb = parseComputedRgb(inkColor);
+  const baseRgb = parseComputedRgb(computed.color || "");
+  const inkColor = `rgb(${baseRgb.r} ${baseRgb.g} ${baseRgb.b})`;
   const fontSizePx = Number.parseFloat(computed.fontSize) || 96;
   const scaleConfig = deriveSakuraScaleConfig(fontSizePx);
 
@@ -530,7 +534,7 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
                 Math.round(glyph.heat * maxRampIdx)
               );
               ctx.fillStyle =
-                glyph.variant >= 0.76
+                glyph.variant >= 0.8
                   ? layout.highlightColorRamp[rampIdx]
                   : layout.roseColorRamp[rampIdx];
 
@@ -608,6 +612,7 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
         Math.abs(layout.rootWidth - built.layout.rootWidth) <= 1 &&
         Math.abs(layout.rootHeight - built.layout.rootHeight) <= 1 &&
         layout.dpr === built.layout.dpr &&
+        layout.baseColorCss === built.layout.baseColorCss &&
         simState.glyphs.length > 0;
 
       if (dimensionsUnchanged && simState.phase !== "idle") {
@@ -630,6 +635,15 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
           ) {
             return;
           }
+          const liveRgb = parseComputedRgb(
+            window.getComputedStyle(rootEl).color || ""
+          );
+          if (
+            !layout ||
+            layout.baseColorCss !== `rgb(${liveRgb.r} ${liveRgb.g} ${liveRgb.b})`
+          ) {
+            rebuildLayout();
+          }
           hasPlayedIntro = true;
           const outcome = triggerSakuraIntroHint(
             simState,
@@ -638,6 +652,22 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
           simState = outcome.state;
           ensureLoopRunning();
         }, 360);
+      }
+    };
+
+    const ensureFreshIdleLayout = () => {
+      if (!layout) {
+        rebuildLayout();
+        return;
+      }
+      if (simState.phase !== "idle") {
+        return;
+      }
+      const liveRgb = parseComputedRgb(
+        window.getComputedStyle(rootEl).color || ""
+      );
+      if (layout.baseColorCss !== `rgb(${liveRgb.r} ${liveRgb.g} ${liveRgb.b})`) {
+        rebuildLayout();
       }
     };
 
@@ -687,9 +717,7 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
         releasePointerField();
         return;
       }
-      if (!layout) {
-        rebuildLayout();
-      }
+      ensureFreshIdleLayout();
       const rect = rootEl.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) {
         return;
@@ -755,9 +783,7 @@ export function SakuraHeadlineName({ text }: SakuraHeadlineNameProps) {
       ) {
         return;
       }
-      if (!layout) {
-        rebuildLayout();
-      }
+      ensureFreshIdleLayout();
       const rect = rootEl.getBoundingClientRect();
       const tapPad = 24;
       const hitWatermark =
