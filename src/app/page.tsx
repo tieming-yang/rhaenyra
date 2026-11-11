@@ -34,9 +34,11 @@ export default function HomePage() {
           <header className="run-intro">
             <p className="interview-kicker">{content.proposal.intro.eyebrow}</p>
             <h2 id="proposal-title">{content.proposal.intro.title}</h2>
-            <p className="run-intro-subtitle">
-              {content.proposal.intro.subtitle}
-            </p>
+            {content.proposal.intro.subtitle.trim().length > 0 ? (
+              <p className="run-intro-subtitle">
+                {content.proposal.intro.subtitle}
+              </p>
+            ) : null}
             <a className="run-start" href={`#${firstWaypointId}`}>
               {content.proposal.intro.startCtaLabel}
               <ArrowDown className="size-4" aria-hidden="true" />

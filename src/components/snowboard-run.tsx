@@ -1082,12 +1082,24 @@ export function SnowboardRun({ content }: SnowboardRunProps) {
               >
                 <MountainCardBackdrop index={index} />
                 <div className="run-mountain-body">
-                  <p className="run-waypoint-kicker">
+                  <p className="run-waypoint-kicker tracking-[0.03em]">
                     <span>{String(index + 1).padStart(2, "0")}</span>
-                    {waypoint.label}
+                    {waypoint.subtitle}
                   </p>
                   <h2>{waypoint.title}</h2>
-                  <p>{waypoint.description}</p>
+                  <ul className="run-waypoint-bullets mt-3.5 grid gap-2 text-[clamp(0.9rem,1.2vw,1.02rem)] leading-[1.68] text-muted-foreground">
+                    {waypoint.bullets.map((bullet) => (
+                      <li
+                        key={bullet.title}
+                        className="run-waypoint-bullet relative pl-3.5 before:absolute before:left-0 before:top-[0.62em] before:size-1.5 before:rounded-full before:bg-primary/65"
+                      >
+                        <strong className="font-semibold text-foreground">
+                          {bullet.title}：
+                        </strong>
+                        {bullet.text}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </a>
             </article>
