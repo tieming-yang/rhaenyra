@@ -17,9 +17,27 @@ export interface StickyRailMetrics {
   readonly startDwellRatio?: number;
 }
 
+export interface StageTargetCenter {
+  readonly x: number;
+  readonly y: number;
+}
+
+export interface StickyStageCenterInput {
+  readonly stageWidth: number;
+  readonly stageHeight: number;
+  readonly viewportHeight: number;
+}
+
+export interface StickyStageCenter {
+  readonly x: number;
+  readonly y: number;
+  readonly stickyTopPx: number;
+}
+
 export interface MacPortalDiveInput {
   readonly viewport: ViewportSize;
   readonly screen: ScreenLayoutBox;
+  readonly targetCenter?: StageTargetCenter;
   readonly rawProgress: number;
   readonly reducedMotion: boolean;
 }
@@ -38,6 +56,8 @@ export interface MacPortalDivePose {
   readonly dockOpacity: number;
   readonly baseOpacity: number;
   readonly portalScreenOpacity: number;
+  readonly snowVeilOpacity: number;
+  readonly screenCornerRadiusScale: number;
   readonly portalIntroScale: number;
   readonly uiInteractive: boolean;
 }
@@ -60,6 +80,7 @@ export interface DeskFinalePose {
   readonly progress: number;
   readonly macScale: number;
   readonly snowScreenOpacity: number;
+  readonly snowRidgeOpacity: number;
   readonly lidCloseProgress: number;
   readonly cameraOverheadProgress: number;
   readonly deskSurfaceOpacity: number;
@@ -70,7 +91,7 @@ export interface DeskFinalePose {
   readonly deskInteractive: boolean;
 }
 
-const BEZEL_CLEARANCE_MULTIPLIER = 1.08;
+const BEZEL_CLEARANCE_MULTIPLIER = 1.12;
 
 function assertPositiveFinite(value: number, label: string): void {
   if (!Number.isFinite(value) || value <= 0) {
@@ -131,8 +152,28 @@ export function resolveStickyRailProgress(metrics: StickyRailMetrics): number {
 }
 
 /**
+ * Resolves the sticky CSS `top` offset (`<= 0`) for a stage inside the viewport,
+ * along with the stage-local `(x, y)` point that maps to the viewport center
+ * while stuck (staying invariant before sticking and after unsticking).
+ */
+export function resolveStickyStageViewportCenter(
+  input: StickyStageCenterInput
+): StickyStageCenter {
+  assertPositiveFinite(input.stageWidth, "stageWidth");
+  assertPositiveFinite(input.stageHeight, "stageHeight");
+  assertPositiveFinite(input.viewportHeight, "viewportHeight");
+
+  const stickyTopPx = Math.min(0, input.viewportHeight - input.stageHeight);
+  return {
+    x: input.stageWidth * 0.5,
+    y: -stickyTopPx + input.viewportHeight * 0.5,
+    stickyTopPx,
+  };
+}
+
+/**
  * Derives the Section 3 -> Section 4 camera dive pose that centers `#resume-mac-screen`
- * and scales it logarithmically until its inner screen fills the entire viewport.
+ * in stage-local coordinates and scales it logarithmically past the viewport edges.
  */
 export function deriveMacPortalDivePose(
   input: MacPortalDiveInput
@@ -144,6 +185,11 @@ export function deriveMacPortalDivePose(
   assertPositiveFinite(input.screen.width, "screen.width");
   assertPositiveFinite(input.screen.height, "screen.height");
   assertFinite(input.rawProgress, "rawProgress");
+
+  const targetX = input.targetCenter?.x ?? input.viewport.width * 0.5;
+  const targetY = input.targetCenter?.y ?? input.viewport.height * 0.5;
+  assertFinite(targetX, "targetCenter.x");
+  assertFinite(targetY, "targetCenter.y");
 
   if (input.reducedMotion) {
     return {
@@ -158,6 +204,8 @@ export function deriveMacPortalDivePose(
       dockOpacity: 1,
       baseOpacity: 1,
       portalScreenOpacity: 0,
+      snowVeilOpacity: 0,
+      screenCornerRadiusScale: 1,
       portalIntroScale: 1,
       uiInteractive: true,
     };
@@ -177,6 +225,8 @@ export function deriveMacPortalDivePose(
       dockOpacity: 1,
       baseOpacity: 1,
       portalScreenOpacity: 0,
+      snowVeilOpacity: 0,
+      screenCornerRadiusScale: 1,
       portalIntroScale: 0.92,
       uiInteractive: true,
     };
@@ -189,21 +239,23 @@ export function deriveMacPortalDivePose(
     ) * BEZEL_CLEARANCE_MULTIPLIER;
   const targetScale = Math.max(1.25, coverScale);
 
-  const zoomEase = smootherstep(0, 1, progress);
-  const centerEase = smoothstep(0, 0.72, progress);
+  const zoomEase = smootherstep(0, 0.86, progress);
+  const centerEase = smoothstep(0, 0.68, progress);
   const scale = Math.pow(targetScale, zoomEase);
 
-  const deltaX = input.viewport.width * 0.5 - input.screen.centerX;
-  const deltaY = input.viewport.height * 0.5 - input.screen.centerY;
+  const deltaX = targetX - input.screen.centerX;
+  const deltaY = targetY - input.screen.centerY;
 
-  const copyFade = smoothstep(0.02, 0.36, progress);
-  const dockFade = smoothstep(0.0, 0.28, progress);
-  const baseFade = smoothstep(0.18, 0.62, progress);
-  const portalScreenOpacity = smoothstep(0.22, 0.76, progress);
-  const portalIntroScale = 0.92 + 0.08 * smoothstep(0.28, 0.96, progress);
+  const copyFade = smoothstep(0.02, 0.34, progress);
+  const dockFade = smoothstep(0.0, 0.26, progress);
+  const baseFade = smoothstep(0.16, 0.58, progress);
+  const portalScreenOpacity = smoothstep(0.16, 0.66, progress);
+  const snowVeilOpacity = smoothstep(0.64, 0.86, progress);
+  const screenCornerRadiusScale = 1 - smoothstep(0.54, 0.84, progress);
+  const portalIntroScale = 0.92 + 0.08 * smoothstep(0.2, 0.86, progress);
 
   return {
-    phase: progress >= 1 ? "immersed" : "diving",
+    phase: progress >= 0.86 ? "immersed" : "diving",
     progress,
     translateX: deltaX * centerEase,
     translateY: deltaY * centerEase,
@@ -214,6 +266,8 @@ export function deriveMacPortalDivePose(
     dockOpacity: 1 - dockFade,
     baseOpacity: 1 - baseFade,
     portalScreenOpacity,
+    snowVeilOpacity,
+    screenCornerRadiusScale,
     portalIntroScale,
     uiInteractive: progress < 0.08,
   };
@@ -238,6 +292,7 @@ export function deriveDeskFinalePose(input: DeskFinaleInput): DeskFinalePose {
       progress: 1,
       macScale: 1,
       snowScreenOpacity: 0,
+      snowRidgeOpacity: 0,
       lidCloseProgress: 1,
       cameraOverheadProgress: 1,
       deskSurfaceOpacity: 1,
@@ -261,6 +316,8 @@ export function deriveDeskFinalePose(input: DeskFinaleInput): DeskFinalePose {
   const pullbackEase = smootherstep(0.0, 0.42, progress);
   const macScale = Math.pow(portalStartScale, 1 - pullbackEase);
   const snowScreenOpacity = 1 - smoothstep(0.28, 0.54, progress);
+  const snowRidgeOpacity =
+    smoothstep(0.03, 0.18, progress) * snowScreenOpacity;
   const lidCloseProgress = smootherstep(0.34, 0.72, progress);
   const cameraOverheadProgress = smootherstep(0.32, 0.78, progress);
   const deskSurfaceOpacity = smoothstep(0.14, 0.48, progress);
@@ -282,6 +339,7 @@ export function deriveDeskFinalePose(input: DeskFinaleInput): DeskFinalePose {
     progress,
     macScale,
     snowScreenOpacity,
+    snowRidgeOpacity,
     lidCloseProgress,
     cameraOverheadProgress,
     deskSurfaceOpacity,

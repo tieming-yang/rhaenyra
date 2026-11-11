@@ -3,6 +3,7 @@ import {
   deriveDeskFinalePose,
   deriveMacPortalDivePose,
   resolveStickyRailProgress,
+  resolveStickyStageViewportCenter,
 } from "./mac-portal-transition";
 
 describe("resolveStickyRailProgress", () => {
@@ -66,11 +67,34 @@ describe("resolveStickyRailProgress", () => {
   });
 });
 
+describe("resolveStickyStageViewportCenter", () => {
+  it("computes scroll-invariant stage-local centers for both 100svh desktop and taller mobile stages", () => {
+    const desktop = resolveStickyStageViewportCenter({
+      stageWidth: 1440,
+      stageHeight: 900,
+      viewportHeight: 900,
+    });
+    expect(desktop.stickyTopPx).toBe(0);
+    expect(desktop.x).toBe(720);
+    expect(desktop.y).toBe(450);
+
+    const tallMobile = resolveStickyStageViewportCenter({
+      stageWidth: 390,
+      stageHeight: 1244,
+      viewportHeight: 844,
+    });
+    expect(tallMobile.stickyTopPx).toBe(-400);
+    expect(tallMobile.x).toBe(195);
+    // When stage is stuck at top = -400px, stage y = 822px sits at viewport y = 422px (center)
+    expect(tallMobile.stickyTopPx + tallMobile.y).toBe(422);
+  });
+});
+
 describe("deriveMacPortalDivePose", () => {
   const viewport = { width: 1440, height: 900 };
   const screen = { centerX: 980, centerY: 470, width: 640, height: 400 };
 
-  it("transitions cleanly across browsing, diving, and immersed phases and clears viewport bounds", () => {
+  it("clears viewport bounds by progress 0.86 and settles snowVeilOpacity for seamless handoff", () => {
     const start = deriveMacPortalDivePose({
       viewport,
       screen,
@@ -81,6 +105,8 @@ describe("deriveMacPortalDivePose", () => {
     expect(start.scale).toBe(1);
     expect(start.uiInteractive).toBe(true);
     expect(start.portalScreenOpacity).toBe(0);
+    expect(start.snowVeilOpacity).toBe(0);
+    expect(start.screenCornerRadiusScale).toBe(1);
 
     const mid = deriveMacPortalDivePose({
       viewport,
@@ -92,21 +118,24 @@ describe("deriveMacPortalDivePose", () => {
     expect(mid.scale).toBeGreaterThan(1.4);
     expect(mid.uiInteractive).toBe(false);
     expect(mid.copyOpacity).toBe(0);
-    expect(mid.portalScreenOpacity).toBeGreaterThan(0.4);
+    expect(mid.portalScreenOpacity).toBeGreaterThan(0.5);
 
-    const end = deriveMacPortalDivePose({
+    const handoffReady = deriveMacPortalDivePose({
       viewport,
       screen,
-      rawProgress: 1,
+      targetCenter: { x: 720, y: 822 },
+      rawProgress: 0.86,
       reducedMotion: false,
     });
-    expect(end.phase).toBe("immersed");
-    expect(screen.width * end.scale).toBeGreaterThan(viewport.width);
-    expect(screen.height * end.scale).toBeGreaterThan(viewport.height);
-    expect(screen.centerX + end.translateX).toBeCloseTo(viewport.width * 0.5, 5);
-    expect(screen.centerY + end.translateY).toBeCloseTo(viewport.height * 0.5, 5);
-    expect(end.portalScreenOpacity).toBe(1);
-    expect(end.portalIntroScale).toBeCloseTo(1, 5);
+    expect(handoffReady.phase).toBe("immersed");
+    expect(screen.width * handoffReady.scale).toBeGreaterThan(viewport.width);
+    expect(screen.height * handoffReady.scale).toBeGreaterThan(viewport.height);
+    expect(screen.centerX + handoffReady.translateX).toBeCloseTo(720, 5);
+    expect(screen.centerY + handoffReady.translateY).toBeCloseTo(822, 5);
+    expect(handoffReady.snowVeilOpacity).toBe(1);
+    expect(handoffReady.screenCornerRadiusScale).toBe(0);
+    expect(handoffReady.portalScreenOpacity).toBe(1);
+    expect(handoffReady.portalIntroScale).toBeCloseTo(1, 5);
   });
 
   it("bypasses camera zoom when reducedMotion is enabled and validates inputs", () => {
@@ -150,6 +179,7 @@ describe("deriveDeskFinalePose", () => {
     );
     expect(start.lidCloseProgress).toBe(0);
     expect(start.snowScreenOpacity).toBe(1);
+    expect(start.snowRidgeOpacity).toBe(0);
     expect(start.deskInteractive).toBe(false);
 
     const closing = deriveDeskFinalePose({
