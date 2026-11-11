@@ -173,21 +173,11 @@ html {
   display: flex;
   align-items: center;
   justify-self: start;
-  gap: 0.5rem;
   font-size: clamp(0.75rem, 1.4vw, 0.95rem);
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.15;
   pointer-events: auto;
-}
-
-.interview-wordmark::before {
-  content: "";
-  flex: none;
-  width: 0.5rem;
-  height: 0.5rem;
-  border: 1px solid currentColor;
-  transform: rotate(45deg);
 }
 
 .interview-nav {
