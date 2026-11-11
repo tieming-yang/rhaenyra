@@ -9,6 +9,7 @@ import type {
   SiteProfileAssets,
 } from "@/content";
 import { HEADER_SECTION_HREF, PROPOSAL_FINISH_ID } from "@/lib/header-navigation";
+import { MAC_KEYBOARD_ROWS } from "@/lib/mac-keyboard-layout";
 import {
   deriveDeskFinalePose,
   resolveStickyRailProgress,
@@ -35,6 +36,7 @@ export function ProposalDeskFinale({
   const rawId = useId();
   const lanyardPathId = `${rawId.replace(/[^a-zA-Z0-9_-]/g, "")}-desk-strap`;
   const [badgeFlipped, setBadgeFlipped] = useState(false);
+  const emailAtIndex = profile.email.indexOf("@");
 
   const railRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -206,27 +208,75 @@ export function ProposalDeskFinale({
         <div className="desk-camera" ref={cameraRef}>
           <div className="desk-world" ref={worldRef}>
             <div className="desk-knoll-grid">
-              {/* 1. Transforming MacBook (Open Screen -> Closed Top-Down Shell) */}
+              {/* 1. Transforming MacBook Neo in Blush (Open Screen -> Closed Top-Down Shell) */}
               <div className="desk-mac-slot" ref={macSlotRef}>
                 <div className="desk-mac-shadow" ref={macShadowRef} aria-hidden="true" />
                 <div className="desk-mac" aria-hidden="true">
                   <div className="desk-mac-base">
-                    <div className="desk-mac-well" />
+                    <span className="desk-mac-ports-left">
+                      <i />
+                      <i />
+                    </span>
+                    <span className="desk-mac-port-audio" />
+                    <div className="desk-mac-hinge" />
+                    <div className="desk-mac-well">
+                      {MAC_KEYBOARD_ROWS.map((row, rowIndex) => (
+                        <div
+                          className="desk-mac-key-row"
+                          data-row={rowIndex === 0 ? "fn" : undefined}
+                          key={row[0].id}
+                        >
+                          {row.map((key) => (
+                            <i
+                              className="desk-mac-key"
+                              data-size={key.size}
+                              data-homing={key.homing ? "" : undefined}
+                              key={key.id}
+                            >
+                              {key.sub ? <small>{key.sub}</small> : null}
+                              {key.label ? <span>{key.label}</span> : null}
+                            </i>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
                     <div className="desk-mac-pad" />
                     <div className="desk-mac-notch" />
                   </div>
 
                   <div className="desk-mac-lid" ref={lidRef}>
-                    {/* Outer Anodized Top Cover (visible when lid closes in overhead view) */}
+                    {/* Outer Blush Anodized Top Cover (visible when lid closes in overhead view) */}
                     <div className="desk-mac-lid-outer">
+                      <div className="desk-mac-rear-seam" />
                       <div className="desk-mac-sheen" />
-                      <div className="desk-mac-emblem">
-                        <span />
-                      </div>
+                      <svg
+                        className="desk-mac-apple-logo"
+                        viewBox="0 0 814 1000"
+                        aria-hidden="true"
+                      >
+                        <defs>
+                          <linearGradient
+                            id={`${lanyardPathId}-apple-mirror`}
+                            x1="18%"
+                            y1="8%"
+                            x2="84%"
+                            y2="92%"
+                          >
+                            <stop offset="0%" stopColor="#fff9fc" />
+                            <stop offset="38%" stopColor="#f3bfd4" />
+                            <stop offset="68%" stopColor="#cf7d9e" />
+                            <stop offset="100%" stopColor="#fbe3ee" />
+                          </linearGradient>
+                        </defs>
+                        <path
+                          fill={`url(#${lanyardPathId}-apple-mirror)`}
+                          d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57-155.5-127C46.7 790.7 0 663 0 541.8c0-194.4 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"
+                        />
+                      </svg>
                       <div className="desk-mac-front-lip" />
                     </div>
 
-                    {/* Inner Display Glass (visible when open during pullback from Section 4) */}
+                    {/* Inner Notchless Liquid Retina Display (visible when open during pullback) */}
                     <div className="desk-mac-lid-inner">
                       <div className="desk-mac-webcam" />
                       <div className="desk-mac-display">
@@ -399,33 +449,68 @@ export function ProposalDeskFinale({
                 </span>
               </a>
 
-              {/* 5. Smartphone CTA ("聯絡我") */}
+              {/* 5. Classic iPhone 4 CTA ("聯絡我") */}
               <a
                 href={`mailto:${profile.email}`}
                 className="desk-phone-object"
                 ref={phoneRef}
                 aria-label={`${finish.contactLabel}: ${profile.email}`}
               >
-                <span className="desk-phone-frame">
-                  <span className="desk-phone-screen">
-                    <span className="desk-phone-statusbar" aria-hidden="true">
-                      <span>09:41</span>
-                      <span className="desk-phone-island" />
-                      <span>5G</span>
-                    </span>
-                    <span className="desk-phone-card">
-                      <span className="desk-phone-icon" aria-hidden="true">
-                        <Mail />
-                      </span>
-                      <span className="desk-phone-copy">
-                        <strong>
-                          {finish.contactLabel}
-                          <ArrowUpRight aria-hidden="true" />
-                        </strong>
-                        <small>{profile.email}</small>
+                <span className="desk-iphone-chassis">
+                  <span className="desk-iphone-btn-power" aria-hidden="true" />
+                  <span className="desk-iphone-side-controls" aria-hidden="true">
+                    <i className="desk-iphone-btn-mute" />
+                    <i className="desk-iphone-btn-vol" />
+                    <i className="desk-iphone-btn-vol" />
+                  </span>
+
+                  <span className="desk-iphone-glass">
+                    <span className="desk-iphone-top-bezel" aria-hidden="true">
+                      <span className="desk-iphone-sensor" />
+                      <span className="desk-iphone-earpiece-row">
+                        <span className="desk-iphone-camera" />
+                        <span className="desk-iphone-speaker" />
                       </span>
                     </span>
-                    <span className="desk-phone-homebar" aria-hidden="true" />
+
+                    <span className="desk-phone-screen">
+                      <span className="desk-phone-statusbar" aria-hidden="true">
+                        <span className="desk-phone-carrier">
+                          <i />
+                          <span>3G</span>
+                        </span>
+                        <span>09:41</span>
+                        <span className="desk-phone-battery" />
+                      </span>
+                      <span className="desk-phone-card">
+                        <span className="desk-phone-icon" aria-hidden="true">
+                          <Mail />
+                        </span>
+                        <span className="desk-phone-copy">
+                          <strong>
+                            {finish.contactLabel}
+                            <ArrowUpRight aria-hidden="true" />
+                          </strong>
+                          <small>
+                            {emailAtIndex > 0 ? (
+                              <>
+                                {profile.email.slice(0, emailAtIndex)}
+                                <wbr />
+                                {profile.email.slice(emailAtIndex)}
+                              </>
+                            ) : (
+                              profile.email
+                            )}
+                          </small>
+                        </span>
+                      </span>
+                    </span>
+
+                    <span className="desk-iphone-bottom-bezel" aria-hidden="true">
+                      <span className="desk-iphone-home-btn">
+                        <span className="desk-iphone-home-square" />
+                      </span>
+                    </span>
                   </span>
                 </span>
               </a>
