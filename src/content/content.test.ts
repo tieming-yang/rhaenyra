@@ -79,7 +79,16 @@ describe("getSiteContent", () => {
       "/resume/screen-pocket-wish.webp"
     );
 
-    expect(content.proposal.waypoints).toHaveLength(8);
+    expect(content.proposal.waypoints.map((item) => item.id)).toEqual([
+      "why-hokkaido",
+      "why-jstyle",
+      "after-beacon",
+      "core-strengths",
+      "closing",
+    ]);
+    for (const waypoint of content.proposal.waypoints) {
+      expect(waypoint.bullets).toHaveLength(3);
+    }
   });
 
   it("throws when requesting an unsupported locale at runtime", () => {
@@ -225,6 +234,56 @@ describe("parseSiteContent validation", () => {
     ];
     expect(() => parseSiteContent(singleWaypoint)).toThrow(
       "proposal.waypoints must contain at least 2 waypoints"
+    );
+
+    const blankTitle = createValidRawInput();
+    (
+      blankTitle.bundle.proposal as {
+        waypoints: Array<{ title: string }>;
+      }
+    ).waypoints[0].title = "   ";
+    expect(() => parseSiteContent(blankTitle)).toThrow(
+      "proposal.waypoints[0].title must be a non-empty string"
+    );
+
+    const blankSubtitle = createValidRawInput();
+    (
+      blankSubtitle.bundle.proposal as {
+        waypoints: Array<{ subtitle: string }>;
+      }
+    ).waypoints[0].subtitle = "   ";
+    expect(() => parseSiteContent(blankSubtitle)).toThrow(
+      "proposal.waypoints[0].subtitle must be a non-empty string"
+    );
+
+    const emptyWaypointBullets = createValidRawInput();
+    (
+      emptyWaypointBullets.bundle.proposal as {
+        waypoints: Array<{ bullets: unknown[] }>;
+      }
+    ).waypoints[0].bullets = [];
+    expect(() => parseSiteContent(emptyWaypointBullets)).toThrow(
+      "proposal.waypoints[0].bullets must contain at least one entry"
+    );
+
+    const blankWaypointBulletTitle = createValidRawInput();
+    (
+      blankWaypointBulletTitle.bundle.proposal as {
+        waypoints: Array<{ bullets: Array<{ title: string; text: string }> }>;
+      }
+    ).waypoints[0].bullets[0].title = "   ";
+    expect(() => parseSiteContent(blankWaypointBulletTitle)).toThrow(
+      "proposal.waypoints[0].bullets[0].title must be a non-empty string"
+    );
+
+    const blankWaypointBulletText = createValidRawInput();
+    (
+      blankWaypointBulletText.bundle.proposal as {
+        waypoints: Array<{ bullets: Array<{ title: string; text: string }> }>;
+      }
+    ).waypoints[0].bullets[0].text = "   ";
+    expect(() => parseSiteContent(blankWaypointBulletText)).toThrow(
+      "proposal.waypoints[0].bullets[0].text must be a non-empty string"
     );
   });
 

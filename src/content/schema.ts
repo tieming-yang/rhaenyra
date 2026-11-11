@@ -166,11 +166,16 @@ export interface ProposalTrailContent {
   readonly finishAriaLabel: string;
 }
 
+export interface ProposalWaypointBullet {
+  readonly title: string;
+  readonly text: string;
+}
+
 export interface ProposalWaypointItem {
   readonly id: string;
-  readonly label: string;
   readonly title: string;
-  readonly description: string;
+  readonly subtitle: string;
+  readonly bullets: readonly ProposalWaypointBullet[];
 }
 
 export interface ProposalFinishContent {
@@ -803,20 +808,66 @@ function parseProposalContent(raw: unknown): ProposalSectionContent {
       }
       seenIds.add(id);
 
+      if (
+        typeof waypoint.title !== "string" ||
+        waypoint.title.trim().length === 0
+      ) {
+        throw new Error(
+          `proposal.waypoints[${index}].title must be a non-empty string`
+        );
+      }
+      if (
+        typeof waypoint.subtitle !== "string" ||
+        waypoint.subtitle.trim().length === 0
+      ) {
+        throw new Error(
+          `proposal.waypoints[${index}].subtitle must be a non-empty string`
+        );
+      }
+
+      const rawBullets = assertArray(
+        waypoint.bullets,
+        `proposal.waypoints[${index}].bullets`
+      );
+      if (rawBullets.length === 0) {
+        throw new Error(
+          `proposal.waypoints[${index}].bullets must contain at least one entry`
+        );
+      }
+      const bullets: ProposalWaypointBullet[] = rawBullets.map(
+        (bulletRaw, bulletIndex) => {
+          const bullet = assertRecord(
+            bulletRaw,
+            `proposal.waypoints[${index}].bullets[${bulletIndex}]`
+          );
+          if (
+            typeof bullet.title !== "string" ||
+            bullet.title.trim().length === 0
+          ) {
+            throw new Error(
+              `proposal.waypoints[${index}].bullets[${bulletIndex}].title must be a non-empty string`
+            );
+          }
+          if (
+            typeof bullet.text !== "string" ||
+            bullet.text.trim().length === 0
+          ) {
+            throw new Error(
+              `proposal.waypoints[${index}].bullets[${bulletIndex}].text must be a non-empty string`
+            );
+          }
+          return {
+            title: bullet.title,
+            text: bullet.text,
+          };
+        }
+      );
+
       return {
         id,
-        label: assertNonEmptyString(
-          waypoint.label,
-          `proposal.waypoints[${index}].label`
-        ),
-        title: assertNonEmptyString(
-          waypoint.title,
-          `proposal.waypoints[${index}].title`
-        ),
-        description: assertNonEmptyString(
-          waypoint.description,
-          `proposal.waypoints[${index}].description`
-        ),
+        title: waypoint.title,
+        subtitle: waypoint.subtitle,
+        bullets,
       };
     }
   );

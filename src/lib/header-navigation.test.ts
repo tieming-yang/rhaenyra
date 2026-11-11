@@ -139,8 +139,8 @@ describe("resolveSectionFromHash", () => {
     expect(resolveSectionFromHash("#job-desk")).toBe("job-desk");
     expect(resolveSectionFromHash("#product-cases")).toBe("product-cases");
     expect(resolveSectionFromHash("#proposal")).toBe("proposal");
-    expect(resolveSectionFromHash("#intro")).toBe("proposal");
-    expect(resolveSectionFromHash("#roadmap")).toBe("proposal");
+    expect(resolveSectionFromHash("#why-hokkaido")).toBe("proposal");
+    expect(resolveSectionFromHash("#closing")).toBe("proposal");
     expect(resolveSectionFromHash("#proposal-finish")).toBe("proposal");
     expect(resolveSectionFromHash("#unknown-anchor")).toBeNull();
   });
@@ -233,7 +233,7 @@ describe("resolveScrollUrlTransition", () => {
           activeSection: "proposal",
           pathname: "/",
           search: "",
-          currentHash: "#intro",
+          currentHash: "#why-hokkaido",
         })
       )
     ).toBe("unchanged");
@@ -244,7 +244,7 @@ describe("resolveScrollUrlTransition", () => {
           activeSection: "product-cases",
           pathname: "/",
           search: "",
-          currentHash: "#intro",
+          currentHash: "#why-hokkaido",
         })
       )
     ).toBe("replace:/#product-cases");
