@@ -14,6 +14,7 @@ import {
 import {
   deriveMacPortalDivePose,
   resolveStickyRailProgress,
+  resolveStickyStageViewportCenter,
 } from "@/lib/mac-portal-transition";
 import { ResumeBadge } from "./resume-badge";
 import { ResumeJobDeck } from "./resume-job-deck";
@@ -141,6 +142,7 @@ export function ResumeShowcase({
   const deskRef = useRef<HTMLElement>(null);
   const studioRef = useRef<HTMLElement>(null);
   const studioContentRef = useRef<HTMLDivElement>(null);
+  const diveSpacerRef = useRef<HTMLDivElement>(null);
   const caseCopyRef = useRef<HTMLDivElement>(null);
   const deviceSlotRef = useRef<HTMLDivElement>(null);
   const deviceRef = useRef<HTMLDivElement>(null);
@@ -150,6 +152,7 @@ export function ResumeShowcase({
   const projectDockRef = useRef<HTMLDivElement>(null);
   const portalScreenRef = useRef<HTMLDivElement>(null);
   const portalHorizonRef = useRef<HTMLDivElement>(null);
+  const portalVeilRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState(0);
   const [nearStudio, setNearStudio] = useState(false);
   const safeSelected = selected < products.items.length ? selected : 0;
@@ -186,6 +189,7 @@ export function ResumeShowcase({
       }
 
       const studioContent = studioContentRef.current;
+      const diveSpacer = diveSpacerRef.current;
       const deviceSlot = deviceSlotRef.current;
       const device = deviceRef.current;
       const lid = lidRef.current;
@@ -195,6 +199,7 @@ export function ResumeShowcase({
       const projectDock = projectDockRef.current;
       const portalScreen = portalScreenRef.current;
       const portalHorizon = portalHorizonRef.current;
+      const portalVeil = portalVeilRef.current;
       if (
         !studioContent ||
         !deviceSlot ||
@@ -208,11 +213,14 @@ export function ResumeShowcase({
       }
 
       const studioRect = studio.getBoundingClientRect();
+      const studioContentWidth = studioContent.clientWidth;
       const studioContentHeight = studioContent.offsetHeight;
+      const diveSpacerHeight = diveSpacer ? diveSpacer.offsetHeight : 0;
       const screenWidth = macScreen.offsetWidth;
       const screenHeight = macScreen.offsetHeight;
       if (
         studioRect.height <= 0 ||
+        studioContentWidth <= 0 ||
         studioContentHeight <= 0 ||
         screenWidth <= 0 ||
         screenHeight <= 0
@@ -220,28 +228,38 @@ export function ResumeShowcase({
         return;
       }
 
-      const stickyTop = Math.min(0, viewport - studioContentHeight);
+      const stageCenter = resolveStickyStageViewportCenter({
+        stageWidth: studioContentWidth,
+        stageHeight: studioContentHeight,
+        viewportHeight: viewport,
+      });
       if (reduce.matches) {
         studioContent.style.removeProperty("--studio-sticky-top");
       } else {
-        studioContent.style.setProperty("--studio-sticky-top", `${stickyTop}px`);
+        studioContent.style.setProperty(
+          "--studio-sticky-top",
+          `${stageCenter.stickyTopPx}px`
+        );
       }
 
-      const stickyTravel = Math.max(1, studioRect.height - studioContentHeight);
-      const rawDiveProgress = reduce.matches
-        ? 0
-        : resolveStickyRailProgress({
-            railTopPx: studioRect.top - stickyTop,
-            railHeightPx: viewport + stickyTravel,
-            viewportHeightPx: viewport,
-            startDwellRatio: 0.14,
-          });
+      const rawDiveProgress =
+        reduce.matches || diveSpacerHeight <= 0
+          ? 0
+          : resolveStickyRailProgress({
+              railTopPx: studioRect.top - stageCenter.stickyTopPx,
+              railHeightPx: viewport + diveSpacerHeight,
+              viewportHeightPx: viewport,
+              startDwellRatio: 0.12,
+            });
 
+      const studioContentRect = studioContent.getBoundingClientRect();
+      const slotRect = deviceSlot.getBoundingClientRect();
+      const slotLeftInStudio = slotRect.left - studioContentRect.left;
+      const slotTopInStudio = slotRect.top - studioContentRect.top;
       const screenOffsetInDeviceX = lid.offsetLeft + macScreen.offsetLeft + screenWidth * 0.5;
       const screenOffsetInDeviceY = lid.offsetTop + macScreen.offsetTop + screenHeight * 0.5;
-      const slotRect = deviceSlot.getBoundingClientRect();
-      const screenCenterX = slotRect.left + device.offsetLeft + screenOffsetInDeviceX;
-      const screenCenterY = slotRect.top + device.offsetTop + screenOffsetInDeviceY;
+      const screenCenterX = slotLeftInStudio + device.offsetLeft + screenOffsetInDeviceX;
+      const screenCenterY = slotTopInStudio + device.offsetTop + screenOffsetInDeviceY;
 
       const divePose = deriveMacPortalDivePose({
         viewport: { width: viewportWidth, height: viewport },
@@ -251,6 +269,7 @@ export function ResumeShowcase({
           width: screenWidth,
           height: screenHeight,
         },
+        targetCenter: { x: stageCenter.x, y: stageCenter.y },
         rawProgress: rawDiveProgress,
         reducedMotion: reduce.matches,
       });
@@ -260,6 +279,7 @@ export function ResumeShowcase({
         device.style.removeProperty("transform-origin");
         device.style.removeProperty("transform");
         macScreen.style.removeProperty("box-shadow");
+        macScreen.style.removeProperty("border-radius");
         if (caseCopy) {
           caseCopy.style.removeProperty("opacity");
           caseCopy.style.removeProperty("transform");
@@ -281,6 +301,9 @@ export function ResumeShowcase({
           portalHorizon.style.removeProperty("opacity");
           portalHorizon.style.removeProperty("transform");
         }
+        if (portalVeil) {
+          portalVeil.style.opacity = "0";
+        }
         return;
       }
 
@@ -289,7 +312,12 @@ export function ResumeShowcase({
       device.style.transformOrigin = `${screenOffsetInDeviceX}px ${screenOffsetInDeviceY}px`;
       device.style.transform = `translate3d(${divePose.translateX}px, ${divePose.translateY}px, 0) scale(${divePose.scale})`;
       macScreen.style.boxShadow =
-        divePose.progress > 0.84 ? "none" : "0 0 0 1px #090407";
+        divePose.progress > 0.78 ? "none" : "0 0 0 1px #090407";
+      const rScale = divePose.screenCornerRadiusScale;
+      macScreen.style.borderRadius =
+        rScale <= 0.005
+          ? "0px"
+          : `${(0.56 * rScale).toFixed(3)}rem ${(0.56 * rScale).toFixed(3)}rem ${(0.2 * rScale).toFixed(3)}rem ${(0.2 * rScale).toFixed(3)}rem`;
 
       if (caseCopy) {
         caseCopy.style.opacity = String(divePose.copyOpacity);
@@ -310,13 +338,13 @@ export function ResumeShowcase({
         portalScreen.style.opacity = String(divePose.portalScreenOpacity);
       }
       if (portalHorizon) {
-        const settleFade =
-          divePose.progress > 0.72
-            ? Math.max(0, 1 - (divePose.progress - 0.72) / 0.26)
-            : 1;
-        const driftUpPct = -18 * divePose.progress;
-        portalHorizon.style.opacity = String(settleFade);
-        portalHorizon.style.transform = `translate3d(0, ${driftUpPct}%, 0) scale(${1 / Math.max(1, Math.pow(divePose.scale, 0.35))})`;
+        const horizonOpacity = Math.max(0, 1 - divePose.snowVeilOpacity);
+        const driftDownPct = 10 * divePose.progress;
+        portalHorizon.style.opacity = String(horizonOpacity);
+        portalHorizon.style.transform = `translate3d(0, ${driftDownPct}%, 0) scale(${divePose.portalIntroScale})`;
+      }
+      if (portalVeil) {
+        portalVeil.style.opacity = String(divePose.snowVeilOpacity);
       }
     };
 
@@ -335,6 +363,9 @@ export function ResumeShowcase({
     resizeObserver.observe(studio);
     if (studioContentRef.current) {
       resizeObserver.observe(studioContentRef.current);
+    }
+    if (diveSpacerRef.current) {
+      resizeObserver.observe(diveSpacerRef.current);
     }
 
     window.addEventListener("scroll", schedule, { passive: true });
@@ -473,9 +504,9 @@ export function ResumeShowcase({
                         </svg>
                         <div className="resume-portal-cue">
                           <span>{proposalIntro.eyebrow}</span>
-                          <strong>{proposalIntro.title}</strong>
                         </div>
                       </div>
+                      <div className="resume-portal-veil" ref={portalVeilRef} />
                     </div>
                   </div>
                   <div className="resume-device-hinge" aria-hidden="true" />
@@ -518,6 +549,7 @@ export function ResumeShowcase({
             </div>
           </div>
         </div>
+        <div className="resume-studio-dive-spacer" ref={diveSpacerRef} aria-hidden="true" />
       </section>
 
     </div>

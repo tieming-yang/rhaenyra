@@ -44,6 +44,7 @@ export function ProposalDeskFinale({
   const macSlotRef = useRef<HTMLDivElement>(null);
   const lidRef = useRef<HTMLDivElement>(null);
   const snowScreenRef = useRef<HTMLDivElement>(null);
+  const snowRidgeRef = useRef<HTMLDivElement>(null);
   const macShadowRef = useRef<HTMLDivElement>(null);
   const noteRef = useRef<HTMLDivElement>(null);
   const badgeItemRef = useRef<HTMLDivElement>(null);
@@ -105,9 +106,11 @@ export function ProposalDeskFinale({
       stage.dataset.finalePhase = pose.phase;
       stage.dataset.interactive = pose.deskInteractive ? "true" : "false";
 
-      const stageRect = stage.getBoundingClientRect();
+      const stageWidth = stage.clientWidth;
+      const stageHeight = stage.clientHeight;
       const worldWidth = world.offsetWidth;
       const worldHeight = world.offsetHeight;
+      if (stageWidth <= 0 || stageHeight <= 0) return;
 
       // Measure untransformed slot offset inside world by walking offsetParents up to world
       let slotLeftInWorld = 0;
@@ -127,14 +130,14 @@ export function ProposalDeskFinale({
         hingeY * Math.cos(WORLD_TILT_RAD) - screenHeight * 0.5;
       const openCenterZ = hingeY * Math.sin(WORLD_TILT_RAD);
 
-      const camCenterX =
-        stageRect.left + camera.offsetLeft + camera.offsetWidth * 0.5;
-      const camCenterY =
-        stageRect.top + camera.offsetTop + camera.offsetHeight * 0.5;
-      const camToViewportX = (viewportWidth * 0.5 - camCenterX) * invOverhead;
-      const camToViewportY = (viewportHeight * 0.5 - camCenterY) * invOverhead;
+      const camCenterInStageX = camera.offsetLeft + camera.offsetWidth * 0.5;
+      const camCenterInStageY = camera.offsetTop + camera.offsetHeight * 0.5;
+      const camToStageCenterX =
+        (stageWidth * 0.5 - camCenterInStageX) * invOverhead;
+      const camToStageCenterY =
+        (stageHeight * 0.5 - camCenterInStageY) * invOverhead;
 
-      camera.style.transform = `translate3d(${camToViewportX}px, ${camToViewportY}px, 0) scale(${pose.macScale})`;
+      camera.style.transform = `translate3d(${camToStageCenterX}px, ${camToStageCenterY}px, 0) scale(${pose.macScale})`;
 
       const worldTilt = WORLD_TILT_DEG * invOverhead;
       world.style.transform = `translate3d(${-openCenterX * invOverhead}px, ${-openCenterY * invOverhead}px, ${-openCenterZ * invOverhead}px) rotateX(${worldTilt}deg)`;
@@ -146,6 +149,9 @@ export function ProposalDeskFinale({
       }
       if (snowScreenRef.current) {
         snowScreenRef.current.style.opacity = String(pose.snowScreenOpacity);
+      }
+      if (snowRidgeRef.current) {
+        snowRidgeRef.current.style.opacity = String(pose.snowRidgeOpacity);
       }
       if (deskBackdropRef.current) {
         deskBackdropRef.current.style.opacity = String(pose.deskSurfaceOpacity);
@@ -224,24 +230,25 @@ export function ProposalDeskFinale({
                       <div className="desk-mac-webcam" />
                       <div className="desk-mac-display">
                         <div className="desk-mac-snowworld" ref={snowScreenRef}>
-                          <svg
-                            className="desk-mac-snowmountains"
-                            viewBox="0 0 800 240"
-                            preserveAspectRatio="xMidYMax slice"
-                          >
-                            <path
-                              fill="#ecd0dd"
-                              opacity="0.72"
-                              d="M 0 240 L 0 154 L 94 108 L 162 66 L 228 102 L 308 42 L 372 82 L 448 34 L 518 78 L 592 40 L 668 88 L 734 56 L 800 124 L 800 240 Z"
-                            />
-                            <path
-                              fill="#fff8fa"
-                              d="M 0 240 L 0 176 L 84 132 L 154 88 L 204 52 L 258 92 L 322 118 L 388 60 L 434 36 L 486 74 L 548 112 L 614 58 L 664 38 L 726 88 L 800 156 L 800 240 Z"
-                            />
-                          </svg>
-                          <div className="desk-mac-snowcopy">
-                            <span>{proposalIntro.eyebrow}</span>
-                            <strong>{proposalIntro.title}</strong>
+                          <div className="desk-mac-snowridge" ref={snowRidgeRef}>
+                            <svg
+                              className="desk-mac-snowmountains"
+                              viewBox="0 0 800 240"
+                              preserveAspectRatio="xMidYMax slice"
+                            >
+                              <path
+                                fill="#ecd0dd"
+                                opacity="0.72"
+                                d="M 0 240 L 0 154 L 94 108 L 162 66 L 228 102 L 308 42 L 372 82 L 448 34 L 518 78 L 592 40 L 668 88 L 734 56 L 800 124 L 800 240 Z"
+                              />
+                              <path
+                                fill="#fff8fa"
+                                d="M 0 240 L 0 176 L 84 132 L 154 88 L 204 52 L 258 92 L 322 118 L 388 60 L 434 36 L 486 74 L 548 112 L 614 58 L 664 38 L 726 88 L 800 156 L 800 240 Z"
+                              />
+                            </svg>
+                            <div className="desk-mac-snowcopy">
+                              <span>{proposalIntro.eyebrow}</span>
+                            </div>
                           </div>
                         </div>
                       </div>

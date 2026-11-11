@@ -9,7 +9,7 @@ main#profile > section.interview-run {
 
 @media (prefers-reduced-motion: no-preference) {
   main#profile > section.interview-run {
-    margin-top: -16svh;
+    margin-top: -20svh;
     background: linear-gradient(180deg, transparent 0, var(--background) 14svh);
   }
 }
@@ -183,6 +183,7 @@ main#profile > section.interview-run {
   box-shadow:
     inset 0 0 0 1px rgb(255 255 255 / 0.55),
     inset 0 -2px 5px rgb(138 59 91 / 0.22);
+  transform: translateZ(0.6px);
 }
 
 .desk-mac-sheen {
@@ -235,7 +236,7 @@ main#profile > section.interview-run {
   padding: 2.2% 2% 2.6%;
   border: 2px solid #eb9bb8;
   background: linear-gradient(180deg, #1d141a, #120c10);
-  transform: rotateX(180deg);
+  transform: rotateX(180deg) translateZ(0.6px);
 }
 
 .desk-mac-webcam {
@@ -261,8 +262,16 @@ main#profile > section.interview-run {
 .desk-mac-snowworld {
   position: absolute;
   inset: 0;
+  background: var(--background);
+  will-change: opacity;
+}
+
+.desk-mac-snowridge {
+  position: absolute;
+  inset: 0;
   display: grid;
   place-items: center;
+  opacity: 0;
   background: radial-gradient(ellipse at 50% 24%, #fce4ef 0%, #fff8fa 58%, #fff8fa 100%);
   will-change: opacity;
 }
@@ -279,10 +288,12 @@ main#profile > section.interview-run {
 .desk-mac-snowcopy {
   position: relative;
   z-index: 1;
-  display: grid;
-  gap: 0.25rem;
-  padding-inline: 8%;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.26rem 0.68rem;
+  border: 1px solid rgb(177 47 96 / 0.18);
+  border-radius: 999px;
+  background: rgb(255 252 253 / 0.85);
   transform: translateY(-12%);
 }
 
@@ -291,13 +302,6 @@ main#profile > section.interview-run {
   font-size: clamp(0.45rem, 0.7vw, 0.62rem);
   font-weight: 700;
   letter-spacing: 0.14em;
-}
-
-.desk-mac-snowcopy > strong {
-  color: var(--primary);
-  font-size: clamp(0.92rem, 1.7vw, 1.5rem);
-  font-weight: 700;
-  letter-spacing: -0.04em;
 }
 
 /* 2. Sticky Note Tip ("FINISH / 感謝閱讀") */
