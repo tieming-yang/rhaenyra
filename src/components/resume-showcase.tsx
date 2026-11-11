@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { ArrowDown, ArrowUpRight } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   formatContentTemplate,
   type ExperienceSectionContent,
@@ -16,6 +16,8 @@ import {
   resolveStickyRailProgress,
   resolveStickyStageViewportCenter,
 } from "@/lib/mac-portal-transition";
+import { createSnowboardRoute } from "@/lib/snowboard-route";
+import { MountainCardBackdrop } from "./mountain-card-backdrop";
 import { ResumeBadge } from "./resume-badge";
 import { ResumeJobDeck } from "./resume-job-deck";
 import { SakuraHeadlineName } from "./sakura-headline-name";
@@ -124,7 +126,7 @@ interface ResumeShowcaseProps {
   readonly hero: HeroContent;
   readonly experience: ExperienceSectionContent;
   readonly products: ProductsSectionContent;
-  readonly proposalIntro: ProposalSectionContent["intro"];
+  readonly proposal: ProposalSectionContent;
 }
 
 function productArtStyle(artSrc: string) {
@@ -136,8 +138,12 @@ export function ResumeShowcase({
   hero,
   experience,
   products,
-  proposalIntro,
+  proposal,
 }: ResumeShowcaseProps) {
+  const portalRoute = useMemo(
+    () => createSnowboardRoute(proposal.waypoints.length),
+    [proposal.waypoints.length]
+  );
   const coverRef = useRef<HTMLElement>(null);
   const deskRef = useRef<HTMLElement>(null);
   const studioRef = useRef<HTMLElement>(null);
@@ -151,8 +157,7 @@ export function ResumeShowcase({
   const deviceBaseRef = useRef<HTMLDivElement>(null);
   const projectDockRef = useRef<HTMLDivElement>(null);
   const portalScreenRef = useRef<HTMLDivElement>(null);
-  const portalHorizonRef = useRef<HTMLDivElement>(null);
-  const portalVeilRef = useRef<HTMLDivElement>(null);
+  const portalViewportRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState(0);
   const [nearStudio, setNearStudio] = useState(false);
   const safeSelected = selected < products.items.length ? selected : 0;
@@ -198,8 +203,7 @@ export function ResumeShowcase({
       const deviceBase = deviceBaseRef.current;
       const projectDock = projectDockRef.current;
       const portalScreen = portalScreenRef.current;
-      const portalHorizon = portalHorizonRef.current;
-      const portalVeil = portalVeilRef.current;
+      const portalViewport = portalViewportRef.current;
       if (
         !studioContent ||
         !deviceSlot ||
@@ -212,6 +216,7 @@ export function ResumeShowcase({
         return;
       }
 
+      const clientWidth = document.documentElement.clientWidth || viewportWidth;
       const studioRect = studio.getBoundingClientRect();
       const studioContentWidth = studioContent.clientWidth;
       const studioContentHeight = studioContent.offsetHeight;
@@ -249,20 +254,22 @@ export function ResumeShowcase({
               railTopPx: studioRect.top - stageCenter.stickyTopPx,
               railHeightPx: viewport + diveSpacerHeight,
               viewportHeightPx: viewport,
-              startDwellRatio: 0.12,
+              startDwellRatio: 0.08,
             });
 
       const studioContentRect = studioContent.getBoundingClientRect();
       const slotRect = deviceSlot.getBoundingClientRect();
       const slotLeftInStudio = slotRect.left - studioContentRect.left;
       const slotTopInStudio = slotRect.top - studioContentRect.top;
-      const screenOffsetInDeviceX = lid.offsetLeft + macScreen.offsetLeft + screenWidth * 0.5;
-      const screenOffsetInDeviceY = lid.offsetTop + macScreen.offsetTop + screenHeight * 0.5;
+      const screenOffsetInDeviceX =
+        lid.offsetLeft + lid.clientLeft + macScreen.offsetLeft + screenWidth * 0.5;
+      const screenOffsetInDeviceY =
+        lid.offsetTop + lid.clientTop + macScreen.offsetTop + screenHeight * 0.5;
       const screenCenterX = slotLeftInStudio + device.offsetLeft + screenOffsetInDeviceX;
       const screenCenterY = slotTopInStudio + device.offsetTop + screenOffsetInDeviceY;
 
       const divePose = deriveMacPortalDivePose({
-        viewport: { width: viewportWidth, height: viewport },
+        viewport: { width: clientWidth, height: viewport },
         screen: {
           centerX: screenCenterX,
           centerY: screenCenterY,
@@ -276,6 +283,9 @@ export function ResumeShowcase({
 
       if (divePose.phase === "browsing") {
         studio.removeAttribute("data-portal-diving");
+        studioContent.style.removeProperty("opacity");
+        studioContent.style.removeProperty("visibility");
+        studioContent.style.removeProperty("pointer-events");
         device.style.removeProperty("transform-origin");
         device.style.removeProperty("transform");
         macScreen.style.removeProperty("box-shadow");
@@ -297,18 +307,22 @@ export function ResumeShowcase({
           portalScreen.style.opacity = "0";
           portalScreen.style.visibility = "hidden";
         }
-        if (portalHorizon) {
-          portalHorizon.style.removeProperty("opacity");
-          portalHorizon.style.removeProperty("transform");
-        }
-        if (portalVeil) {
-          portalVeil.style.opacity = "0";
+        if (portalViewport) {
+          portalViewport.style.removeProperty("width");
+          portalViewport.style.removeProperty("height");
+          portalViewport.style.removeProperty("transform");
         }
         return;
       }
 
       studio.setAttribute("data-portal-diving", "");
       studio.style.setProperty("--scene-progress", "1");
+      studioContent.style.opacity = String(divePose.studioOpacity);
+      studioContent.style.visibility =
+        divePose.studioOpacity <= 0.005 ? "hidden" : "visible";
+      studioContent.style.pointerEvents =
+        divePose.progress >= 0.84 ? "none" : "";
+
       device.style.transformOrigin = `${screenOffsetInDeviceX}px ${screenOffsetInDeviceY}px`;
       device.style.transform = `translate3d(${divePose.translateX}px, ${divePose.translateY}px, 0) scale(${divePose.scale})`;
       macScreen.style.boxShadow =
@@ -337,14 +351,18 @@ export function ResumeShowcase({
           divePose.portalScreenOpacity > 0.005 ? "visible" : "hidden";
         portalScreen.style.opacity = String(divePose.portalScreenOpacity);
       }
-      if (portalHorizon) {
-        const horizonOpacity = Math.max(0, 1 - divePose.snowVeilOpacity);
-        const driftDownPct = 10 * divePose.progress;
-        portalHorizon.style.opacity = String(horizonOpacity);
-        portalHorizon.style.transform = `translate3d(0, ${driftDownPct}%, 0) scale(${divePose.portalIntroScale})`;
-      }
-      if (portalVeil) {
-        portalVeil.style.opacity = String(divePose.snowVeilOpacity);
+      if (portalViewport) {
+        const proposalElement = document.getElementById("proposal");
+        const proposalTop = proposalElement
+          ? Math.max(0, proposalElement.getBoundingClientRect().top)
+          : 0;
+        const followScreenPx =
+          (proposalTop * divePose.proposalFollowWeight) /
+          Math.max(1, divePose.scale);
+
+        portalViewport.style.width = `${clientWidth}px`;
+        portalViewport.style.height = `${viewport}px`;
+        portalViewport.style.transform = `translate(-50%, -50%) translate3d(0, ${followScreenPx}px, 0) scale(${1 / divePose.targetScale})`;
       }
     };
 
@@ -487,26 +505,72 @@ export function ResumeShowcase({
                       )}
                     </div>
                     <div className="resume-portal-screen" ref={portalScreenRef} aria-hidden="true">
-                      <div className="resume-portal-horizon" ref={portalHorizonRef}>
-                        <svg
-                          className="resume-portal-mountains"
-                          viewBox="0 0 800 220"
-                          preserveAspectRatio="xMidYMax slice"
-                        >
-                          <path
-                            className="resume-portal-range-back"
-                            d="M 0 220 L 0 148 L 88 104 L 146 68 L 198 96 L 272 44 L 328 78 L 412 32 L 474 72 L 548 38 L 618 82 L 692 52 L 758 96 L 800 132 L 800 220 Z"
-                          />
-                          <path
-                            className="resume-portal-range-front"
-                            d="M 0 220 L 0 166 L 74 126 L 138 86 L 182 54 L 226 84 L 284 112 L 346 62 L 388 38 L 432 68 L 492 104 L 558 58 L 604 34 L 652 72 L 718 114 L 800 158 L 800 220 Z"
-                          />
-                        </svg>
-                        <div className="resume-portal-cue">
-                          <span>{proposalIntro.eyebrow}</span>
+                      <div className="resume-portal-viewport" ref={portalViewportRef}>
+                        <div className="run-intro">
+                          <p className="interview-kicker">{proposal.intro.eyebrow}</p>
+                          <h2>{proposal.intro.title}</h2>
+                          <p className="run-intro-subtitle">
+                            {proposal.intro.subtitle}
+                          </p>
+                          <span className="run-start">
+                            {proposal.intro.startCtaLabel}
+                            <ArrowDown className="size-4" aria-hidden="true" />
+                          </span>
+                        </div>
+
+                        <div className="run-trail">
+                          <div className="run-lane">
+                            <svg
+                              className="run-path"
+                              viewBox={`0 0 ${portalRoute.width} ${portalRoute.height}`}
+                              preserveAspectRatio="none"
+                            >
+                              <path
+                                className="run-guide"
+                                d={portalRoute.path}
+                                vectorEffect="non-scaling-stroke"
+                              />
+                            </svg>
+                            {portalRoute.checkpoints.map((point, index) => (
+                              <span
+                                key={point.y}
+                                className="run-marker"
+                                data-active={index === 0 ? "" : undefined}
+                                style={{
+                                  left: `${(point.x / portalRoute.width) * 100}%`,
+                                  top: `${(point.y / portalRoute.height) * 100}%`,
+                                }}
+                              />
+                            ))}
+                          </div>
+
+                          <div className="run-stops">
+                            {proposal.waypoints.map((waypoint, index) => (
+                              <div
+                                className="run-stop"
+                                key={waypoint.id}
+                                aria-current={index === 0 ? "step" : undefined}
+                              >
+                                <div className="run-copy">
+                                  <div className="run-mountain-card">
+                                    <MountainCardBackdrop index={index} />
+                                    <div className="run-mountain-body">
+                                      <p className="run-waypoint-kicker">
+                                        <span>
+                                          {String(index + 1).padStart(2, "0")}
+                                        </span>
+                                        {waypoint.label}
+                                      </p>
+                                      <h2>{waypoint.title}</h2>
+                                      <p>{waypoint.description}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                      <div className="resume-portal-veil" ref={portalVeilRef} />
                     </div>
                   </div>
                   <div className="resume-device-hinge" aria-hidden="true" />

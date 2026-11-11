@@ -50,15 +50,16 @@ export interface MacPortalDivePose {
   readonly translateX: number;
   readonly translateY: number;
   readonly scale: number;
+  readonly targetScale: number;
   readonly lidTiltProgress: number;
   readonly copyOpacity: number;
   readonly copyShiftY: number;
   readonly dockOpacity: number;
   readonly baseOpacity: number;
   readonly portalScreenOpacity: number;
-  readonly snowVeilOpacity: number;
+  readonly proposalFollowWeight: number;
+  readonly studioOpacity: number;
   readonly screenCornerRadiusScale: number;
-  readonly portalIntroScale: number;
   readonly uiInteractive: boolean;
 }
 
@@ -191,6 +192,13 @@ export function deriveMacPortalDivePose(
   assertFinite(targetX, "targetCenter.x");
   assertFinite(targetY, "targetCenter.y");
 
+  const coverScale =
+    Math.max(
+      input.viewport.width / input.screen.width,
+      input.viewport.height / input.screen.height
+    ) * BEZEL_CLEARANCE_MULTIPLIER;
+  const targetScale = Math.max(1.25, coverScale);
+
   if (input.reducedMotion) {
     return {
       phase: "browsing",
@@ -198,15 +206,16 @@ export function deriveMacPortalDivePose(
       translateX: 0,
       translateY: 0,
       scale: 1,
+      targetScale,
       lidTiltProgress: 1,
       copyOpacity: 1,
       copyShiftY: 0,
       dockOpacity: 1,
       baseOpacity: 1,
       portalScreenOpacity: 0,
-      snowVeilOpacity: 0,
+      proposalFollowWeight: 0,
+      studioOpacity: 1,
       screenCornerRadiusScale: 1,
-      portalIntroScale: 1,
       uiInteractive: true,
     };
   }
@@ -219,25 +228,19 @@ export function deriveMacPortalDivePose(
       translateX: 0,
       translateY: 0,
       scale: 1,
+      targetScale,
       lidTiltProgress: 1,
       copyOpacity: 1,
       copyShiftY: 0,
       dockOpacity: 1,
       baseOpacity: 1,
       portalScreenOpacity: 0,
-      snowVeilOpacity: 0,
+      proposalFollowWeight: 0,
+      studioOpacity: 1,
       screenCornerRadiusScale: 1,
-      portalIntroScale: 0.92,
       uiInteractive: true,
     };
   }
-
-  const coverScale =
-    Math.max(
-      input.viewport.width / input.screen.width,
-      input.viewport.height / input.screen.height
-    ) * BEZEL_CLEARANCE_MULTIPLIER;
-  const targetScale = Math.max(1.25, coverScale);
 
   const zoomEase = smootherstep(0, 0.86, progress);
   const centerEase = smoothstep(0, 0.68, progress);
@@ -246,13 +249,13 @@ export function deriveMacPortalDivePose(
   const deltaX = targetX - input.screen.centerX;
   const deltaY = targetY - input.screen.centerY;
 
-  const copyFade = smoothstep(0.02, 0.34, progress);
-  const dockFade = smoothstep(0.0, 0.26, progress);
-  const baseFade = smoothstep(0.16, 0.58, progress);
-  const portalScreenOpacity = smoothstep(0.16, 0.66, progress);
-  const snowVeilOpacity = smoothstep(0.64, 0.86, progress);
+  const copyFade = smoothstep(0.02, 0.32, progress);
+  const dockFade = smoothstep(0.0, 0.24, progress);
+  const baseFade = smoothstep(0.14, 0.54, progress);
+  const portalScreenOpacity = smoothstep(0.05, 0.36, progress);
+  const proposalFollowWeight = smoothstep(0.72, 0.9, progress);
+  const studioOpacity = 1 - smoothstep(0.9, 0.98, progress);
   const screenCornerRadiusScale = 1 - smoothstep(0.54, 0.84, progress);
-  const portalIntroScale = 0.92 + 0.08 * smoothstep(0.2, 0.86, progress);
 
   return {
     phase: progress >= 0.86 ? "immersed" : "diving",
@@ -260,15 +263,16 @@ export function deriveMacPortalDivePose(
     translateX: deltaX * centerEase,
     translateY: deltaY * centerEase,
     scale,
+    targetScale,
     lidTiltProgress: 1,
     copyOpacity: 1 - copyFade,
     copyShiftY: -28 * copyFade,
     dockOpacity: 1 - dockFade,
     baseOpacity: 1 - baseFade,
     portalScreenOpacity,
-    snowVeilOpacity,
+    proposalFollowWeight,
+    studioOpacity,
     screenCornerRadiusScale,
-    portalIntroScale,
     uiInteractive: progress < 0.08,
   };
 }

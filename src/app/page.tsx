@@ -23,7 +23,7 @@ export default function HomePage() {
           hero={content.hero}
           experience={content.experience}
           products={content.products}
-          proposalIntro={content.proposal.intro}
+          proposal={content.proposal}
         />
 
         <section

@@ -94,7 +94,7 @@ describe("deriveMacPortalDivePose", () => {
   const viewport = { width: 1440, height: 900 };
   const screen = { centerX: 980, centerY: 470, width: 640, height: 400 };
 
-  it("clears viewport bounds by progress 0.86 and settles snowVeilOpacity for seamless handoff", () => {
+  it("shows Section 4 inside the monitor early, reaches 1:1 targetScale by 0.86, and hands off cleanly to live #proposal", () => {
     const start = deriveMacPortalDivePose({
       viewport,
       screen,
@@ -103,39 +103,48 @@ describe("deriveMacPortalDivePose", () => {
     });
     expect(start.phase).toBe("browsing");
     expect(start.scale).toBe(1);
+    expect(start.targetScale).toBeGreaterThan(2);
     expect(start.uiInteractive).toBe(true);
     expect(start.portalScreenOpacity).toBe(0);
-    expect(start.snowVeilOpacity).toBe(0);
+    expect(start.studioOpacity).toBe(1);
     expect(start.screenCornerRadiusScale).toBe(1);
 
     const mid = deriveMacPortalDivePose({
       viewport,
       screen,
-      rawProgress: 0.5,
+      rawProgress: 0.4,
       reducedMotion: false,
     });
     expect(mid.phase).toBe("diving");
-    expect(mid.scale).toBeGreaterThan(1.4);
+    expect(mid.scale).toBeGreaterThan(1.3);
     expect(mid.uiInteractive).toBe(false);
     expect(mid.copyOpacity).toBe(0);
-    expect(mid.portalScreenOpacity).toBeGreaterThan(0.5);
+    expect(mid.portalScreenOpacity).toBe(1);
+    expect(mid.studioOpacity).toBe(1);
 
     const handoffReady = deriveMacPortalDivePose({
       viewport,
       screen,
       targetCenter: { x: 720, y: 822 },
-      rawProgress: 0.86,
+      rawProgress: 0.9,
       reducedMotion: false,
     });
     expect(handoffReady.phase).toBe("immersed");
+    expect(handoffReady.scale).toBeCloseTo(handoffReady.targetScale, 5);
     expect(screen.width * handoffReady.scale).toBeGreaterThan(viewport.width);
     expect(screen.height * handoffReady.scale).toBeGreaterThan(viewport.height);
     expect(screen.centerX + handoffReady.translateX).toBeCloseTo(720, 5);
     expect(screen.centerY + handoffReady.translateY).toBeCloseTo(822, 5);
-    expect(handoffReady.snowVeilOpacity).toBe(1);
+    expect(handoffReady.proposalFollowWeight).toBe(1);
     expect(handoffReady.screenCornerRadiusScale).toBe(0);
-    expect(handoffReady.portalScreenOpacity).toBe(1);
-    expect(handoffReady.portalIntroScale).toBeCloseTo(1, 5);
+
+    const end = deriveMacPortalDivePose({
+      viewport,
+      screen,
+      rawProgress: 1,
+      reducedMotion: false,
+    });
+    expect(end.studioOpacity).toBe(0);
   });
 
   it("bypasses camera zoom when reducedMotion is enabled and validates inputs", () => {
