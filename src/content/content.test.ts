@@ -57,8 +57,11 @@ describe("getSiteContent", () => {
       "taiwan-teaching",
     ]);
     expect(content.experience.items[0].logoSrc).toBe("/resume/jobs/beacon.webp");
+    expect(content.experience.items[0].bullets).toHaveLength(4);
+    expect(content.experience.items[1].bullets).toHaveLength(5);
     expect(content.experience.items[2].logoSrc).toBeUndefined();
     expect(content.experience.items[2].fallbackMark).toBe("HT");
+    expect(content.experience.items[9].bullets).toHaveLength(2);
 
     expect(content.products.items.map((item) => item.id)).toEqual([
       "beacon",
@@ -114,6 +117,28 @@ describe("parseSiteContent validation", () => {
     ).products.beacon.siteUrl = "javascript:alert(1)";
     expect(() => parseSiteContent(unsafeProtocol)).toThrow(
       "site.products.beacon.siteUrl must use http or https protocol"
+    );
+  });
+
+  it("rejects empty or blank experience bullet arrays", () => {
+    const emptyBullets = createValidRawInput();
+    (
+      emptyBullets.bundle.experience as {
+        items: Array<{ bullets: string[] }>;
+      }
+    ).items[0].bullets = [];
+    expect(() => parseSiteContent(emptyBullets)).toThrow(
+      "experience.items[0].bullets must contain at least one entry"
+    );
+
+    const blankBullet = createValidRawInput();
+    (
+      blankBullet.bundle.experience as {
+        items: Array<{ bullets: string[] }>;
+      }
+    ).items[0].bullets = ["   "];
+    expect(() => parseSiteContent(blankBullet)).toThrow(
+      "experience.items[0].bullets[0] must be a non-empty string"
     );
   });
 

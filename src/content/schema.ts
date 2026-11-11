@@ -102,7 +102,7 @@ export interface ExperienceItem {
   readonly company: string;
   readonly role: string;
   readonly period: string;
-  readonly note: string;
+  readonly bullets: readonly string[];
   readonly logoSrc?: string;
   readonly fallbackMark: string;
 }
@@ -571,6 +571,24 @@ function parseExperienceContent(
 
   const parsedLocaleItems = rawItems.map((itemRaw, index) => {
     const item = assertRecord(itemRaw, `experience.items[${index}]`);
+    const rawBullets = assertArray(
+      item.bullets,
+      `experience.items[${index}].bullets`
+    );
+    if (rawBullets.length === 0) {
+      throw new Error(
+        `experience.items[${index}].bullets must contain at least one entry`
+      );
+    }
+    const bullets = rawBullets.map((bulletRaw, bulletIndex) => {
+      if (typeof bulletRaw !== "string" || bulletRaw.trim().length === 0) {
+        throw new Error(
+          `experience.items[${index}].bullets[${bulletIndex}] must be a non-empty string`
+        );
+      }
+      return bulletRaw;
+    });
+
     return {
       id: assertSlug(item.id, `experience.items[${index}].id`),
       company: assertNonEmptyString(
@@ -582,7 +600,7 @@ function parseExperienceContent(
         item.period,
         `experience.items[${index}].period`
       ),
-      note: assertNonEmptyString(item.note, `experience.items[${index}].note`),
+      bullets,
     };
   });
 

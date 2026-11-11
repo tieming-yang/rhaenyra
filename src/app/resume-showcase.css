@@ -564,6 +564,10 @@
   backface-visibility: hidden;
 }
 
+.resume-job-face[aria-hidden="true"] {
+  pointer-events: none;
+}
+
 .resume-job-face::before {
   position: absolute;
   top: 0.32rem;
@@ -630,8 +634,7 @@
 }
 
 .resume-job-role,
-.resume-job-period,
-.resume-job-note {
+.resume-job-period {
   display: block;
   color: var(--muted-foreground);
   font-size: 0.72rem;
@@ -639,19 +642,78 @@
 }
 
 .resume-job-back {
-  gap: 0.55rem;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  align-content: stretch;
+  gap: 0.42rem;
+  overflow: hidden;
   background: linear-gradient(150deg, var(--card), var(--accent));
   transform: rotateY(180deg);
 }
 
 .resume-job-back .resume-job-name {
-  margin-top: 0.3rem;
+  margin-top: 0.25rem;
 }
 
-.resume-job-note {
-  margin-top: 0.25rem;
-  padding-top: 0.5rem;
+.resume-job-bullets-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: 0.15rem;
   border-top: 1px solid var(--border);
+}
+
+.resume-job-bullets-wrap[data-has-more]::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1.35rem;
+  background: linear-gradient(to bottom, transparent, var(--accent));
+  pointer-events: none;
+  content: "";
+}
+
+.resume-job-bullets {
+  display: grid;
+  align-content: start;
+  gap: 0.42rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0.48rem 0.2rem 0.4rem 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sakura-petal) transparent;
+}
+
+.resume-job-bullets::-webkit-scrollbar {
+  width: 4px;
+}
+
+.resume-job-bullets::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.resume-job-bullets::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--sakura-petal);
+}
+
+.resume-job-bullet {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.34rem;
+  color: var(--muted-foreground);
+  font-size: 0.69rem;
+  line-height: 1.48;
+}
+
+.resume-job-bullet::before {
+  color: var(--sakura, var(--primary));
+  font-weight: 700;
+  content: "•";
 }
 
 .resume-desk-next {

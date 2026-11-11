@@ -2,7 +2,13 @@
 
 import Image from "next/image";
 import { Layers } from "lucide-react";
-import { type CSSProperties, useLayoutEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   formatContentTemplate,
   type ExperienceSectionContent,
@@ -12,8 +18,52 @@ interface ResumeJobDeckProps {
   readonly content: ExperienceSectionContent;
 }
 
+function JobCardBullets({
+  bullets,
+}: {
+  readonly bullets: readonly string[];
+}) {
+  const scrollRef = useRef<HTMLSpanElement>(null);
+  const [hasMoreBelow, setHasMoreBelow] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const syncScrollCue = () => {
+      const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setHasMoreBelow(remaining > 3);
+    };
+
+    const observer = new ResizeObserver(syncScrollCue);
+    observer.observe(el);
+    el.addEventListener("scroll", syncScrollCue, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      el.removeEventListener("scroll", syncScrollCue);
+    };
+  }, [bullets]);
+
+  return (
+    <span
+      className="resume-job-bullets-wrap"
+      data-has-more={hasMoreBelow ? "" : undefined}
+    >
+      <span className="resume-job-bullets" role="list" ref={scrollRef}>
+        {bullets.map((bullet) => (
+          <span className="resume-job-bullet" role="listitem" key={bullet}>
+            {bullet}
+          </span>
+        ))}
+      </span>
+    </span>
+  );
+}
+
 export function ResumeJobDeck({ content }: ResumeJobDeckProps) {
   const listRef = useRef<HTMLOListElement>(null);
+  const pointerOriginRef = useRef<{ x: number; y: number } | null>(null);
   const [flipped, setFlipped] = useState<ReadonlySet<string>>(new Set());
   const [flipDelays, setFlipDelays] = useState<ReadonlyMap<string, number>>(new Map());
   const allFlipped = flipped.size === content.items.length;
@@ -100,7 +150,26 @@ export function ResumeJobDeck({ content }: ResumeJobDeckProps) {
                   )}
                   aria-describedby={face}
                   aria-pressed={isFlipped}
-                  onClick={() => flip(job.id)}
+                  onPointerDown={(event) => {
+                    pointerOriginRef.current = {
+                      x: event.clientX,
+                      y: event.clientY,
+                    };
+                  }}
+                  onClick={(event) => {
+                    const origin = pointerOriginRef.current;
+                    pointerOriginRef.current = null;
+                    if (
+                      origin &&
+                      Math.hypot(
+                        event.clientX - origin.x,
+                        event.clientY - origin.y
+                      ) > 8
+                    ) {
+                      return;
+                    }
+                    flip(job.id);
+                  }}
                 >
                   <span className="resume-job-flip" data-flipped={isFlipped ? "" : undefined}>
                     <span
@@ -131,7 +200,7 @@ export function ResumeJobDeck({ content }: ResumeJobDeckProps) {
                       <span className="resume-job-num">{content.backCardLabel} <span>{String(number).padStart(2, "0")}</span></span>
                       <span className="resume-job-name">{job.company}</span>
                       <span className="resume-job-period">{job.period}</span>
-                      <span className="resume-job-note">{job.note}</span>
+                      <JobCardBullets bullets={job.bullets} />
                     </span>
                   </span>
                 </button>
