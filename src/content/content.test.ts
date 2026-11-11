@@ -41,7 +41,7 @@ describe("getSiteContent", () => {
       hero: "簡介",
       "job-desk": "經歷",
       "product-cases": "產品",
-      proposal: "提案",
+      proposal: "自我推薦",
     });
 
     expect(content.experience.items.map((item) => item.id)).toEqual([

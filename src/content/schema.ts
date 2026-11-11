@@ -247,8 +247,8 @@ function assertArray(value: unknown, path: string): readonly unknown[] {
 }
 
 function assertNonEmptyString(value: unknown, path: string): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`${path} must be a non-empty string`);
+  if (typeof value !== "string") {
+    throw new Error(`${path} must be a string`);
   }
   return value;
 }

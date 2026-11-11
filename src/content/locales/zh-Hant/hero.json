@@ -3,12 +3,12 @@
     "eyebrow": "PROFILE / Jstyle北海道株式会社",
     "headline": "梁紓寧",
     "tagline": "把想法做成產品。",
-    "positioning": "數位產品管理 × AI 營運自動化 × 零廣告自然成長",
-    "summary": "具備從 0 到 1 產品打造、AI 客服與 n8n 自動化建置、GA4/GTM 數據實驗，以及 54 天零廣告破萬下載、140 萬瀏覽的實戰經驗。熟悉前端工程與 UI/UX 設計系統，並擁有台美兩地實體授課與跨部門帶領經驗，能無縫串聯 Jstyle 在地旅遊、租車、滑雪三大事業與華語旅客數位體驗。",
+    "positioning": "產品管理 × AI 營運自動化 × 品牌成長",
+    "summary": "具備從 0 到 1 產品打造、AI 客服與自動化建置、GA4/GTM 數據實驗，以及 54 天零廣告破萬下載、140 萬瀏覽的實戰經驗。熟悉前端工程與 UI/UX 設計系統，並擁有台美兩地實體授課與跨部門帶領經驗。",
     "watermark": "Rhaenyra Liang",
     "sectionNavAriaLabel": "履歷內容",
-    "experienceLinkLabel": "工作與實習",
-    "productsLinkLabel": "產品案例"
+    "experienceLinkLabel": "",
+    "productsLinkLabel": ""
   },
   "badge": {
     "groupAriaLabel": "Rhaenyra Liang 個人名牌",
@@ -25,7 +25,7 @@
       "topLabel": "CONTACT",
       "numberLabel": "#01",
       "name": "Rhaenyra Liang",
-      "positioning": "數位產品管理 × AI 營運自動化 × 零廣告自然成長",
+      "positioning": "產品管理 × AI 營運自動化 × 零廣告自然成長",
       "emailLabel": "EMAIL",
       "resumeLabel": "RÉSUMÉ",
       "openPdfLabel": "開啟 PDF",

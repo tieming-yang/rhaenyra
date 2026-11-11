@@ -321,8 +321,8 @@ export function ResumeShowcase({
           <div className="resume-cover-aside">
             <p>{hero.cover.summary}</p>
             <nav aria-label={hero.cover.sectionNavAriaLabel}>
-              <a href="#job-desk">{hero.cover.experienceLinkLabel} <ArrowDown aria-hidden="true" /></a>
-              <a href="#product-cases">{hero.cover.productsLinkLabel} <ArrowDown aria-hidden="true" /></a>
+              {/*<a href="#job-desk">{hero.cover.experienceLinkLabel} <ArrowDown aria-hidden="true" /></a>*/}
+              {/*<a href="#product-cases">{hero.cover.productsLinkLabel} <ArrowDown aria-hidden="true" /></a>*/}
             </nav>
           </div>
 
