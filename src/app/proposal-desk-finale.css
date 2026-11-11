@@ -2,15 +2,14 @@
 
 main#profile > section.interview-run {
   position: relative;
-  z-index: 3;
+  z-index: 2;
   border-top: 0;
   background: var(--background);
 }
 
 @media (prefers-reduced-motion: no-preference) {
   main#profile > section.interview-run {
-    margin-top: -20svh;
-    background: linear-gradient(180deg, transparent 0, var(--background) 14svh);
+    margin-top: -100svh;
   }
 }
 
@@ -23,7 +22,7 @@ main#profile > section.interview-run {
 
 @media (prefers-reduced-motion: no-preference) {
   .desk-finale-rail {
-    min-height: 270svh;
+    min-height: 215svh;
   }
 }
 

@@ -86,13 +86,14 @@ export function ProposalDeskFinale({
       const screenHeight = macSlot.offsetHeight;
       if (railRect.height <= 0 || screenWidth <= 0 || screenHeight <= 0) return;
 
+      const earlyLeadPx = viewportHeight * 0.26;
       const rawProgress = reduce.matches
         ? 1
         : resolveStickyRailProgress({
-            railTopPx: railRect.top,
-            railHeightPx: railRect.height,
+            railTopPx: railRect.top - earlyLeadPx,
+            railHeightPx: railRect.height + earlyLeadPx,
             viewportHeightPx: viewportHeight,
-            startDwellRatio: 0.04,
+            startDwellRatio: 0,
           });
 
       const pose = deriveDeskFinalePose({
